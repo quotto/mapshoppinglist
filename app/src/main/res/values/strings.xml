@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">買い忘れ防止リスト</string>
+    <string name="shopping_list_filter_purchased">購入済みを表示</string>
+    <string name="shopping_list_purchased_header">購入済み</string>
+    <string name="shopping_list_empty_title">未購入アイテムはありません</string>
+    <string name="shopping_list_empty_message">右下の＋ボタンから追加できます</string>
+    <string name="shopping_list_linked_places_count">紐づくお店: %1$d件</string>
+    <string name="shopping_list_add_item">アイテム追加</string>
+</resources>

@@ -1,0 +1,64 @@
+# Android/Gradle
+.gradle/
+build/
+**/build/
+
+# Local configuration
+local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Artifacts
+*.apk
+*.aar
+*.ap_
+*.aab
+
+# VM / classes
+*.dex
+*.class
+
+# Legacy/Generated
+bin/
+gen/
+out/
+
+# NDK / CMake
+.externalNativeBuild/
+.cxx/
+
+# Logs
+*.log
+
+# Proguard/Eclipse
+proguard/
+
+# Keystores (do not commit signing keys)
+*.jks
+*.keystore
+
+# Captures
+captures/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
+# Misc editors
+.vscode/
+
+# Kotlin/Annotation processing caches
+.kotlinc/
+.annotation-processors/
+
+docs/tasks.md
