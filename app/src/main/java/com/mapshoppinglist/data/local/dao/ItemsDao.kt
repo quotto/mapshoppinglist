@@ -50,4 +50,11 @@ interface ItemsDao {
             "WHERE ip.place_id = :placeId AND i.is_purchased = 0"
     )
     suspend fun loadNotPurchasedByPlace(placeId: Long): List<ItemEntity>
+
+    @Query(
+        "UPDATE items SET is_purchased = 1, updated_at = :updatedAt " +
+            "WHERE id IN (SELECT item_id FROM item_place WHERE place_id = :placeId) " +
+            "AND is_purchased = 0"
+    )
+    suspend fun markPurchasedByPlace(placeId: Long, updatedAt: Long): Int
 }

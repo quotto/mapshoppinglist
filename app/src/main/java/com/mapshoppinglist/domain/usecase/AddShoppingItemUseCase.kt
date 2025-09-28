@@ -8,7 +8,7 @@ import com.mapshoppinglist.domain.repository.ShoppingListRepository
 class AddShoppingItemUseCase(
     private val repository: ShoppingListRepository
 ) {
-    suspend operator fun invoke(title: String, note: String?) {
-        repository.addItem(title = title, note = note)
+    suspend operator fun invoke(title: String, note: String?): Long {
+        return repository.addItem(title = title, note = note)
     }
 }

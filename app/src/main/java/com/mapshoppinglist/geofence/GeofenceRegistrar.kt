@@ -2,6 +2,7 @@ package com.mapshoppinglist.geofence
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.util.Log
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingClient
 import com.google.android.gms.location.GeofencingRequest
@@ -22,10 +23,12 @@ class GeofenceRegistrar(
     @SuppressLint("MissingPermission")
     suspend fun applyPlan(plan: GeofenceSyncPlan) {
         if (plan.toRemoveRequestIds.isNotEmpty()) {
+            Log.d("GeofenceRegistrar", "Removing geofences: ${plan.toRemoveRequestIds}")
             geofencingClient.removeGeofences(plan.toRemoveRequestIds).await()
         }
         if (plan.toAdd.isNotEmpty()) {
             val request = buildRequest(plan.toAdd)
+            Log.d("GeofenceRegistrar", "Adding geofences: ${plan.toAdd.map { it.requestId }}")
             geofencingClient.addGeofences(request, pendingIntentProvider.get()).await()
         }
     }

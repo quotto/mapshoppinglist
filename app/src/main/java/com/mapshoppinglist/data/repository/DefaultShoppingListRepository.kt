@@ -29,10 +29,10 @@ class DefaultShoppingListRepository(
         }
     }
 
-    override suspend fun addItem(title: String, note: String?) {
+    override suspend fun addItem(title: String, note: String?): Long {
         require(title.isNotBlank()) { "title must not be blank" }
         val now = System.currentTimeMillis()
-        withContext(ioDispatcher) {
+        val itemId = withContext(ioDispatcher) {
             val normalizedTitle = title.trim()
             if (itemsDao.countByTitle(normalizedTitle) > 0) {
                 throw DuplicateItemException()
@@ -47,6 +47,7 @@ class DefaultShoppingListRepository(
             itemsDao.insert(entity)
         }
         geofenceSyncScheduler.scheduleImmediateSync()
+        return itemId
     }
 
     override suspend fun updatePurchasedState(itemId: Long, isPurchased: Boolean) {
@@ -73,6 +74,14 @@ class DefaultShoppingListRepository(
         itemsDao.loadNotPurchasedByPlace(placeId).map { entity ->
             entity.toDomain(linkedPlaceCount = 0)
         }
+    }
+
+    override suspend fun markPlaceItemsPurchased(placeId: Long) {
+        val now = System.currentTimeMillis()
+        withContext(ioDispatcher) {
+            itemsDao.markPurchasedByPlace(placeId, now)
+        }
+        geofenceSyncScheduler.scheduleImmediateSync()
     }
 
     private fun ItemEntity.toDomain(linkedPlaceCount: Int): ShoppingItem {

@@ -28,6 +28,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -43,11 +44,22 @@ import com.mapshoppinglist.R
 import com.mapshoppinglist.ui.theme.MapShoppingListTheme
 
 @Composable
-fun ShoppingListRoute() {
+fun ShoppingListRoute(
+    onAddPlaceRequest: () -> Unit = {},
+    newPlaceId: Long? = null,
+    onNewPlaceConsumed: () -> Unit = {}
+) {
     val context = LocalContext.current.applicationContext as MapShoppingListApplication
     val factory = remember(context) { ShoppingListViewModelFactory(context) }
     val viewModel: ShoppingListViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(newPlaceId) {
+        if (newPlaceId != null) {
+            viewModel.onPlaceRegistered(newPlaceId)
+            onNewPlaceConsumed()
+        }
+    }
 
     ShoppingListScreen(
         uiState = uiState,
@@ -57,7 +69,11 @@ fun ShoppingListRoute() {
         onAddDialogDismiss = viewModel::onAddDialogDismiss,
         onAddDialogConfirm = viewModel::onAddConfirm,
         onTitleInputChange = viewModel::onTitleInputChange,
-        onNoteInputChange = viewModel::onNoteInputChange
+        onNoteInputChange = viewModel::onNoteInputChange,
+        onAddPlaceRequest = {
+            onAddPlaceRequest()
+        },
+        onRemovePendingPlace = viewModel::onRemovePendingPlace
     )
 }
 
@@ -72,6 +88,8 @@ fun ShoppingListScreen(
     onAddDialogConfirm: () -> Unit,
     onTitleInputChange: (String) -> Unit,
     onNoteInputChange: (String) -> Unit,
+    onAddPlaceRequest: () -> Unit,
+    onRemovePendingPlace: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -110,7 +128,10 @@ fun ShoppingListScreen(
             onTitleInputChange = onTitleInputChange,
             onNoteInputChange = onNoteInputChange,
             onDismiss = onAddDialogDismiss,
-            onConfirm = onAddDialogConfirm
+            onConfirm = onAddDialogConfirm,
+            onAddPlaceRequest = onAddPlaceRequest,
+            pendingPlaces = uiState.pendingPlaces,
+            onRemovePendingPlace = onRemovePendingPlace
         )
     }
 }
@@ -253,7 +274,10 @@ private fun AddItemDialog(
     onTitleInputChange: (String) -> Unit,
     onNoteInputChange: (String) -> Unit,
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit
+    onConfirm: () -> Unit,
+    onAddPlaceRequest: () -> Unit,
+    pendingPlaces: List<PendingPlaceUiModel>,
+    onRemovePendingPlace: (Long) -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -287,6 +311,25 @@ private fun AddItemDialog(
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall
                     )
+                }
+                if (pendingPlaces.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(text = stringResource(R.string.shopping_list_linked_places_header), style = MaterialTheme.typography.titleSmall)
+                        pendingPlaces.forEach { place ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(text = place.name, modifier = Modifier.weight(1f))
+                                TextButton(onClick = { onRemovePendingPlace(place.placeId) }) {
+                                    Text(text = stringResource(R.string.shopping_list_remove_place))
+                                }
+                            }
+                        }
+                    }
+                }
+                TextButton(onClick = onAddPlaceRequest) {
+                    Text(text = stringResource(id = R.string.shopping_list_add_place))
                 }
             }
         },
@@ -324,7 +367,9 @@ private fun ShoppingListScreenPreview() {
             onAddDialogDismiss = {},
             onAddDialogConfirm = {},
             onTitleInputChange = {},
-            onNoteInputChange = {}
+            onNoteInputChange = {},
+            onAddPlaceRequest = {},
+            onRemovePendingPlace = {}
         )
     }
 }

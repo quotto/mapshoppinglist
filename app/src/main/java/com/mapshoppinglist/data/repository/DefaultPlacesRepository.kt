@@ -1,5 +1,6 @@
 package com.mapshoppinglist.data.repository
 
+import android.util.Log
 import com.mapshoppinglist.data.local.dao.ItemPlaceDao
 import com.mapshoppinglist.data.local.dao.ItemsDao
 import com.mapshoppinglist.data.local.dao.PlacesDao
@@ -54,6 +55,7 @@ class DefaultPlacesRepository(
     }
 
     override suspend fun linkItemToPlace(placeId: Long, itemId: Long) {
+        Log.d("DefaultPlacesRepo", "Linking item $itemId to place $placeId")
         withContext(ioDispatcher) {
             itemPlaceDao.insertLink(ItemPlaceCrossRef(itemId = itemId, placeId = placeId))
             refreshActiveState(placeId)

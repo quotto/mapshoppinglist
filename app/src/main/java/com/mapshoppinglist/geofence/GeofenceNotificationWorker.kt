@@ -22,12 +22,17 @@ class GeofenceNotificationWorker(
         if (placeIds.isEmpty()) {
             return@withContext Result.success()
         }
+        val now = System.currentTimeMillis()
         placeIds.forEach { placeId ->
             val place = app.placesRepository.findById(placeId) ?: return@forEach
+            if (!app.shouldSendNotificationUseCase(placeId, now)) {
+                return@forEach
+            }
             val items = app.shoppingListRepository.getItemsForPlace(placeId)
             if (items.isEmpty()) return@forEach
             val message = app.buildNotificationMessageUseCase.invoke(place.name, items)
             app.notificationSender.showPlaceReminder(placeId, message)
+            app.recordPlaceNotificationUseCase(placeId, now)
         }
         return@withContext Result.success()
     }

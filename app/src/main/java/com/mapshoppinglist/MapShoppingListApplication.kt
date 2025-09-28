@@ -1,8 +1,10 @@
 package com.mapshoppinglist
 
 import android.app.Application
+import com.google.android.libraries.places.api.Places
 import com.mapshoppinglist.data.local.AppDatabase
 import com.mapshoppinglist.data.repository.DefaultGeofenceRegistryRepository
+import com.mapshoppinglist.data.repository.DefaultNotificationStateRepository
 import com.mapshoppinglist.data.repository.DefaultPlacesRepository
 import com.mapshoppinglist.data.repository.DefaultShoppingListRepository
 import com.mapshoppinglist.geofence.GeofencePendingIntentProvider
@@ -11,20 +13,36 @@ import com.mapshoppinglist.geofence.GeofenceSyncCoordinator
 import com.mapshoppinglist.geofence.GeofenceSyncScheduler
 import com.mapshoppinglist.notification.NotificationSender
 import com.mapshoppinglist.domain.repository.GeofenceRegistryRepository
+import com.mapshoppinglist.domain.repository.NotificationStateRepository
 import com.mapshoppinglist.domain.repository.PlacesRepository
 import com.mapshoppinglist.domain.repository.ShoppingListRepository
 import com.mapshoppinglist.domain.usecase.AddShoppingItemUseCase
-import com.mapshoppinglist.domain.usecase.DeleteShoppingItemUseCase
 import com.mapshoppinglist.domain.usecase.BuildGeofenceSyncPlanUseCase
-import com.mapshoppinglist.domain.usecase.ValidatePlaceRegistrationUseCase
-import com.mapshoppinglist.domain.usecase.ObserveShoppingItemsUseCase
-import com.mapshoppinglist.domain.usecase.UpdatePurchasedStateUseCase
 import com.mapshoppinglist.domain.usecase.BuildNotificationMessageUseCase
+import com.mapshoppinglist.domain.usecase.CreatePlaceUseCase
+import com.mapshoppinglist.domain.usecase.DeletePlaceUseCase
+import com.mapshoppinglist.domain.usecase.DeleteShoppingItemUseCase
+import com.mapshoppinglist.domain.usecase.LinkItemToPlaceUseCase
+import com.mapshoppinglist.domain.usecase.MarkPlaceItemsPurchasedUseCase
+import com.mapshoppinglist.domain.usecase.ObserveShoppingItemsUseCase
+import com.mapshoppinglist.domain.usecase.RecordPlaceNotificationUseCase
+import com.mapshoppinglist.domain.usecase.ShouldSendNotificationUseCase
+import com.mapshoppinglist.domain.usecase.SnoozePlaceNotificationsUseCase
+import com.mapshoppinglist.domain.usecase.UnlinkItemFromPlaceUseCase
+import com.mapshoppinglist.domain.usecase.UpdatePurchasedStateUseCase
+import com.mapshoppinglist.domain.usecase.ValidatePlaceRegistrationUseCase
 
 /**
  * アプリケーション全体の初期化を担当するクラス。
  */
 class MapShoppingListApplication : Application() {
+
+    override fun onCreate() {
+        super.onCreate()
+        if (!Places.isInitialized()) {
+            Places.initialize(applicationContext, getString(R.string.google_maps_key))
+        }
+    }
     /**
      * Roomデータベースをアプリ共通の依存として遅延初期化する。
      */
@@ -53,6 +71,12 @@ class MapShoppingListApplication : Application() {
     val geofenceRegistryRepository: GeofenceRegistryRepository by lazy {
         DefaultGeofenceRegistryRepository(
             geofenceRegistryDao = database.geofenceRegistryDao()
+        )
+    }
+
+    val notificationStateRepository: NotificationStateRepository by lazy {
+        DefaultNotificationStateRepository(
+            notifyStateDao = database.notifyStateDao()
         )
     }
 
@@ -117,32 +141,48 @@ class MapShoppingListApplication : Application() {
         NotificationSender(this)
     }
 
-    val createPlaceUseCase: com.mapshoppinglist.domain.usecase.CreatePlaceUseCase by lazy {
-        com.mapshoppinglist.domain.usecase.CreatePlaceUseCase(
+    val markPlaceItemsPurchasedUseCase: MarkPlaceItemsPurchasedUseCase by lazy {
+        MarkPlaceItemsPurchasedUseCase(shoppingListRepository)
+    }
+
+    val createPlaceUseCase: CreatePlaceUseCase by lazy {
+        CreatePlaceUseCase(
             validatePlaceRegistrationUseCase = validatePlaceRegistrationUseCase,
             placesRepository = placesRepository,
             geofenceSyncScheduler = geofenceSyncScheduler
         )
     }
 
-    val deletePlaceUseCase: com.mapshoppinglist.domain.usecase.DeletePlaceUseCase by lazy {
-        com.mapshoppinglist.domain.usecase.DeletePlaceUseCase(
+    val deletePlaceUseCase: DeletePlaceUseCase by lazy {
+        DeletePlaceUseCase(
             placesRepository = placesRepository,
             geofenceSyncScheduler = geofenceSyncScheduler
         )
     }
 
-    val linkItemToPlaceUseCase: com.mapshoppinglist.domain.usecase.LinkItemToPlaceUseCase by lazy {
-        com.mapshoppinglist.domain.usecase.LinkItemToPlaceUseCase(
+    val linkItemToPlaceUseCase: LinkItemToPlaceUseCase by lazy {
+        LinkItemToPlaceUseCase(
             placesRepository = placesRepository,
             geofenceSyncScheduler = geofenceSyncScheduler
         )
     }
 
-    val unlinkItemFromPlaceUseCase: com.mapshoppinglist.domain.usecase.UnlinkItemFromPlaceUseCase by lazy {
-        com.mapshoppinglist.domain.usecase.UnlinkItemFromPlaceUseCase(
+    val unlinkItemFromPlaceUseCase: UnlinkItemFromPlaceUseCase by lazy {
+        UnlinkItemFromPlaceUseCase(
             placesRepository = placesRepository,
             geofenceSyncScheduler = geofenceSyncScheduler
         )
+    }
+
+    val snoozePlaceNotificationsUseCase: SnoozePlaceNotificationsUseCase by lazy {
+        SnoozePlaceNotificationsUseCase(notificationStateRepository)
+    }
+
+    val shouldSendNotificationUseCase: ShouldSendNotificationUseCase by lazy {
+        ShouldSendNotificationUseCase(notificationStateRepository)
+    }
+
+    val recordPlaceNotificationUseCase: RecordPlaceNotificationUseCase by lazy {
+        RecordPlaceNotificationUseCase(notificationStateRepository)
     }
 }

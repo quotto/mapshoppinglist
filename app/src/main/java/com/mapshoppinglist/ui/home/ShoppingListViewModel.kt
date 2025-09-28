@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mapshoppinglist.domain.exception.DuplicateItemException
 import com.mapshoppinglist.domain.model.ShoppingItem
+import com.mapshoppinglist.domain.repository.PlacesRepository
 import com.mapshoppinglist.domain.usecase.AddShoppingItemUseCase
 import com.mapshoppinglist.domain.usecase.DeleteShoppingItemUseCase
+import com.mapshoppinglist.domain.usecase.LinkItemToPlaceUseCase
 import com.mapshoppinglist.domain.usecase.ObserveShoppingItemsUseCase
+import com.mapshoppinglist.domain.usecase.UnlinkItemFromPlaceUseCase
 import com.mapshoppinglist.domain.usecase.UpdatePurchasedStateUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,7 +24,10 @@ class ShoppingListViewModel(
     private val observeShoppingItems: ObserveShoppingItemsUseCase,
     private val addShoppingItem: AddShoppingItemUseCase,
     private val deleteShoppingItem: DeleteShoppingItemUseCase,
-    private val updatePurchasedState: UpdatePurchasedStateUseCase
+    private val updatePurchasedState: UpdatePurchasedStateUseCase,
+    private val linkItemToPlaceUseCase: LinkItemToPlaceUseCase,
+    private val unlinkItemFromPlaceUseCase: UnlinkItemFromPlaceUseCase,
+    private val placesRepository: PlacesRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ShoppingListUiState())
@@ -83,7 +89,11 @@ class ShoppingListViewModel(
         }
         viewModelScope.launch {
             try {
-                addShoppingItem(title, note)
+                val itemId = addShoppingItem(title, note)
+                val pendingPlaces = uiState.value.pendingPlaces
+                pendingPlaces.forEach { place ->
+                    linkItemToPlaceUseCase(itemId = itemId, placeId = place.placeId)
+                }
                 _uiState.update { it.resetInput() }
             } catch (error: Exception) {
                 when (error) {
@@ -110,6 +120,24 @@ class ShoppingListViewModel(
         }
     }
 
+    fun onPlaceRegistered(placeId: Long) {
+        viewModelScope.launch {
+            val place = placesRepository.findById(placeId) ?: return@launch
+            _uiState.update { state ->
+                if (state.pendingPlaces.any { it.placeId == placeId }) state
+                else state.copy(
+                    pendingPlaces = state.pendingPlaces + PendingPlaceUiModel(placeId, place.name)
+                )
+            }
+        }
+    }
+
+    fun onRemovePendingPlace(placeId: Long) {
+        _uiState.update { state ->
+            state.copy(pendingPlaces = state.pendingPlaces.filterNot { it.placeId == placeId })
+        }
+    }
+
     private fun ShoppingItem.toUiModel(): ShoppingItemUiModel {
         return ShoppingItemUiModel(
             id = id,
@@ -126,7 +154,8 @@ class ShoppingListViewModel(
             inputTitle = "",
             inputNote = "",
             showTitleValidationError = false,
-            addDialogErrorMessage = null
+            addDialogErrorMessage = null,
+            pendingPlaces = emptyList()
         )
     }
 }
@@ -142,7 +171,8 @@ data class ShoppingListUiState(
     val inputTitle: String = "",
     val inputNote: String = "",
     val showTitleValidationError: Boolean = false,
-    val addDialogErrorMessage: String? = null
+    val addDialogErrorMessage: String? = null,
+    val pendingPlaces: List<PendingPlaceUiModel> = emptyList()
 )
 
 /**
@@ -154,4 +184,9 @@ data class ShoppingItemUiModel(
     val note: String?,
     val linkedPlaceCount: Int,
     val isPurchased: Boolean
+)
+
+data class PendingPlaceUiModel(
+    val placeId: Long,
+    val name: String
 )

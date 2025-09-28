@@ -16,7 +16,10 @@ class ShoppingListViewModelFactory(
                 observeShoppingItems = application.observeShoppingItemsUseCase,
                 addShoppingItem = application.addShoppingItemUseCase,
                 deleteShoppingItem = application.deleteShoppingItemUseCase,
-                updatePurchasedState = application.updatePurchasedStateUseCase
+                updatePurchasedState = application.updatePurchasedStateUseCase,
+                linkItemToPlaceUseCase = application.linkItemToPlaceUseCase,
+                unlinkItemFromPlaceUseCase = application.unlinkItemFromPlaceUseCase,
+                placesRepository = application.placesRepository
             )
             @Suppress("UNCHECKED_CAST")
             return viewModel as T

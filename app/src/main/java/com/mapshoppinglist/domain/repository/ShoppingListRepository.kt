@@ -15,7 +15,7 @@ interface ShoppingListRepository {
     /**
      * 新しいアイテムを追加する。
      */
-    suspend fun addItem(title: String, note: String?)
+    suspend fun addItem(title: String, note: String?): Long
 
     /**
      * アイテムの購入済み状態を切り替える。
@@ -31,4 +31,9 @@ interface ShoppingListRepository {
      * 指定したお店に紐づく未購入アイテムを取得する。
      */
     suspend fun getItemsForPlace(placeId: Long): List<ShoppingItem>
+
+    /**
+     * 指定したお店に紐づく未購入アイテムを購入済みにする。
+     */
+    suspend fun markPlaceItemsPurchased(placeId: Long)
 }
