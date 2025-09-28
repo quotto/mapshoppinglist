@@ -55,8 +55,7 @@ class MapShoppingListApplication : Application() {
      */
     val shoppingListRepository: ShoppingListRepository by lazy {
         DefaultShoppingListRepository(
-            itemsDao = database.itemsDao(),
-            geofenceSyncScheduler = geofenceSyncScheduler
+            itemsDao = database.itemsDao()
         )
     }
 
@@ -142,7 +141,10 @@ class MapShoppingListApplication : Application() {
     }
 
     val markPlaceItemsPurchasedUseCase: MarkPlaceItemsPurchasedUseCase by lazy {
-        MarkPlaceItemsPurchasedUseCase(shoppingListRepository)
+        MarkPlaceItemsPurchasedUseCase(
+            shoppingListRepository = shoppingListRepository,
+            geofenceSyncScheduler = geofenceSyncScheduler
+        )
     }
 
     val createPlaceUseCase: CreatePlaceUseCase by lazy {

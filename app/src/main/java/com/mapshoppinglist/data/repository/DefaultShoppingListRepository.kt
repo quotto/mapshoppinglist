@@ -5,7 +5,6 @@ import com.mapshoppinglist.data.local.entity.ItemEntity
 import com.mapshoppinglist.domain.exception.DuplicateItemException
 import com.mapshoppinglist.domain.model.ShoppingItem
 import com.mapshoppinglist.domain.repository.ShoppingListRepository
-import com.mapshoppinglist.geofence.GeofenceSyncScheduler
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -17,7 +16,6 @@ import kotlinx.coroutines.withContext
  */
 class DefaultShoppingListRepository(
     private val itemsDao: ItemsDao,
-    private val geofenceSyncScheduler: GeofenceSyncScheduler,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ShoppingListRepository {
 
@@ -46,7 +44,6 @@ class DefaultShoppingListRepository(
             )
             itemsDao.insert(entity)
         }
-        geofenceSyncScheduler.scheduleImmediateSync()
         return itemId
     }
 
@@ -59,7 +56,6 @@ class DefaultShoppingListRepository(
                 updatedAt = now
             )
         }
-        geofenceSyncScheduler.scheduleImmediateSync()
     }
 
     override suspend fun deleteItem(itemId: Long) {
@@ -67,7 +63,6 @@ class DefaultShoppingListRepository(
             val target = itemsDao.findById(itemId) ?: return@withContext
             itemsDao.delete(target)
         }
-        geofenceSyncScheduler.scheduleImmediateSync()
     }
 
     override suspend fun getItemsForPlace(placeId: Long): List<ShoppingItem> = withContext(ioDispatcher) {
@@ -81,7 +76,6 @@ class DefaultShoppingListRepository(
         withContext(ioDispatcher) {
             itemsDao.markPurchasedByPlace(placeId, now)
         }
-        geofenceSyncScheduler.scheduleImmediateSync()
     }
 
     private fun ItemEntity.toDomain(linkedPlaceCount: Int): ShoppingItem {

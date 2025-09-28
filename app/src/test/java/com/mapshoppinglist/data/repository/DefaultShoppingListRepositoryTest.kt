@@ -4,7 +4,6 @@ import android.content.Context
 import android.os.Build
 import androidx.test.core.app.ApplicationProvider
 import com.mapshoppinglist.data.local.AppDatabase
-import com.mapshoppinglist.geofence.GeofenceSyncScheduler
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
@@ -29,16 +28,13 @@ class DefaultShoppingListRepositoryTest {
     private lateinit var context: Context
     private lateinit var database: AppDatabase
     private lateinit var repository: DefaultShoppingListRepository
-    private lateinit var geofenceSyncScheduler: GeofenceSyncScheduler
 
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
         database = AppDatabase.buildInMemory(context)
-        geofenceSyncScheduler = GeofenceSyncScheduler(context)
         repository = DefaultShoppingListRepository(
-            itemsDao = database.itemsDao(),
-            geofenceSyncScheduler = geofenceSyncScheduler
+            itemsDao = database.itemsDao()
         )
     }
 
