@@ -20,6 +20,24 @@ private class FakePlacesRepository : PlacesRepository {
         places.any { it.latitudeE6 == latE6 && it.longitudeE6 == lngE6 }
 
     override suspend fun loadActivePlaces(): List<Place> = places.filter { it.isActive }
+
+    override suspend fun findById(placeId: Long): Place? = places.find { it.id == placeId }
+
+    override suspend fun addPlace(name: String, latE6: Int, lngE6: Int, note: String?): Long {
+        throw NotImplementedError()
+    }
+
+    override suspend fun deletePlace(placeId: Long) {
+        throw NotImplementedError()
+    }
+
+    override suspend fun linkItemToPlace(placeId: Long, itemId: Long) {
+        throw NotImplementedError()
+    }
+
+    override suspend fun unlinkItemFromPlace(placeId: Long, itemId: Long) {
+        throw NotImplementedError()
+    }
 }
 
 private class FakeGeofenceRegistryRepository : GeofenceRegistryRepository {

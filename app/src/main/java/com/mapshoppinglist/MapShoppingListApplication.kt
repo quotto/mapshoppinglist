@@ -9,6 +9,7 @@ import com.mapshoppinglist.geofence.GeofencePendingIntentProvider
 import com.mapshoppinglist.geofence.GeofenceRegistrar
 import com.mapshoppinglist.geofence.GeofenceSyncCoordinator
 import com.mapshoppinglist.geofence.GeofenceSyncScheduler
+import com.mapshoppinglist.notification.NotificationSender
 import com.mapshoppinglist.domain.repository.GeofenceRegistryRepository
 import com.mapshoppinglist.domain.repository.PlacesRepository
 import com.mapshoppinglist.domain.repository.ShoppingListRepository
@@ -43,7 +44,9 @@ class MapShoppingListApplication : Application() {
 
     val placesRepository: PlacesRepository by lazy {
         DefaultPlacesRepository(
-            placesDao = database.placesDao()
+            placesDao = database.placesDao(),
+            itemPlaceDao = database.itemPlaceDao(),
+            itemsDao = database.itemsDao()
         )
     }
 
@@ -107,6 +110,39 @@ class MapShoppingListApplication : Application() {
             buildGeofenceSyncPlanUseCase = buildGeofenceSyncPlanUseCase,
             geofenceRegistrar = geofenceRegistrar,
             geofenceRegistryRepository = geofenceRegistryRepository
+        )
+    }
+
+    val notificationSender: NotificationSender by lazy {
+        NotificationSender(this)
+    }
+
+    val createPlaceUseCase: com.mapshoppinglist.domain.usecase.CreatePlaceUseCase by lazy {
+        com.mapshoppinglist.domain.usecase.CreatePlaceUseCase(
+            validatePlaceRegistrationUseCase = validatePlaceRegistrationUseCase,
+            placesRepository = placesRepository,
+            geofenceSyncScheduler = geofenceSyncScheduler
+        )
+    }
+
+    val deletePlaceUseCase: com.mapshoppinglist.domain.usecase.DeletePlaceUseCase by lazy {
+        com.mapshoppinglist.domain.usecase.DeletePlaceUseCase(
+            placesRepository = placesRepository,
+            geofenceSyncScheduler = geofenceSyncScheduler
+        )
+    }
+
+    val linkItemToPlaceUseCase: com.mapshoppinglist.domain.usecase.LinkItemToPlaceUseCase by lazy {
+        com.mapshoppinglist.domain.usecase.LinkItemToPlaceUseCase(
+            placesRepository = placesRepository,
+            geofenceSyncScheduler = geofenceSyncScheduler
+        )
+    }
+
+    val unlinkItemFromPlaceUseCase: com.mapshoppinglist.domain.usecase.UnlinkItemFromPlaceUseCase by lazy {
+        com.mapshoppinglist.domain.usecase.UnlinkItemFromPlaceUseCase(
+            placesRepository = placesRepository,
+            geofenceSyncScheduler = geofenceSyncScheduler
         )
     }
 }

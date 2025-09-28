@@ -27,8 +27,13 @@ class GeofenceReceiver : BroadcastReceiver() {
         }
 
         if (event.geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER) {
-            Log.d(TAG, "ENTER transition for ${event.triggeringGeofences?.map { it.requestId }}")
+            val placeIds = event.triggeringGeofences
+                ?.mapNotNull { parsePlaceId(it.requestId) }
+                ?.distinct()
+                .orEmpty()
+            Log.d(TAG, "ENTER transition for placeIds=$placeIds")
             GeofenceSyncWorker.enqueueNow(context)
+            GeofenceNotificationWorker.enqueue(context, placeIds)
         } else {
             Log.d(TAG, "Unsupported transition=${event.geofenceTransition}")
         }
@@ -36,5 +41,10 @@ class GeofenceReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "GeofenceReceiver"
+
+        private fun parsePlaceId(requestId: String?): Long? {
+            if (requestId.isNullOrBlank()) return null
+            return requestId.removePrefix("place_").toLongOrNull()
+        }
     }
 }

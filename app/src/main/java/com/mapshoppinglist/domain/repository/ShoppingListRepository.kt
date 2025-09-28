@@ -26,4 +26,9 @@ interface ShoppingListRepository {
      * アイテムを削除する。
      */
     suspend fun deleteItem(itemId: Long)
+
+    /**
+     * 指定したお店に紐づく未購入アイテムを取得する。
+     */
+    suspend fun getItemsForPlace(placeId: Long): List<ShoppingItem>
 }

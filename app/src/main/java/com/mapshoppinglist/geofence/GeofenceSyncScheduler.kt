@@ -5,9 +5,9 @@ import android.content.Context
 /**
  * ジオフェンス同期をWorkManagerに委ねるためのユーティリティ。
  */
-class GeofenceSyncScheduler(private val context: Context) {
+open class GeofenceSyncScheduler(private val context: Context) {
 
-    fun scheduleImmediateSync() {
+    open fun scheduleImmediateSync() {
         GeofenceSyncWorker.enqueueNow(context)
     }
 }

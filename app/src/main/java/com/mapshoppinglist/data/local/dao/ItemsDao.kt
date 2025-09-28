@@ -43,4 +43,11 @@ interface ItemsDao {
 
     @Query("SELECT COUNT(*) FROM items WHERE title = :title")
     suspend fun countByTitle(title: String): Int
+
+    @Query(
+        "SELECT i.* FROM items i " +
+            "JOIN item_place ip ON i.id = ip.item_id " +
+            "WHERE ip.place_id = :placeId AND i.is_purchased = 0"
+    )
+    suspend fun loadNotPurchasedByPlace(placeId: Long): List<ItemEntity>
 }

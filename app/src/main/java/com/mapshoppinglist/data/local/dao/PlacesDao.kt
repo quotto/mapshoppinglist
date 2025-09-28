@@ -39,6 +39,12 @@ interface PlacesDao {
     @Query("SELECT COUNT(*) FROM places WHERE lat_e6 = :latE6 AND lng_e6 = :lngE6")
     suspend fun countByLocation(latE6: Int, lngE6: Int): Int
 
-    @Query("SELECT * FROM places WHERE is_active = 1")
+    @Query(
+        "SELECT * FROM places p WHERE EXISTS (" +
+            " SELECT 1 FROM item_place ip " +
+            " JOIN items i ON i.id = ip.item_id " +
+            " WHERE ip.place_id = p.id AND i.is_purchased = 0" +
+        ")"
+    )
     suspend fun loadActivePlaces(): List<PlaceEntity>
 }

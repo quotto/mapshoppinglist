@@ -19,6 +19,24 @@ private class CountingPlacesRepository(
     }
 
     override suspend fun loadActivePlaces(): List<Place> = emptyList()
+
+    override suspend fun findById(placeId: Long): Place? = null
+
+    override suspend fun addPlace(name: String, latE6: Int, lngE6: Int, note: String?): Long {
+        throw NotImplementedError()
+    }
+
+    override suspend fun deletePlace(placeId: Long) {
+        throw NotImplementedError()
+    }
+
+    override suspend fun linkItemToPlace(placeId: Long, itemId: Long) {
+        throw NotImplementedError()
+    }
+
+    override suspend fun unlinkItemFromPlace(placeId: Long, itemId: Long) {
+        throw NotImplementedError()
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

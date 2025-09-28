@@ -69,6 +69,12 @@ class DefaultShoppingListRepository(
         geofenceSyncScheduler.scheduleImmediateSync()
     }
 
+    override suspend fun getItemsForPlace(placeId: Long): List<ShoppingItem> = withContext(ioDispatcher) {
+        itemsDao.loadNotPurchasedByPlace(placeId).map { entity ->
+            entity.toDomain(linkedPlaceCount = 0)
+        }
+    }
+
     private fun ItemEntity.toDomain(linkedPlaceCount: Int): ShoppingItem {
         return ShoppingItem(
             id = id,
