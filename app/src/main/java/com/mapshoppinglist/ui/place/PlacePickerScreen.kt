@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -24,7 +26,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,19 +35,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.mapshoppinglist.MapShoppingListApplication
 import com.mapshoppinglist.R
+import com.mapshoppinglist.ui.place.DEFAULT_LOCATION
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun PlacePickerRoute(
@@ -56,6 +62,20 @@ fun PlacePickerRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    val fusedClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+    val hasLocationPermission = remember {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    }
+
+    LaunchedEffect(hasLocationPermission) {
+        if (hasLocationPermission) {
+            val location = fusedClient.lastLocation.await()
+            location?.let {
+                viewModel.updateCameraLocation(LatLng(it.latitude, it.longitude))
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.events.collectLatest { event ->
@@ -74,7 +94,9 @@ fun PlacePickerRoute(
         onConfirm = viewModel::confirmSelection,
         onClearSelection = viewModel::onClearSelection,
         onClose = onClose,
-        snackbarHostState = snackbarHostState
+        snackbarHostState = snackbarHostState,
+        hasLocationPermission = hasLocationPermission,
+        onMapLongClick = viewModel::onMapLongClick
     )
 }
 
@@ -95,10 +117,18 @@ fun PlacePickerScreen(
     onConfirm: () -> Unit,
     onClearSelection: () -> Unit,
     onClose: () -> Unit,
-    snackbarHostState: SnackbarHostState
+    snackbarHostState: SnackbarHostState,
+    hasLocationPermission: Boolean,
+    onMapLongClick: (LatLng) -> Unit
 ) {
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(DEFAULT_LOCATION, 10f)
+    }
+
+    LaunchedEffect(uiState.cameraLocation) {
+        if (uiState.selectedPlace == null) {
+            cameraPositionState.animate(CameraUpdateFactory.newCameraPosition(CameraPosition.fromLatLngZoom(uiState.cameraLocation, 13f)))
+        }
     }
 
     LaunchedEffect(uiState.selectedPlace?.latLng) {
@@ -171,12 +201,16 @@ fun PlacePickerScreen(
             }
 
             val selected = uiState.selectedPlace
+            val mapProperties = MapProperties(isMyLocationEnabled = hasLocationPermission)
+
             GoogleMap(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
                 cameraPositionState = cameraPositionState,
-                uiSettings = MapUiSettings(zoomControlsEnabled = false)
+                uiSettings = MapUiSettings(zoomControlsEnabled = false),
+                properties = mapProperties,
+                onMapLongClick = onMapLongClick
             ) {
                 selected?.let {
                     Marker(
@@ -216,5 +250,3 @@ fun PlacePickerScreen(
         }
     }
 }
-
-private val DEFAULT_LOCATION = LatLng(35.681236, 139.767125)

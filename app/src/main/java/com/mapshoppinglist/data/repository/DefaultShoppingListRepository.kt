@@ -1,6 +1,7 @@
 package com.mapshoppinglist.data.repository
 
 import com.mapshoppinglist.data.local.dao.ItemsDao
+import com.mapshoppinglist.data.local.dao.ItemWithPlaceCount
 import com.mapshoppinglist.data.local.entity.ItemEntity
 import com.mapshoppinglist.domain.exception.DuplicateItemException
 import com.mapshoppinglist.domain.model.ShoppingItem
@@ -20,9 +21,9 @@ class DefaultShoppingListRepository(
 ) : ShoppingListRepository {
 
     override fun observeAllItems(): Flow<List<ShoppingItem>> {
-        return itemsDao.observeAll().map { entities ->
-            entities.map { entity ->
-                entity.toDomain(linkedPlaceCount = 0)
+        return itemsDao.observeAllWithPlaceCount().map { records ->
+            records.map { record ->
+                record.item.toDomain(linkedPlaceCount = record.linkedPlaceCount)
             }
         }
     }

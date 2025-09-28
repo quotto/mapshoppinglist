@@ -11,6 +11,9 @@ import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
 import com.google.android.libraries.places.api.net.PlacesClient
 import com.mapshoppinglist.domain.usecase.CreatePlaceUseCase
+import java.util.Locale
+import android.location.Geocoder
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 
 class PlacePickerViewModel(
     application: Application,
@@ -35,6 +39,7 @@ class PlacePickerViewModel(
     val events: SharedFlow<PlacePickerEvent> = _events.asSharedFlow()
 
     private var searchJob: Job? = null
+    private val geocoder = Geocoder(application, Locale.getDefault())
 
     fun onQueryChange(query: String) {
         _uiState.update { it.copy(query = query) }
@@ -98,6 +103,7 @@ class PlacePickerViewModel(
                             address = place.address,
                             latLng = latLng
                         ),
+                        cameraLocation = latLng,
                         isLoading = false,
                         errorMessage = null
                     )
@@ -127,7 +133,7 @@ class PlacePickerViewModel(
                     )
                 )
                 _events.emit(PlacePickerEvent.PlaceRegistered(placeId))
-                _uiState.value = PlacePickerUiState()
+                _uiState.value = PlacePickerUiState(cameraLocation = selected.latLng)
             } catch (error: Exception) {
                 _uiState.update {
                     it.copy(isCreating = false, errorMessage = error.message)
@@ -138,6 +144,41 @@ class PlacePickerViewModel(
 
     fun onClearSelection() {
         _uiState.update { it.copy(selectedPlace = null) }
+    }
+
+    fun onMapLongClick(latLng: LatLng) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            val inferred = reverseGeocode(latLng)
+            _uiState.update {
+                it.copy(
+                    selectedPlace = SelectedPlaceUiModel(
+                        placeId = "manual_${latLng.latitude}_${latLng.longitude}",
+                        name = inferred ?: "選択した地点",
+                        address = inferred,
+                        latLng = latLng
+                    ),
+                    query = inferred ?: "",
+                    predictions = emptyList(),
+                    isLoading = false,
+                    cameraLocation = latLng
+                )
+            }
+        }
+    }
+
+    fun updateCameraLocation(latLng: LatLng) {
+        _uiState.update { it.copy(cameraLocation = latLng) }
+    }
+
+    private suspend fun reverseGeocode(latLng: LatLng): String? = withContext(Dispatchers.IO) {
+        try {
+            if (!Geocoder.isPresent()) return@withContext null
+            val results = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
+            results?.firstOrNull()?.getAddressLine(0)
+        } catch (e: Exception) {
+            null
+        }
     }
 }
 
@@ -151,7 +192,8 @@ data class PlacePickerUiState(
     val predictions: List<PlacePredictionUiModel> = emptyList(),
     val selectedPlace: SelectedPlaceUiModel? = null,
     val isCreating: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val cameraLocation: LatLng = DEFAULT_LOCATION
 )
 
 data class PlacePredictionUiModel(
@@ -166,3 +208,5 @@ data class SelectedPlaceUiModel(
     val address: String?,
     val latLng: LatLng
 )
+
+val DEFAULT_LOCATION: LatLng = LatLng(35.681236, 139.767125)

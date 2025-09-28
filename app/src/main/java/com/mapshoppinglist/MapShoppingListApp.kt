@@ -25,7 +25,7 @@ fun MapShoppingListApp(navController: NavHostController = rememberNavController(
             ShoppingListRoute(
                 onAddPlaceRequest = { navController.navigate(Destinations.PLACE_PICKER) },
                 newPlaceId = newPlaceId,
-                onNewPlaceConsumed = { savedStateHandle.set(KEY_NEW_PLACE_ID, null) }
+                onNewPlaceConsumed = { savedStateHandle.set<Long?>(KEY_NEW_PLACE_ID, null) }
             )
         }
         composable(Destinations.PLACE_PICKER) {
