@@ -53,6 +53,8 @@ private class RecordingPlacesRepository : PlacesRepository {
     override suspend fun unlinkItemFromPlace(placeId: Long, itemId: Long) {
         unlinkCalls += placeId to itemId
     }
+
+    override suspend fun loadRecentPlaces(limit: Int): List<Place> = emptyList()
 }
 
 private class RecordingScheduler(context: Context) : GeofenceSyncScheduler(context) {

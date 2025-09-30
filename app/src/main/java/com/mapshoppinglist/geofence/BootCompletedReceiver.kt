@@ -9,8 +9,8 @@ class BootCompletedReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent?) {
         if (intent?.action == Intent.ACTION_BOOT_COMPLETED) {
-            Log.d(TAG, "BOOT_COMPLETED received, scheduling geofence sync")
-            GeofenceSyncWorker.enqueueNow(context)
+            Log.d(TAG, "BOOT_COMPLETED received, scheduling geofence full rebuild")
+            GeofenceSyncWorker.enqueueNow(context, forceRebuild = true)
         } else {
             Log.d(TAG, "Ignored broadcast action=${intent?.action}")
         }

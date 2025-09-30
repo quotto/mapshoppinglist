@@ -47,4 +47,12 @@ interface PlacesDao {
         ")"
     )
     suspend fun loadActivePlaces(): List<PlaceEntity>
+
+    @Query(
+        "SELECT * FROM places " +
+            "ORDER BY CASE WHEN last_used_at IS NULL THEN 1 ELSE 0 END, " +
+            "last_used_at DESC " +
+            "LIMIT :limit"
+    )
+    suspend fun loadRecentPlaces(limit: Int): List<PlaceEntity>
 }

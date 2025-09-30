@@ -5,10 +5,15 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Embedded
 import androidx.room.Insert
+import androidx.room.Junction
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Relation
+import androidx.room.Transaction
 import androidx.room.Update
 import com.mapshoppinglist.data.local.entity.ItemEntity
+import com.mapshoppinglist.data.local.entity.ItemPlaceCrossRef
+import com.mapshoppinglist.data.local.entity.PlaceEntity
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -63,9 +68,31 @@ interface ItemsDao {
             "AND is_purchased = 0"
     )
     suspend fun markPurchasedByPlace(placeId: Long, updatedAt: Long): Int
+
+    @Transaction
+    @Query("SELECT * FROM items WHERE id = :itemId")
+    fun observeItemWithPlaces(itemId: Long): Flow<ItemWithPlaces?>
+
+    @Transaction
+    @Query("SELECT * FROM items WHERE id = :itemId")
+    suspend fun getItemWithPlaces(itemId: Long): ItemWithPlaces?
 }
 
 data class ItemWithPlaceCount(
     @Embedded val item: ItemEntity,
     @ColumnInfo(name = "linked_place_count") val linkedPlaceCount: Int
+)
+
+data class ItemWithPlaces(
+    @Embedded val item: ItemEntity,
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "id",
+        associateBy = Junction(
+            value = ItemPlaceCrossRef::class,
+            parentColumn = "item_id",
+            entityColumn = "place_id"
+        )
+    )
+    val places: List<PlaceEntity>
 )

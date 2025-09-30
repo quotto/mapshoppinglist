@@ -1,5 +1,6 @@
 package com.mapshoppinglist.domain.repository
 
+import com.mapshoppinglist.domain.model.ItemDetail
 import com.mapshoppinglist.domain.model.ShoppingItem
 import kotlinx.coroutines.flow.Flow
 
@@ -36,4 +37,11 @@ interface ShoppingListRepository {
      * 指定したお店に紐づく未購入アイテムを購入済みにする。
      */
     suspend fun markPlaceItemsPurchased(placeId: Long)
+
+    /**
+     * アイテム詳細を取得/監視する。
+     */
+    fun observeItemDetail(itemId: Long): Flow<ItemDetail?>
+
+    suspend fun updateItem(itemId: Long, title: String, note: String?)
 }

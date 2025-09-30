@@ -37,6 +37,8 @@ private class CountingPlacesRepository(
     override suspend fun unlinkItemFromPlace(placeId: Long, itemId: Long) {
         throw NotImplementedError()
     }
+
+    override suspend fun loadRecentPlaces(limit: Int): List<Place> = emptyList()
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

@@ -11,7 +11,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-private class FakePlacesRepository : PlacesRepository {
+private class GeofenceTestPlacesRepository : PlacesRepository {
     var places: List<Place> = emptyList()
 
     override suspend fun getTotalCount(): Int = places.size
@@ -38,6 +38,8 @@ private class FakePlacesRepository : PlacesRepository {
     override suspend fun unlinkItemFromPlace(placeId: Long, itemId: Long) {
         throw NotImplementedError()
     }
+
+    override suspend fun loadRecentPlaces(limit: Int): List<Place> = places.take(limit)
 }
 
 private class FakeGeofenceRegistryRepository : GeofenceRegistryRepository {
@@ -57,13 +59,13 @@ private class FakeGeofenceRegistryRepository : GeofenceRegistryRepository {
 @OptIn(ExperimentalCoroutinesApi::class)
 class BuildGeofenceSyncPlanUseCaseTest {
 
-    private lateinit var placesRepository: FakePlacesRepository
+    private lateinit var placesRepository: GeofenceTestPlacesRepository
     private lateinit var registryRepository: FakeGeofenceRegistryRepository
     private lateinit var useCase: BuildGeofenceSyncPlanUseCase
 
     @Before
     fun setUp() {
-        placesRepository = FakePlacesRepository()
+        placesRepository = GeofenceTestPlacesRepository()
         registryRepository = FakeGeofenceRegistryRepository()
         useCase = BuildGeofenceSyncPlanUseCase(placesRepository, registryRepository)
     }

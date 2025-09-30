@@ -14,4 +14,5 @@ interface PlacesRepository {
     suspend fun deletePlace(placeId: Long)
     suspend fun linkItemToPlace(placeId: Long, itemId: Long)
     suspend fun unlinkItemFromPlace(placeId: Long, itemId: Long)
+    suspend fun loadRecentPlaces(limit: Int): List<Place>
 }

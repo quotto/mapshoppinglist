@@ -9,8 +9,8 @@ class GeofenceSyncCoordinator(
     private val geofenceRegistryRepository: GeofenceRegistryRepository
 ) {
 
-    suspend fun sync() {
-        val plan = buildGeofenceSyncPlanUseCase()
+    suspend fun sync(forceRebuild: Boolean = false) {
+        val plan = buildGeofenceSyncPlanUseCase(forceRebuild)
         geofenceRegistrar.applyPlan(plan)
         geofenceRegistryRepository.replaceAll(plan.targetRegistrations)
     }

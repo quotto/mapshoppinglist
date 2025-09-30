@@ -2,8 +2,11 @@ package com.mapshoppinglist.data.repository
 
 import com.mapshoppinglist.data.local.dao.ItemsDao
 import com.mapshoppinglist.data.local.dao.ItemWithPlaceCount
+import com.mapshoppinglist.data.local.dao.ItemWithPlaces
 import com.mapshoppinglist.data.local.entity.ItemEntity
 import com.mapshoppinglist.domain.exception.DuplicateItemException
+import com.mapshoppinglist.domain.model.ItemDetail
+import com.mapshoppinglist.domain.model.PlaceSummary
 import com.mapshoppinglist.domain.model.ShoppingItem
 import com.mapshoppinglist.domain.repository.ShoppingListRepository
 import kotlinx.coroutines.CoroutineDispatcher
@@ -79,6 +82,24 @@ class DefaultShoppingListRepository(
         }
     }
 
+    override fun observeItemDetail(itemId: Long): Flow<ItemDetail?> {
+        return itemsDao.observeItemWithPlaces(itemId).map { record ->
+            record?.toDomain()
+        }
+    }
+
+    override suspend fun updateItem(itemId: Long, title: String, note: String?) {
+        withContext(ioDispatcher) {
+            val entity = itemsDao.findById(itemId) ?: return@withContext
+            val updated = entity.copy(
+                title = title.trim(),
+                note = note?.trim(),
+                updatedAt = System.currentTimeMillis()
+            )
+            itemsDao.update(updated)
+        }
+    }
+
     private fun ItemEntity.toDomain(linkedPlaceCount: Int): ShoppingItem {
         return ShoppingItem(
             id = id,
@@ -88,6 +109,26 @@ class DefaultShoppingListRepository(
             createdAt = createdAt,
             updatedAt = updatedAt,
             linkedPlaceCount = linkedPlaceCount
+        )
+    }
+
+    private fun ItemWithPlaces.toDomain(): ItemDetail {
+        return ItemDetail(
+            id = item.id,
+            title = item.title,
+            note = item.note,
+            isPurchased = item.isPurchased,
+            createdAt = item.createdAt,
+            updatedAt = item.updatedAt,
+            places = places.map { place ->
+                PlaceSummary(
+                    id = place.id,
+                    name = place.name,
+                    address = place.note,
+                    latitude = place.latitudeE6 / 1_000_000.0,
+                    longitude = place.longitudeE6 / 1_000_000.0
+                )
+            }
         )
     }
 }

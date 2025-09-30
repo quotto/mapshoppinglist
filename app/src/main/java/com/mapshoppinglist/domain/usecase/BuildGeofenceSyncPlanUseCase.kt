@@ -1,5 +1,6 @@
 package com.mapshoppinglist.domain.usecase
 
+import android.util.Log
 import com.mapshoppinglist.domain.model.GeofenceRegistration
 import com.mapshoppinglist.domain.model.GeofenceSpec
 import com.mapshoppinglist.domain.repository.GeofenceRegistryRepository
@@ -13,9 +14,13 @@ class BuildGeofenceSyncPlanUseCase(
     private val geofenceRegistryRepository: GeofenceRegistryRepository,
     private val geofenceRadiusMeters: Float = 100f
 ) {
-    suspend operator fun invoke(): GeofenceSyncPlan {
+    suspend operator fun invoke(forceRebuild: Boolean = false): GeofenceSyncPlan {
         val activePlaces = placesRepository.loadActivePlaces().filter { it.isActive }
-        val currentRegistrations = geofenceRegistryRepository.loadAll()
+        val currentRegistrations = if (forceRebuild) {
+            emptyList()
+        } else {
+            geofenceRegistryRepository.loadAll()
+        }
 
         val activePlaceIds = activePlaces.map { it.id }.toSet()
         val registeredPlaceIds = currentRegistrations.map { it.placeId }.toSet()

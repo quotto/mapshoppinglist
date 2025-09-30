@@ -1,5 +1,6 @@
 package com.mapshoppinglist.ui.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -46,6 +47,7 @@ import com.mapshoppinglist.ui.theme.MapShoppingListTheme
 @Composable
 fun ShoppingListRoute(
     onAddPlaceRequest: () -> Unit = {},
+    onItemClick: (Long) -> Unit = {},
     newPlaceId: Long? = null,
     onNewPlaceConsumed: () -> Unit = {}
 ) {
@@ -73,7 +75,8 @@ fun ShoppingListRoute(
         onAddPlaceRequest = {
             onAddPlaceRequest()
         },
-        onRemovePendingPlace = viewModel::onRemovePendingPlace
+        onRemovePendingPlace = viewModel::onRemovePendingPlace,
+        onItemClick = onItemClick
     )
 }
 
@@ -90,6 +93,7 @@ fun ShoppingListScreen(
     onNoteInputChange: (String) -> Unit,
     onAddPlaceRequest: () -> Unit,
     onRemovePendingPlace: (Long) -> Unit,
+    onItemClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -115,7 +119,8 @@ fun ShoppingListScreen(
             uiState = uiState,
             contentPadding = innerPadding,
             onTogglePurchased = onTogglePurchased,
-            onDeleteItem = onDeleteItem
+            onDeleteItem = onDeleteItem,
+            onItemClick = onItemClick
         )
     }
 
@@ -142,6 +147,7 @@ private fun ShoppingListContent(
     contentPadding: PaddingValues,
     onTogglePurchased: (Long, Boolean) -> Unit,
     onDeleteItem: (Long) -> Unit,
+    onItemClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -166,7 +172,8 @@ private fun ShoppingListContent(
                 ShoppingListRow(
                     model = item,
                     onTogglePurchased = { onTogglePurchased(item.id, it) },
-                    onDeleteItem = { onDeleteItem(item.id) }
+                    onDeleteItem = { onDeleteItem(item.id) },
+                    onClick = { onItemClick(item.id) }
                 )
             }
         }
@@ -186,7 +193,8 @@ private fun ShoppingListContent(
                 ShoppingListRow(
                     model = item,
                     onTogglePurchased = { onTogglePurchased(item.id, it) },
-                    onDeleteItem = { onDeleteItem(item.id) }
+                    onDeleteItem = { onDeleteItem(item.id) },
+                    onClick = { onItemClick(item.id) }
                 )
             }
         }
@@ -219,11 +227,13 @@ private fun ShoppingListRow(
     model: ShoppingItemUiModel,
     onTogglePurchased: (Boolean) -> Unit,
     onDeleteItem: () -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(12.dp)
     ) {
         Row(
@@ -369,7 +379,8 @@ private fun ShoppingListScreenPreview() {
             onTitleInputChange = {},
             onNoteInputChange = {},
             onAddPlaceRequest = {},
-            onRemovePendingPlace = {}
+            onRemovePendingPlace = {},
+            onItemClick = {}
         )
     }
 }

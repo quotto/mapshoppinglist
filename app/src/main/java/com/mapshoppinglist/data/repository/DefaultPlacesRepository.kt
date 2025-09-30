@@ -35,6 +35,10 @@ class DefaultPlacesRepository(
         placesDao.findById(placeId)?.let(::entityToDomain)
     }
 
+    override suspend fun loadRecentPlaces(limit: Int): List<Place> = withContext(ioDispatcher) {
+        placesDao.loadRecentPlaces(limit).map(::entityToDomain)
+    }
+
     override suspend fun addPlace(name: String, latE6: Int, lngE6: Int, note: String?): Long = withContext(ioDispatcher) {
         val now = System.currentTimeMillis()
         val entity = PlaceEntity(

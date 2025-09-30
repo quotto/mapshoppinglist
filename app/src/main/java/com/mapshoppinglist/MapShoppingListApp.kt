@@ -1,18 +1,28 @@
 package com.mapshoppinglist
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.mapshoppinglist.ui.home.ShoppingListRoute
 import com.mapshoppinglist.ui.place.PlacePickerRoute
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.mapshoppinglist.ui.itemdetail.ItemDetailRoute
+import com.mapshoppinglist.ui.recentplaces.RecentPlacesRoute
 
 object Destinations {
     const val SHOPPING_LIST = "shopping_list"
+    const val ITEM_DETAIL = "item_detail"
     const val PLACE_PICKER = "place_picker"
+    const val RECENT_PLACES = "recent_places"
+
+    fun itemDetailRoute(itemId: Long): String = "$ITEM_DETAIL/$itemId"
+    fun placePickerRoute(requestKey: String): String = "$PLACE_PICKER/$requestKey"
+    fun recentPlacesRoute(requestKey: String): String = "$RECENT_PLACES/$requestKey"
 }
 
 @Composable
@@ -20,18 +30,57 @@ fun MapShoppingListApp(navController: NavHostController = rememberNavController(
     NavHost(navController = navController, startDestination = Destinations.SHOPPING_LIST) {
         composable(Destinations.SHOPPING_LIST) { backStackEntry ->
             val savedStateHandle = backStackEntry.savedStateHandle
-            val newPlaceIdLiveData = savedStateHandle.getLiveData<Long?>(KEY_NEW_PLACE_ID)
+            val newPlaceIdLiveData = savedStateHandle.getLiveData<Long?>(REQUEST_KEY_SHOPPING_LIST_PLACE)
             val newPlaceId by newPlaceIdLiveData.observeAsState()
             ShoppingListRoute(
-                onAddPlaceRequest = { navController.navigate(Destinations.PLACE_PICKER) },
+                onAddPlaceRequest = { navController.navigate(Destinations.placePickerRoute(REQUEST_KEY_SHOPPING_LIST_PLACE)) },
+                onItemClick = { itemId -> navController.navigate(Destinations.itemDetailRoute(itemId)) },
                 newPlaceId = newPlaceId,
-                onNewPlaceConsumed = { savedStateHandle.set<Long?>(KEY_NEW_PLACE_ID, null) }
+                onNewPlaceConsumed = { savedStateHandle.set<Long?>(REQUEST_KEY_SHOPPING_LIST_PLACE, null) }
             )
         }
-        composable(Destinations.PLACE_PICKER) {
+        composable(
+            route = "${Destinations.ITEM_DETAIL}/{$ARG_ITEM_ID}",
+            arguments = listOf(navArgument(ARG_ITEM_ID) { type = NavType.LongType })
+        ) { backStackEntry ->
+            val itemId = backStackEntry.arguments?.getLong(ARG_ITEM_ID) ?: return@composable
+            val savedStateHandle = backStackEntry.savedStateHandle
+            val linkPlaceLiveData = savedStateHandle.getLiveData<Long?>(REQUEST_KEY_ITEM_DETAIL_PLACE)
+            val linkedPlaceId by linkPlaceLiveData.observeAsState()
+            ItemDetailRoute(
+                itemId = itemId,
+                linkedPlaceId = linkedPlaceId,
+                onLinkedPlaceConsumed = { savedStateHandle.set<Long?>(REQUEST_KEY_ITEM_DETAIL_PLACE, null) },
+                onAddPlaceViaSearch = {
+                    navController.navigate(Destinations.placePickerRoute(REQUEST_KEY_ITEM_DETAIL_PLACE))
+                },
+                onAddPlaceViaRecent = {
+                    navController.navigate(Destinations.recentPlacesRoute(REQUEST_KEY_ITEM_DETAIL_PLACE))
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable(
+            route = "${Destinations.PLACE_PICKER}/{$ARG_REQUEST_KEY}",
+            arguments = listOf(navArgument(ARG_REQUEST_KEY) { type = NavType.StringType })
+        ) { backStackEntry ->
+            val requestKey = backStackEntry.arguments?.getString(ARG_REQUEST_KEY) ?: REQUEST_KEY_SHOPPING_LIST_PLACE
             PlacePickerRoute(
                 onPlaceRegistered = { placeId ->
-                    navController.previousBackStackEntry?.savedStateHandle?.set(KEY_NEW_PLACE_ID, placeId)
+                    navController.previousBackStackEntry?.savedStateHandle?.set(requestKey, placeId)
+                    navController.popBackStack()
+                },
+                onClose = { navController.popBackStack() }
+            )
+        }
+        composable(
+            route = "${Destinations.RECENT_PLACES}/{$ARG_REQUEST_KEY}",
+            arguments = listOf(navArgument(ARG_REQUEST_KEY) { type = NavType.StringType })
+        ) { backStackEntry ->
+            val requestKey = backStackEntry.arguments?.getString(ARG_REQUEST_KEY) ?: REQUEST_KEY_SHOPPING_LIST_PLACE
+            RecentPlacesRoute(
+                onPlaceSelected = { placeId ->
+                    navController.previousBackStackEntry?.savedStateHandle?.set(requestKey, placeId)
                     navController.popBackStack()
                 },
                 onClose = { navController.popBackStack() }
@@ -40,4 +89,7 @@ fun MapShoppingListApp(navController: NavHostController = rememberNavController(
     }
 }
 
-private const val KEY_NEW_PLACE_ID = "new_place_id"
+private const val ARG_ITEM_ID = "itemId"
+private const val ARG_REQUEST_KEY = "requestKey"
+private const val REQUEST_KEY_SHOPPING_LIST_PLACE = "request_shopping_list_place"
+private const val REQUEST_KEY_ITEM_DETAIL_PLACE = "request_item_detail_place"

@@ -25,4 +25,18 @@
     <string name="place_picker_clear_selection">選択をクリア</string>
     <string name="place_picker_confirm">この地点を登録</string>
     <string name="place_picker_searching">候補を検索しています…</string>
+    <string name="common_back">戻る</string>
+    <string name="common_close">閉じる</string>
+    <string name="item_detail_title">アイテム詳細</string>
+    <string name="item_detail_purchased_toggle">購入済み</string>
+    <string name="item_detail_add_place">お店を追加</string>
+    <string name="item_detail_no_places">紐づいたお店がありません</string>
+    <string name="item_detail_not_found">アイテムが見つかりません</string>
+    <string name="item_detail_add_place_dialog_title">お店の追加方法を選択</string>
+    <string name="item_detail_add_place_search">検索・地図で探す</string>
+    <string name="item_detail_add_place_recent">最近使ったお店から選ぶ</string>
+    <string name="item_detail_remove_place">紐づきを解除</string>
+    <string name="item_detail_place_linked">お店を紐づけました</string>
+    <string name="recent_places_title">最近使ったお店</string>
+    <string name="recent_places_empty">最近の登録履歴がありません</string>
 </resources>

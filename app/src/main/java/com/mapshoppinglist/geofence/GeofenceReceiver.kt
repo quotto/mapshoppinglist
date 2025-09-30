@@ -14,7 +14,6 @@ class GeofenceReceiver : BroadcastReceiver() {
             Log.d(TAG, "Ignored broadcast action=${intent?.action}")
             return
         }
-
         val event = GeofencingEvent.fromIntent(intent)
         if (event == null) {
             Log.w(TAG, "GeofencingEvent was null")
@@ -26,16 +25,24 @@ class GeofenceReceiver : BroadcastReceiver() {
             return
         }
 
-        if (event.geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER) {
-            val placeIds = event.triggeringGeofences
-                ?.mapNotNull { parsePlaceId(it.requestId) }
-                ?.distinct()
-                .orEmpty()
-            Log.d(TAG, "ENTER transition for placeIds=$placeIds")
-            GeofenceSyncWorker.enqueueNow(context)
-            GeofenceNotificationWorker.enqueue(context, placeIds)
-        } else {
-            Log.d(TAG, "Unsupported transition=${event.geofenceTransition}")
+        when (event.geofenceTransition) {
+            Geofence.GEOFENCE_TRANSITION_ENTER -> {
+                val placeIds = event.triggeringGeofences
+                    ?.mapNotNull { parsePlaceId(it.requestId) }
+                    ?.distinct()
+                    .orEmpty()
+                Log.d(TAG, "ENTER transition for placeIds=$placeIds")
+                GeofenceSyncWorker.enqueueNow(context)
+                GeofenceNotificationWorker.enqueue(context, placeIds)
+            }
+            Geofence.GEOFENCE_TRANSITION_EXIT -> {
+                val requestIds = event.triggeringGeofences?.map { it.requestId } ?: emptyList()
+                Log.d(TAG, "EXIT transition for requestIds=$requestIds")
+                GeofenceSyncWorker.enqueueNow(context)
+            }
+            else -> {
+                Log.d(TAG, "Unsupported transition=${event.geofenceTransition}")
+            }
         }
     }
 
