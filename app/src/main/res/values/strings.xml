@@ -37,6 +37,10 @@
     <string name="item_detail_add_place_recent">最近使ったお店から選ぶ</string>
     <string name="item_detail_remove_place">紐づきを解除</string>
     <string name="item_detail_place_linked">お店を紐づけました</string>
+    <string name="item_detail_edit">編集</string>
+    <string name="item_detail_edit_dialog_title">アイテムを編集</string>
+    <string name="item_detail_edit_dialog_confirm">更新</string>
+    <string name="item_detail_updated_message">アイテムを更新しました</string>
     <string name="recent_places_title">最近使ったお店</string>
     <string name="recent_places_empty">最近の登録履歴がありません</string>
     <string name="permission_location_denied_message">現在地を取得するには位置情報の許可が必要です。端末の設定で許可してください。</string>

@@ -9,6 +9,7 @@ import com.mapshoppinglist.domain.repository.ShoppingListRepository
 import com.mapshoppinglist.domain.usecase.LinkItemToPlaceUseCase
 import com.mapshoppinglist.domain.usecase.ObserveItemDetailUseCase
 import com.mapshoppinglist.domain.usecase.UnlinkItemFromPlaceUseCase
+import com.mapshoppinglist.domain.usecase.UpdateItemUseCase
 import com.mapshoppinglist.domain.usecase.UpdatePurchasedStateUseCase
 import com.mapshoppinglist.geofence.GeofenceSyncScheduler
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +34,8 @@ private class FakeShoppingListRepository : ShoppingListRepository {
     val detailFlow = MutableStateFlow<ItemDetail?>(null)
     var updatedItemId: Long? = null
     var updatedState: Boolean? = null
+    var updatedTitle: String? = null
+    var updatedNote: String? = null
 
     override fun observeAllItems(): Flow<List<com.mapshoppinglist.domain.model.ShoppingItem>> = emptyFlow()
 
@@ -51,7 +54,15 @@ private class FakeShoppingListRepository : ShoppingListRepository {
 
     override fun observeItemDetail(itemId: Long): Flow<ItemDetail?> = detailFlow
 
-    override suspend fun updateItem(itemId: Long, title: String, note: String?) {}
+    override suspend fun updateItem(itemId: Long, title: String, note: String?) {
+        updatedItemId = itemId
+        updatedTitle = title
+        updatedNote = note
+        val current = detailFlow.value
+        if (current != null) {
+            detailFlow.value = current.copy(title = title, note = note)
+        }
+    }
 }
 
 private class FakePlacesRepository : PlacesRepository {
@@ -114,12 +125,14 @@ class ItemDetailViewModelTest {
         val updateUseCase = UpdatePurchasedStateUseCase(shoppingListRepository)
         val linkUseCase = LinkItemToPlaceUseCase(placesRepository, geofenceScheduler)
         val unlinkUseCase = UnlinkItemFromPlaceUseCase(placesRepository, geofenceScheduler)
+        val updateItemUseCase = UpdateItemUseCase(shoppingListRepository)
         return ItemDetailViewModel(
             itemId = itemId,
             observeItemDetailUseCase = observeUseCase,
             updatePurchasedStateUseCase = updateUseCase,
             linkItemToPlaceUseCase = linkUseCase,
-            unlinkItemFromPlaceUseCase = unlinkUseCase
+            unlinkItemFromPlaceUseCase = unlinkUseCase,
+            updateItemUseCase = updateItemUseCase
         )
     }
 
@@ -189,6 +202,41 @@ class ItemDetailViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf(12L to 1L), placesRepository.unlinkCalls)
+    }
+
+    @Test
+    fun `edit item updates repository and emits event`() = runTest(dispatcher) {
+        val detail = ItemDetail(
+            id = 1L,
+            title = "牛乳",
+            note = "メモ",
+            isPurchased = false,
+            createdAt = 0L,
+            updatedAt = 0L,
+            places = emptyList()
+        )
+        shoppingListRepository.detailFlow.value = detail
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onEditClick()
+        viewModel.onEditTitleChange("牛乳（特売）")
+        viewModel.onEditNoteChange("メモ更新")
+
+        val eventJob = backgroundScope.launch {
+            val event = viewModel.events.first()
+            assertTrue(event is ItemDetailEvent.ItemUpdated)
+        }
+
+        viewModel.onEditConfirm()
+        advanceUntilIdle()
+
+        assertEquals(1L, shoppingListRepository.updatedItemId)
+        assertEquals("牛乳（特売）", shoppingListRepository.updatedTitle)
+        assertEquals("メモ更新", shoppingListRepository.updatedNote)
+        eventJob.cancel()
+        assertEquals(false, viewModel.uiState.value.isEditDialogVisible)
     }
 }
 

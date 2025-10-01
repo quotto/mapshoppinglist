@@ -15,7 +15,8 @@ class ItemDetailViewModelFactory(
                 observeItemDetailUseCase = application.observeItemDetailUseCase,
                 updatePurchasedStateUseCase = application.updatePurchasedStateUseCase,
                 linkItemToPlaceUseCase = application.linkItemToPlaceUseCase,
-                unlinkItemFromPlaceUseCase = application.unlinkItemFromPlaceUseCase
+                unlinkItemFromPlaceUseCase = application.unlinkItemFromPlaceUseCase,
+                updateItemUseCase = application.updateItemUseCase
             )
             @Suppress("UNCHECKED_CAST")
             return viewModel as T

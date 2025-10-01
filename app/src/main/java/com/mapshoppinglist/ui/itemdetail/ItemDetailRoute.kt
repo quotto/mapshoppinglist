@@ -5,12 +5,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -19,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -74,6 +77,11 @@ fun ItemDetailRoute(
                         message = context.getString(R.string.item_detail_place_linked)
                     )
                 }
+                ItemDetailEvent.ItemUpdated -> {
+                    snackbarHostState.showSnackbar(
+                        message = context.getString(R.string.item_detail_updated_message)
+                    )
+                }
             }
         }
     }
@@ -85,7 +93,12 @@ fun ItemDetailRoute(
         onTogglePurchased = viewModel::onTogglePurchased,
         onRemovePlace = viewModel::onRemovePlace,
         onAddPlaceViaSearch = onAddPlaceViaSearch,
-        onAddPlaceViaRecent = onAddPlaceViaRecent
+        onAddPlaceViaRecent = onAddPlaceViaRecent,
+        onEditClick = viewModel::onEditClick,
+        onEditDialogDismiss = viewModel::onEditDialogDismiss,
+        onEditTitleChange = viewModel::onEditTitleChange,
+        onEditNoteChange = viewModel::onEditNoteChange,
+        onEditConfirm = viewModel::onEditConfirm
     )
 }
 
@@ -105,7 +118,12 @@ private fun ItemDetailScreen(
     onTogglePurchased: (Boolean) -> Unit,
     onRemovePlace: (Long) -> Unit,
     onAddPlaceViaSearch: () -> Unit,
-    onAddPlaceViaRecent: () -> Unit
+    onAddPlaceViaRecent: () -> Unit,
+    onEditClick: () -> Unit,
+    onEditDialogDismiss: () -> Unit,
+    onEditTitleChange: (String) -> Unit,
+    onEditNoteChange: (String) -> Unit,
+    onEditConfirm: () -> Unit
 ) {
     var isAddPlaceDialogVisible by rememberSaveable { mutableStateOf(false) }
 
@@ -116,6 +134,13 @@ private fun ItemDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(imageVector = Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
+                    }
+                },
+                actions = {
+                    if (!uiState.isLoading && !uiState.isNotFound) {
+                        IconButton(onClick = onEditClick) {
+                            Icon(imageVector = Icons.Default.Edit, contentDescription = stringResource(R.string.item_detail_edit))
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -153,6 +178,20 @@ private fun ItemDetailScreen(
                 isAddPlaceDialogVisible = false
                 onAddPlaceViaRecent()
             }
+        )
+    }
+
+    if (uiState.isEditDialogVisible) {
+        EditItemDialog(
+            title = uiState.editTitle,
+            note = uiState.editNote,
+            showTitleValidationError = uiState.showTitleValidationError,
+            errorMessage = uiState.editErrorMessage,
+            isUpdating = uiState.isUpdating,
+            onTitleChange = onEditTitleChange,
+            onNoteChange = onEditNoteChange,
+            onDismiss = onEditDialogDismiss,
+            onConfirm = onEditConfirm
         )
     }
 }
@@ -298,6 +337,70 @@ private fun AddPlaceOptionDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
+                Text(text = stringResource(R.string.common_close))
+            }
+        }
+    )
+}
+
+@Composable
+private fun EditItemDialog(
+    title: String,
+    note: String,
+    showTitleValidationError: Boolean,
+    errorMessage: String?,
+    isUpdating: Boolean,
+    onTitleChange: (String) -> Unit,
+    onNoteChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(R.string.item_detail_edit_dialog_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = onTitleChange,
+                    label = { Text(text = stringResource(R.string.shopping_list_add_dialog_title_hint)) },
+                    singleLine = true,
+                    isError = showTitleValidationError
+                )
+                OutlinedTextField(
+                    value = note,
+                    onValueChange = onNoteChange,
+                    label = { Text(text = stringResource(R.string.shopping_list_add_dialog_note_hint)) },
+                    singleLine = false,
+                    minLines = 2
+                )
+                if (showTitleValidationError) {
+                    Text(
+                        text = stringResource(id = R.string.shopping_list_validation_title_required),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                if (!errorMessage.isNullOrBlank()) {
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm, enabled = !isUpdating) {
+                if (isUpdating) {
+                    CircularProgressIndicator(modifier = Modifier.height(20.dp))
+                } else {
+                    Text(text = stringResource(R.string.item_detail_edit_dialog_confirm))
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isUpdating) {
                 Text(text = stringResource(R.string.common_close))
             }
         }
