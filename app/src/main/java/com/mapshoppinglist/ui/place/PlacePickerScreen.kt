@@ -1,5 +1,7 @@
 package com.mapshoppinglist.ui.place
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,7 +31,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -40,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.MapsInitializer
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
@@ -52,6 +58,7 @@ import com.mapshoppinglist.MapShoppingListApplication
 import com.mapshoppinglist.R
 import com.mapshoppinglist.ui.place.DEFAULT_LOCATION
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 @Composable
@@ -64,16 +71,28 @@ fun PlacePickerRoute(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val fusedClient = remember { LocationServices.getFusedLocationProviderClient(context) }
-    val hasLocationPermission = remember {
-        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    val coroutineScope = rememberCoroutineScope()
+    var hasLocationPermission by remember {
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)
+    }
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        hasLocationPermission = granted
+        if (!granted) {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(context.getString(R.string.permission_location_denied_message))
+            }
+        }
     }
 
     LaunchedEffect(hasLocationPermission) {
         if (hasLocationPermission) {
+            MapsInitializer.initialize(context)
             val location = fusedClient.lastLocation.await()
             location?.let {
                 viewModel.updateCameraLocation(LatLng(it.latitude, it.longitude))
             }
+        } else {
+            permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
     }
 
@@ -96,7 +115,10 @@ fun PlacePickerRoute(
         onClose = onClose,
         snackbarHostState = snackbarHostState,
         hasLocationPermission = hasLocationPermission,
-        onMapLongClick = viewModel::onMapLongClick
+        onMapLongClick = viewModel::onMapLongClick,
+        onRequestLocationPermission = {
+            permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
     )
 }
 
@@ -119,7 +141,8 @@ fun PlacePickerScreen(
     onClose: () -> Unit,
     snackbarHostState: SnackbarHostState,
     hasLocationPermission: Boolean,
-    onMapLongClick: (LatLng) -> Unit
+    onMapLongClick: (LatLng) -> Unit,
+    onRequestLocationPermission: () -> Unit
 ) {
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(DEFAULT_LOCATION, 10f)
@@ -201,24 +224,33 @@ fun PlacePickerScreen(
             }
 
             val selected = uiState.selectedPlace
-            val mapProperties = MapProperties(isMyLocationEnabled = hasLocationPermission)
 
-            GoogleMap(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                cameraPositionState = cameraPositionState,
-                uiSettings = MapUiSettings(zoomControlsEnabled = false),
-                properties = mapProperties,
-                onMapLongClick = onMapLongClick
-            ) {
-                selected?.let {
-                    Marker(
-                        state = MarkerState(position = it.latLng),
-                        title = it.name,
-                        snippet = it.address
-                    )
+            if (hasLocationPermission) {
+                val mapProperties = MapProperties(isMyLocationEnabled = true)
+                GoogleMap(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    cameraPositionState = cameraPositionState,
+                    uiSettings = MapUiSettings(zoomControlsEnabled = false),
+                    properties = mapProperties,
+                    onMapLongClick = onMapLongClick
+                ) {
+                    selected?.let {
+                        Marker(
+                            state = MarkerState(position = it.latLng),
+                            title = it.name,
+                            snippet = it.address
+                        )
+                    }
                 }
+            } else {
+                LocationPermissionPlaceholder(
+                    onRequestPermission = onRequestLocationPermission,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                )
             }
 
             if (selected != null) {
@@ -247,6 +279,29 @@ fun PlacePickerScreen(
                     Text(text = stringResource(R.string.place_picker_confirm))
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun LocationPermissionPlaceholder(
+    onRequestPermission: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.permission_location_denied_message),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Button(onClick = onRequestPermission) {
+            Text(text = stringResource(R.string.permission_location_request_button))
         }
     }
 }

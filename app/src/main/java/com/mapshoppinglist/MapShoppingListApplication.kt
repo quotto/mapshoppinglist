@@ -2,6 +2,7 @@ package com.mapshoppinglist
 
 import android.app.Application
 import com.google.android.libraries.places.api.Places
+import com.google.android.gms.maps.MapsInitializer
 import com.mapshoppinglist.data.local.AppDatabase
 import com.mapshoppinglist.data.repository.DefaultGeofenceRegistryRepository
 import com.mapshoppinglist.data.repository.DefaultNotificationStateRepository
@@ -45,6 +46,7 @@ class MapShoppingListApplication : Application() {
         if (!Places.isInitialized()) {
             Places.initialize(applicationContext, getString(R.string.google_maps_key))
         }
+        MapsInitializer.initialize(applicationContext, MapsInitializer.Renderer.LATEST) {}
     }
     /**
      * Roomデータベースをアプリ共通の依存として遅延初期化する。

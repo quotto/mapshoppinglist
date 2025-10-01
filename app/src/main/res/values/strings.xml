@@ -39,4 +39,12 @@
     <string name="item_detail_place_linked">お店を紐づけました</string>
     <string name="recent_places_title">最近使ったお店</string>
     <string name="recent_places_empty">最近の登録履歴がありません</string>
+    <string name="permission_location_denied_message">現在地を取得するには位置情報の許可が必要です。端末の設定で許可してください。</string>
+    <string name="permission_location_request_button">位置情報を許可</string>
+    <string name="permission_background_title">バックグラウンドでの位置情報が必要です</string>
+    <string name="permission_background_message">お店付近で通知を受け取るには、アプリに「常に許可」を設定してください。</string>
+    <string name="permission_background_button">許可をリクエスト</string>
+    <string name="permission_notifications_title">通知の許可を有効にしてください</string>
+    <string name="permission_notifications_message">お店に近づいた際にリマインダーを表示するため、通知の許可が必要です。</string>
+    <string name="permission_notifications_button">通知を許可</string>
 </resources>

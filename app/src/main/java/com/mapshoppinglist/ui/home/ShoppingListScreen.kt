@@ -1,5 +1,9 @@
 package com.mapshoppinglist.ui.home
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,6 +20,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -31,7 +38,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -43,6 +52,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mapshoppinglist.MapShoppingListApplication
 import com.mapshoppinglist.R
 import com.mapshoppinglist.ui.theme.MapShoppingListTheme
+import kotlinx.coroutines.launch
+import androidx.core.content.ContextCompat
 
 @Composable
 fun ShoppingListRoute(
@@ -51,10 +62,65 @@ fun ShoppingListRoute(
     newPlaceId: Long? = null,
     onNewPlaceConsumed: () -> Unit = {}
 ) {
-    val context = LocalContext.current.applicationContext as MapShoppingListApplication
-    val factory = remember(context) { ShoppingListViewModelFactory(context) }
+    val application = LocalContext.current.applicationContext as MapShoppingListApplication
+    val factory = remember(application) { ShoppingListViewModelFactory(application) }
     val viewModel: ShoppingListViewModel = viewModel(factory = factory)
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    var showBackgroundPrompt by remember {
+        mutableStateOf(shouldRequestBackgroundLocation(context))
+    }
+    var showNotificationPrompt by remember {
+        mutableStateOf(shouldRequestNotificationPermission(context))
+    }
+
+    val backgroundPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        showBackgroundPrompt = !granted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        showNotificationPrompt = !granted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+    }
+
+    val permissionPrompts = remember(showBackgroundPrompt, showNotificationPrompt, context) {
+        buildList {
+            if (showBackgroundPrompt) {
+                add(
+                    PermissionPromptUiModel(
+                        key = "background",
+                        title = context.getString(R.string.permission_background_title),
+                        message = context.getString(R.string.permission_background_message),
+                        actionLabel = context.getString(R.string.permission_background_button),
+                        onClick = {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                backgroundPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                            }
+                        }
+                    )
+                )
+            }
+            if (showNotificationPrompt) {
+                add(
+                    PermissionPromptUiModel(
+                        key = "notifications",
+                        title = context.getString(R.string.permission_notifications_title),
+                        message = context.getString(R.string.permission_notifications_message),
+                        actionLabel = context.getString(R.string.permission_notifications_button),
+                        onClick = {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                        }
+                    )
+                )
+            }
+        }
+    }
 
     LaunchedEffect(newPlaceId) {
         if (newPlaceId != null) {
@@ -65,6 +131,7 @@ fun ShoppingListRoute(
 
     ShoppingListScreen(
         uiState = uiState,
+        permissionPrompts = permissionPrompts,
         onAddItemClick = viewModel::onAddFabClick,
         onTogglePurchased = viewModel::onTogglePurchased,
         onDeleteItem = viewModel::onDeleteItem,
@@ -84,6 +151,7 @@ fun ShoppingListRoute(
 @Composable
 fun ShoppingListScreen(
     uiState: ShoppingListUiState,
+    permissionPrompts: List<PermissionPromptUiModel>,
     onAddItemClick: () -> Unit,
     onTogglePurchased: (itemId: Long, newState: Boolean) -> Unit,
     onDeleteItem: (itemId: Long) -> Unit,
@@ -117,6 +185,7 @@ fun ShoppingListScreen(
     ) { innerPadding ->
         ShoppingListContent(
             uiState = uiState,
+            permissionPrompts = permissionPrompts,
             contentPadding = innerPadding,
             onTogglePurchased = onTogglePurchased,
             onDeleteItem = onDeleteItem,
@@ -144,6 +213,7 @@ fun ShoppingListScreen(
 @Composable
 private fun ShoppingListContent(
     uiState: ShoppingListUiState,
+    permissionPrompts: List<PermissionPromptUiModel>,
     contentPadding: PaddingValues,
     onTogglePurchased: (Long, Boolean) -> Unit,
     onDeleteItem: (Long) -> Unit,
@@ -160,6 +230,13 @@ private fun ShoppingListContent(
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        items(
+            items = permissionPrompts,
+            key = { prompt: PermissionPromptUiModel -> prompt.key },
+            itemContent = { prompt: PermissionPromptUiModel ->
+                PermissionPromptCard(prompt)
+            }
+        )
         if (uiState.notPurchased.isEmpty()) {
             item(key = "empty") {
                 EmptySection()
@@ -275,6 +352,35 @@ private fun ShoppingListRow(
     }
 }
 
+data class PermissionPromptUiModel(
+    val key: String,
+    val title: String,
+    val message: String,
+    val actionLabel: String,
+    val onClick: () -> Unit
+)
+
+@Composable
+private fun PermissionPromptCard(prompt: PermissionPromptUiModel, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(text = prompt.title, style = MaterialTheme.typography.titleMedium)
+            Text(text = prompt.message, style = MaterialTheme.typography.bodyMedium)
+            Button(onClick = prompt.onClick) {
+                Text(text = prompt.actionLabel)
+            }
+        }
+    }
+}
+
 @Composable
 private fun AddItemDialog(
     title: String,
@@ -371,6 +477,7 @@ private fun ShoppingListScreenPreview() {
     MapShoppingListTheme {
         ShoppingListScreen(
             uiState = state,
+            permissionPrompts = emptyList(),
             onAddItemClick = {},
             onTogglePurchased = { _, _ -> },
             onDeleteItem = {},
@@ -383,4 +490,27 @@ private fun ShoppingListScreenPreview() {
             onItemClick = {}
         )
     }
+}
+
+private fun shouldRequestBackgroundLocation(context: android.content.Context): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
+    val foregroundGranted = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.ACCESS_FINE_LOCATION
+    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    if (!foregroundGranted) return false
+    val backgroundGranted = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.ACCESS_BACKGROUND_LOCATION
+    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    return !backgroundGranted
+}
+
+private fun shouldRequestNotificationPermission(context: android.content.Context): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return false
+    val granted = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.POST_NOTIFICATIONS
+    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    return !granted
 }
