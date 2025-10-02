@@ -1,8 +1,10 @@
 package com.mapshoppinglist.ui.itemdetail
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -12,7 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -25,7 +26,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -35,6 +35,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -47,6 +48,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mapshoppinglist.MapShoppingListApplication
 import com.mapshoppinglist.R
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 @Composable
 fun ItemDetailRoute(
@@ -61,6 +63,7 @@ fun ItemDetailRoute(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(linkedPlaceId) {
         if (linkedPlaceId != null) {
@@ -68,6 +71,19 @@ fun ItemDetailRoute(
             onLinkedPlaceConsumed()
         }
     }
+
+    val handleBack: () -> Unit = remember(viewModel) {
+        {
+            coroutineScope.launch {
+                when (viewModel.saveIfNeeded()) {
+                    ItemDetailSaveResult.Success -> onBack()
+                    ItemDetailSaveResult.ValidationError, ItemDetailSaveResult.Error -> Unit
+                }
+            }
+        }
+    }
+
+    BackHandler(onBack = handleBack)
 
     LaunchedEffect(Unit) {
         viewModel.events.collectLatest { event ->
@@ -89,16 +105,12 @@ fun ItemDetailRoute(
     ItemDetailScreen(
         uiState = uiState,
         snackbarHostState = snackbarHostState,
-        onBack = onBack,
-        onTogglePurchased = viewModel::onTogglePurchased,
+        onBack = handleBack,
         onRemovePlace = viewModel::onRemovePlace,
         onAddPlaceViaSearch = onAddPlaceViaSearch,
         onAddPlaceViaRecent = onAddPlaceViaRecent,
-        onEditClick = viewModel::onEditClick,
-        onEditDialogDismiss = viewModel::onEditDialogDismiss,
         onEditTitleChange = viewModel::onEditTitleChange,
-        onEditNoteChange = viewModel::onEditNoteChange,
-        onEditConfirm = viewModel::onEditConfirm
+        onEditNoteChange = viewModel::onEditNoteChange
     )
 }
 
@@ -115,15 +127,11 @@ private fun ItemDetailScreen(
     uiState: ItemDetailUiState,
     snackbarHostState: SnackbarHostState,
     onBack: () -> Unit,
-    onTogglePurchased: (Boolean) -> Unit,
     onRemovePlace: (Long) -> Unit,
     onAddPlaceViaSearch: () -> Unit,
     onAddPlaceViaRecent: () -> Unit,
-    onEditClick: () -> Unit,
-    onEditDialogDismiss: () -> Unit,
     onEditTitleChange: (String) -> Unit,
-    onEditNoteChange: (String) -> Unit,
-    onEditConfirm: () -> Unit
+    onEditNoteChange: (String) -> Unit
 ) {
     var isAddPlaceDialogVisible by rememberSaveable { mutableStateOf(false) }
 
@@ -134,13 +142,6 @@ private fun ItemDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(imageVector = Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
-                    }
-                },
-                actions = {
-                    if (!uiState.isLoading && !uiState.isNotFound) {
-                        IconButton(onClick = onEditClick) {
-                            Icon(imageVector = Icons.Default.Edit, contentDescription = stringResource(R.string.item_detail_edit))
-                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -159,9 +160,10 @@ private fun ItemDetailScreen(
                 ItemDetailContent(
                     uiState = uiState,
                     contentPadding = innerPadding,
-                    onTogglePurchased = onTogglePurchased,
                     onRemovePlace = onRemovePlace,
-                    onAddPlaceClick = { isAddPlaceDialogVisible = true }
+                    onAddPlaceClick = { isAddPlaceDialogVisible = true },
+                    onEditTitleChange = onEditTitleChange,
+                    onEditNoteChange = onEditNoteChange
                 )
             }
         }
@@ -181,19 +183,6 @@ private fun ItemDetailScreen(
         )
     }
 
-    if (uiState.isEditDialogVisible) {
-        EditItemDialog(
-            title = uiState.editTitle,
-            note = uiState.editNote,
-            showTitleValidationError = uiState.showTitleValidationError,
-            errorMessage = uiState.editErrorMessage,
-            isUpdating = uiState.isUpdating,
-            onTitleChange = onEditTitleChange,
-            onNoteChange = onEditNoteChange,
-            onDismiss = onEditDialogDismiss,
-            onConfirm = onEditConfirm
-        )
-    }
 }
 
 @Composable
@@ -226,9 +215,10 @@ private fun NotFoundContent(modifier: Modifier = Modifier) {
 private fun ItemDetailContent(
     uiState: ItemDetailUiState,
     contentPadding: PaddingValues,
-    onTogglePurchased: (Boolean) -> Unit,
     onRemovePlace: (Long) -> Unit,
-    onAddPlaceClick: () -> Unit
+    onAddPlaceClick: () -> Unit,
+    onEditTitleChange: (String) -> Unit,
+    onEditNoteChange: (String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -240,18 +230,47 @@ private fun ItemDetailContent(
     ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(text = uiState.title, style = MaterialTheme.typography.headlineSmall)
-                uiState.note?.takeIf { it.isNotBlank() }?.let {
-                    Text(text = it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                RowWithToggle(
-                    isChecked = uiState.isPurchased,
-                    onToggle = onTogglePurchased
+                OutlinedTextField(
+                    value = uiState.titleInput,
+                    onValueChange = onEditTitleChange,
+                    label = { Text(text = stringResource(R.string.shopping_list_add_dialog_title_hint)) },
+                    singleLine = true,
+                    isError = uiState.showTitleValidationError,
+                    enabled = !uiState.isSaving
                 )
+                OutlinedTextField(
+                    value = uiState.noteInput,
+                    onValueChange = onEditNoteChange,
+                    label = { Text(text = stringResource(R.string.shopping_list_add_dialog_note_hint)) },
+                    minLines = 2,
+                    enabled = !uiState.isSaving
+                )
+                if (uiState.showTitleValidationError) {
+                    Text(
+                        text = stringResource(R.string.shopping_list_validation_title_required),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                uiState.errorMessage?.let {
+                    Text(
+                        text = it,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                if (uiState.isSaving) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.height(20.dp))
+                    }
+                }
             }
         }
         item {
-            OutlinedButton(onClick = onAddPlaceClick, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(onClick = onAddPlaceClick, modifier = Modifier.fillMaxWidth(), enabled = !uiState.isSaving) {
                 Text(text = stringResource(R.string.item_detail_add_place))
             }
         }
@@ -269,23 +288,6 @@ private fun ItemDetailContent(
                 LinkedPlaceRow(place = place, onRemove = { onRemovePlace(place.placeId) })
             }
         }
-    }
-}
-
-@Composable
-private fun RowWithToggle(
-    isChecked: Boolean,
-    onToggle: (Boolean) -> Unit
-) {
-    androidx.compose.foundation.layout.Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(text = stringResource(R.string.item_detail_purchased_toggle))
-        Switch(
-            checked = isChecked,
-            onCheckedChange = onToggle
-        )
     }
 }
 
@@ -337,70 +339,6 @@ private fun AddPlaceOptionDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = stringResource(R.string.common_close))
-            }
-        }
-    )
-}
-
-@Composable
-private fun EditItemDialog(
-    title: String,
-    note: String,
-    showTitleValidationError: Boolean,
-    errorMessage: String?,
-    isUpdating: Boolean,
-    onTitleChange: (String) -> Unit,
-    onNoteChange: (String) -> Unit,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = stringResource(R.string.item_detail_edit_dialog_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = onTitleChange,
-                    label = { Text(text = stringResource(R.string.shopping_list_add_dialog_title_hint)) },
-                    singleLine = true,
-                    isError = showTitleValidationError
-                )
-                OutlinedTextField(
-                    value = note,
-                    onValueChange = onNoteChange,
-                    label = { Text(text = stringResource(R.string.shopping_list_add_dialog_note_hint)) },
-                    singleLine = false,
-                    minLines = 2
-                )
-                if (showTitleValidationError) {
-                    Text(
-                        text = stringResource(id = R.string.shopping_list_validation_title_required),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-                if (!errorMessage.isNullOrBlank()) {
-                    Text(
-                        text = errorMessage,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onConfirm, enabled = !isUpdating) {
-                if (isUpdating) {
-                    CircularProgressIndicator(modifier = Modifier.height(20.dp))
-                } else {
-                    Text(text = stringResource(R.string.item_detail_edit_dialog_confirm))
-                }
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isUpdating) {
                 Text(text = stringResource(R.string.common_close))
             }
         }

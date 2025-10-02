@@ -21,11 +21,12 @@ class NotificationActionReceiver : BroadcastReceiver() {
         }
         val pendingResult = goAsync()
         val app = context.applicationContext as MapShoppingListApplication
+        val itemIds = intent.getLongArrayExtra(NotificationActions.EXTRA_ITEM_IDS)?.toList().orEmpty()
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 when (intent.action) {
                     NotificationActions.ACTION_MARK_PURCHASED -> handleMarkPurchased(app, placeId)
-                    NotificationActions.ACTION_SNOOZE -> handleSnooze(app, placeId)
+                    NotificationActions.ACTION_DELETE -> handleDelete(app, placeId, itemIds)
                     else -> Log.d(TAG, "Unknown action=${intent.action}")
                 }
             } finally {
@@ -41,9 +42,15 @@ class NotificationActionReceiver : BroadcastReceiver() {
         app.recordPlaceNotificationUseCase(placeId)
     }
 
-    private suspend fun handleSnooze(app: MapShoppingListApplication, placeId: Long) {
-        Log.d(TAG, "Received snooze for placeId=$placeId")
-        app.snoozePlaceNotificationsUseCase(placeId)
+    private suspend fun handleDelete(app: MapShoppingListApplication, placeId: Long, itemIds: List<Long>) {
+        Log.d(TAG, "Received delete for placeId=$placeId items=$itemIds")
+        val targets = if (itemIds.isNotEmpty()) itemIds
+        else app.shoppingListRepository.getItemsForPlace(placeId).map { it.id }
+        targets.forEach { id ->
+            app.deleteShoppingItemUseCase(id)
+        }
+        app.recordPlaceNotificationUseCase(placeId)
+        app.geofenceSyncScheduler.scheduleImmediateSync()
     }
 
     private fun cancelNotification(context: Context, placeId: Long) {

@@ -41,13 +41,14 @@ class ItemDetailViewModel(
                 } else {
                     _uiState.update { current ->
                         val base = detail.toUiState()
+                        val keepInput = current.hasPendingInput || current.isSaving
                         base.copy(
-                            isEditDialogVisible = current.isEditDialogVisible,
-                            editTitle = current.editTitle.takeIf { current.isEditDialogVisible } ?: base.title,
-                            editNote = current.editNote.takeIf { current.isEditDialogVisible } ?: (base.note ?: ""),
+                            titleInput = if (keepInput) current.titleInput else base.title,
+                            noteInput = if (keepInput) current.noteInput else base.note.orEmpty(),
                             showTitleValidationError = current.showTitleValidationError,
-                            editErrorMessage = current.editErrorMessage,
-                            isUpdating = current.isUpdating
+                            errorMessage = current.errorMessage,
+                            isSaving = current.isSaving,
+                            hasPendingInput = current.hasPendingInput
                         )
                     }
                 }
@@ -74,84 +75,99 @@ class ItemDetailViewModel(
         }
     }
 
-    fun onEditClick() {
-        val current = _uiState.value
-        if (current.isLoading || current.isNotFound) return
-        _uiState.update {
-            it.copy(
-                isEditDialogVisible = true,
-                editTitle = current.title,
-                editNote = current.note.orEmpty(),
-                showTitleValidationError = false,
-                editErrorMessage = null
-            )
-        }
-    }
-
-    fun onEditDialogDismiss() {
-        _uiState.update {
-            it.copy(
-                isEditDialogVisible = false,
-                editTitle = "",
-                editNote = "",
-                showTitleValidationError = false,
-                editErrorMessage = null,
-                isUpdating = false
-            )
-        }
-    }
-
     fun onEditTitleChange(value: String) {
         _uiState.update {
             it.copy(
-                editTitle = value,
+                titleInput = value,
                 showTitleValidationError = false,
-                editErrorMessage = null
+                errorMessage = null,
+                hasPendingInput = true
             )
         }
     }
 
     fun onEditNoteChange(value: String) {
         _uiState.update {
-            it.copy(editNote = value)
+            it.copy(
+                noteInput = value,
+                hasPendingInput = true
+            )
         }
     }
 
-    fun onEditConfirm() {
+    suspend fun saveIfNeeded(): ItemDetailSaveResult {
         val current = _uiState.value
-        val title = current.editTitle.trim()
-        if (title.isBlank()) {
-            _uiState.update {
-                it.copy(showTitleValidationError = true, editErrorMessage = null)
-            }
-            return
-        }
-        val note = current.editNote.trim().ifBlank { null }
-        viewModelScope.launch {
-            _uiState.update { it.copy(isUpdating = true, editErrorMessage = null) }
-            try {
-                updateItemUseCase(itemId, title, note)
+        if (current.isLoading || current.isNotFound) return ItemDetailSaveResult.Success
+        if (current.isSaving) return ItemDetailSaveResult.Success
+        val inputTitle = current.titleInput.trim()
+        val inputNote = current.noteInput.trim().ifBlank { null }
+        val currentNoteNormalized = current.note?.takeIf { it.isNotBlank() }
+
+        val finalTitle: String
+        val finalNote = inputNote
+        val finalNoteNormalized = finalNote
+        val needsUpdate: Boolean
+
+        if (inputTitle.isBlank()) {
+            finalTitle = current.title
+            needsUpdate = finalNoteNormalized != currentNoteNormalized
+            if (!needsUpdate) {
                 _uiState.update {
                     it.copy(
-                        title = title,
-                        note = note,
-                        isEditDialogVisible = false,
-                        editTitle = "",
-                        editNote = "",
+                        titleInput = current.title,
+                        noteInput = current.note.orEmpty(),
                         showTitleValidationError = false,
-                        editErrorMessage = null,
-                        isUpdating = false
+                        errorMessage = null,
+                        hasPendingInput = false
                     )
                 }
-                _events.emit(ItemDetailEvent.ItemUpdated)
-            } catch (error: Exception) {
+                return ItemDetailSaveResult.Success
+            }
+        } else {
+            finalTitle = inputTitle
+            needsUpdate = finalTitle != current.title || finalNoteNormalized != currentNoteNormalized
+            if (!needsUpdate && !current.hasPendingInput) {
                 _uiState.update {
                     it.copy(
-                        isUpdating = false,
-                        editErrorMessage = error.message
+                        titleInput = current.title,
+                        noteInput = current.note.orEmpty(),
+                        hasPendingInput = false,
+                        showTitleValidationError = false,
+                        errorMessage = null
                     )
                 }
+                return ItemDetailSaveResult.Success
             }
+        }
+
+        if (!needsUpdate && !current.hasPendingInput) {
+            return ItemDetailSaveResult.Success
+        }
+        _uiState.update { it.copy(isSaving = true, errorMessage = null) }
+        return try {
+            updateItemUseCase(itemId, finalTitle, finalNote)
+            _uiState.update {
+                it.copy(
+                    title = finalTitle,
+                    note = finalNote,
+                    titleInput = finalTitle,
+                    noteInput = finalNote.orEmpty(),
+                    showTitleValidationError = false,
+                    errorMessage = null,
+                    isSaving = false,
+                    hasPendingInput = false
+                )
+            }
+            _events.emit(ItemDetailEvent.ItemUpdated)
+            ItemDetailSaveResult.Success
+        } catch (error: Exception) {
+            _uiState.update {
+                it.copy(
+                    errorMessage = error.message,
+                    isSaving = false
+                )
+            }
+            ItemDetailSaveResult.Error
         }
     }
 
@@ -162,7 +178,9 @@ class ItemDetailViewModel(
             note = note,
             isPurchased = isPurchased,
             linkedPlaces = places.map { it.toUiModel() },
-            isNotFound = false
+            isNotFound = false,
+            titleInput = title,
+            noteInput = note.orEmpty()
         )
     }
 
@@ -182,12 +200,12 @@ data class ItemDetailUiState(
     val isPurchased: Boolean = false,
     val linkedPlaces: List<LinkedPlaceUiModel> = emptyList(),
     val isNotFound: Boolean = false,
-    val isEditDialogVisible: Boolean = false,
-    val editTitle: String = "",
-    val editNote: String = "",
+    val titleInput: String = "",
+    val noteInput: String = "",
     val showTitleValidationError: Boolean = false,
-    val editErrorMessage: String? = null,
-    val isUpdating: Boolean = false
+    val errorMessage: String? = null,
+    val isSaving: Boolean = false,
+    val hasPendingInput: Boolean = false
 )
 
 data class LinkedPlaceUiModel(
@@ -199,4 +217,10 @@ data class LinkedPlaceUiModel(
 sealed interface ItemDetailEvent {
     data class PlaceLinked(val placeId: Long) : ItemDetailEvent
     data object ItemUpdated : ItemDetailEvent
+}
+
+sealed interface ItemDetailSaveResult {
+    data object Success : ItemDetailSaveResult
+    data object ValidationError : ItemDetailSaveResult
+    data object Error : ItemDetailSaveResult
 }

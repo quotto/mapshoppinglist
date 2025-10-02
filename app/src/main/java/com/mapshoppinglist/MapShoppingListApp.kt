@@ -1,6 +1,7 @@
 package com.mapshoppinglist
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -26,14 +27,19 @@ object Destinations {
 }
 
 @Composable
-fun MapShoppingListApp(navController: NavHostController = rememberNavController()) {
+fun MapShoppingListApp(
+    startItemId: Long? = null,
+    navController: NavHostController = rememberNavController(),
+    onDetailConsumed: () -> Unit = {}
+) {
     NavHost(navController = navController, startDestination = Destinations.SHOPPING_LIST) {
         composable(Destinations.SHOPPING_LIST) { backStackEntry ->
             val savedStateHandle = backStackEntry.savedStateHandle
             val newPlaceIdLiveData = savedStateHandle.getLiveData<Long?>(REQUEST_KEY_SHOPPING_LIST_PLACE)
             val newPlaceId by newPlaceIdLiveData.observeAsState()
             ShoppingListRoute(
-                onAddPlaceRequest = { navController.navigate(Destinations.placePickerRoute(REQUEST_KEY_SHOPPING_LIST_PLACE)) },
+                onAddPlaceViaSearch = { navController.navigate(Destinations.placePickerRoute(REQUEST_KEY_SHOPPING_LIST_PLACE)) },
+                onAddPlaceViaRecent = { navController.navigate(Destinations.recentPlacesRoute(REQUEST_KEY_SHOPPING_LIST_PLACE)) },
                 onItemClick = { itemId -> navController.navigate(Destinations.itemDetailRoute(itemId)) },
                 newPlaceId = newPlaceId,
                 onNewPlaceConsumed = { savedStateHandle.set<Long?>(REQUEST_KEY_SHOPPING_LIST_PLACE, null) }
@@ -85,6 +91,16 @@ fun MapShoppingListApp(navController: NavHostController = rememberNavController(
                 },
                 onClose = { navController.popBackStack() }
             )
+        }
+    }
+
+    LaunchedEffect(startItemId) {
+        val targetId = startItemId
+        if (targetId != null) {
+            navController.navigate(Destinations.itemDetailRoute(targetId)) {
+                launchSingleTop = true
+            }
+            onDetailConsumed()
         }
     }
 }

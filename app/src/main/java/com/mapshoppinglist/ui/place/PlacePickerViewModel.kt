@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.PointOfInterest
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.api.model.TypeFilter
@@ -164,6 +165,26 @@ class PlacePickerViewModel(
                     cameraLocation = latLng
                 )
             }
+        }
+    }
+
+    fun onPoiClick(poi: PointOfInterest) {
+        val latLng = poi.latLng ?: return
+        val name = poi.name ?: return
+        _uiState.update {
+            it.copy(
+                query = name,
+                predictions = emptyList(),
+                selectedPlace = SelectedPlaceUiModel(
+                    placeId = poi.placeId ?: "poi_${latLng.latitude}_${latLng.longitude}",
+                    name = name,
+                    address = null,
+                    latLng = latLng
+                ),
+                cameraLocation = latLng,
+                isLoading = false,
+                errorMessage = null
+            )
         }
     }
 

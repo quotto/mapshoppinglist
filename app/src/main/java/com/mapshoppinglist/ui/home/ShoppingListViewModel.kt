@@ -7,6 +7,7 @@ import com.mapshoppinglist.domain.model.ShoppingItem
 import com.mapshoppinglist.domain.repository.PlacesRepository
 import com.mapshoppinglist.domain.usecase.AddShoppingItemUseCase
 import com.mapshoppinglist.domain.usecase.DeleteShoppingItemUseCase
+import com.mapshoppinglist.domain.usecase.GetRecentPlacesUseCase
 import com.mapshoppinglist.domain.usecase.LinkItemToPlaceUseCase
 import com.mapshoppinglist.domain.usecase.ObserveShoppingItemsUseCase
 import com.mapshoppinglist.domain.usecase.UnlinkItemFromPlaceUseCase
@@ -27,7 +28,8 @@ class ShoppingListViewModel(
     private val updatePurchasedState: UpdatePurchasedStateUseCase,
     private val linkItemToPlaceUseCase: LinkItemToPlaceUseCase,
     private val unlinkItemFromPlaceUseCase: UnlinkItemFromPlaceUseCase,
-    private val placesRepository: PlacesRepository
+    private val placesRepository: PlacesRepository,
+    private val getRecentPlacesUseCase: GetRecentPlacesUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ShoppingListUiState())
@@ -55,10 +57,12 @@ class ShoppingListViewModel(
                 addDialogErrorMessage = null
             )
         }
+        loadRecentPlaces()
     }
 
     fun onAddDialogDismiss() {
         _uiState.update { it.resetInput() }
+        loadRecentPlaces()
     }
 
     fun onTitleInputChange(value: String) {
@@ -129,12 +133,32 @@ class ShoppingListViewModel(
                     pendingPlaces = state.pendingPlaces + PendingPlaceUiModel(placeId, place.name)
                 )
             }
+            loadRecentPlaces()
         }
     }
 
     fun onRemovePendingPlace(placeId: Long) {
         _uiState.update { state ->
             state.copy(pendingPlaces = state.pendingPlaces.filterNot { it.placeId == placeId })
+        }
+        loadRecentPlaces()
+    }
+
+    fun onRecentPlaceSelected(placeId: Long) {
+        onPlaceRegistered(placeId)
+    }
+
+    private fun loadRecentPlaces(limit: Int = RECENT_LIMIT) {
+        viewModelScope.launch {
+            val places = getRecentPlacesUseCase(limit)
+            _uiState.update { state ->
+                val pendingIds = state.pendingPlaces.map { it.placeId }.toSet()
+                state.copy(
+                    recentPlaces = places
+                        .filter { it.id !in pendingIds }
+                        .map { place -> RecentPlaceUiModel(place.id, place.name) }
+                )
+            }
         }
     }
 
@@ -172,7 +196,8 @@ data class ShoppingListUiState(
     val inputNote: String = "",
     val showTitleValidationError: Boolean = false,
     val addDialogErrorMessage: String? = null,
-    val pendingPlaces: List<PendingPlaceUiModel> = emptyList()
+    val pendingPlaces: List<PendingPlaceUiModel> = emptyList(),
+    val recentPlaces: List<RecentPlaceUiModel> = emptyList()
 )
 
 /**
@@ -190,3 +215,10 @@ data class PendingPlaceUiModel(
     val placeId: Long,
     val name: String
 )
+
+data class RecentPlaceUiModel(
+    val placeId: Long,
+    val name: String
+)
+
+private const val RECENT_LIMIT = 5

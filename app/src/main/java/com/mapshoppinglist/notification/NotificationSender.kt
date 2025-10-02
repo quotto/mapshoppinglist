@@ -16,7 +16,7 @@ class NotificationSender(private val context: Context) {
 
     private val notificationManager = NotificationManagerCompat.from(context)
 
-    fun showPlaceReminder(placeId: Long, message: NotificationMessage) {
+    fun showPlaceReminder(placeId: Long, itemIds: List<Long>, message: NotificationMessage) {
         ensureChannel()
         val contentIntent = PendingIntent.getActivity(
             context,
@@ -34,19 +34,33 @@ class NotificationSender(private val context: Context) {
             Intent(context, NotificationActionReceiver::class.java).apply {
                 action = NotificationActions.ACTION_MARK_PURCHASED
                 putExtra(NotificationActions.EXTRA_PLACE_ID, placeId)
+                putExtra(NotificationActions.EXTRA_ITEM_IDS, itemIds.toLongArray())
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         )
 
-        val snoozeIntent = PendingIntent.getBroadcast(
+        val deleteIntent = PendingIntent.getBroadcast(
             context,
             placeId.hashCode() + 1,
             Intent(context, NotificationActionReceiver::class.java).apply {
-                action = NotificationActions.ACTION_SNOOZE
+                action = NotificationActions.ACTION_DELETE
                 putExtra(NotificationActions.EXTRA_PLACE_ID, placeId)
+                putExtra(NotificationActions.EXTRA_ITEM_IDS, itemIds.toLongArray())
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         )
+
+        val detailIntent = itemIds.firstOrNull()?.let { targetItemId ->
+            PendingIntent.getActivity(
+                context,
+                placeId.hashCode() + 2,
+                Intent(context, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    putExtra(NotificationActions.EXTRA_ITEM_ID, targetItemId)
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+            )
+        }
 
         val style = NotificationCompat.InboxStyle().also { inbox ->
             message.lines.forEach { inbox.addLine(it) }
@@ -62,7 +76,10 @@ class NotificationSender(private val context: Context) {
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .addAction(0, context.getString(R.string.notification_action_mark_purchased), markPurchasedIntent)
-            .addAction(0, context.getString(R.string.notification_action_snooze), snoozeIntent)
+            .addAction(0, context.getString(R.string.notification_action_delete), deleteIntent)
+        detailIntent?.let {
+            builder.addAction(0, context.getString(R.string.notification_action_detail), it)
+        }
 
         notificationManager.notify(placeId.hashCode(), builder.build())
     }

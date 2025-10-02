@@ -7,6 +7,7 @@
     <string name="shopping_list_add_item">アイテム追加</string>
     <string name="shopping_list_linked_places_header">紐づけ予定のお店</string>
     <string name="shopping_list_remove_place">削除</string>
+    <string name="shopping_list_recent_places_header">最近選んだお店から追加</string>
     <string name="shopping_list_add_dialog_title">アイテムを追加</string>
     <string name="shopping_list_add_dialog_title_hint">タイトル</string>
     <string name="shopping_list_add_dialog_note_hint">メモ（任意）</string>
@@ -15,11 +16,13 @@
     <string name="shopping_list_validation_title_required">タイトルは必須です</string>
     <string name="shopping_list_delete_item">アイテムを削除</string>
     <string name="shopping_list_add_place">お店を追加</string>
+    <string name="shopping_list_add_place_section_title">お店を紐づける</string>
     <string name="notification_channel_name">買い忘れ防止リマインダー</string>
     <string name="notification_channel_desc">お店に近づいた際の買い物リマインダー通知</string>
     <string name="notification_default_summary">忘れているアイテムがあります</string>
     <string name="notification_action_mark_purchased">購入済みにする</string>
-    <string name="notification_action_snooze">あとで</string>
+    <string name="notification_action_delete">削除</string>
+    <string name="notification_action_detail">詳細</string>
     <string name="place_picker_title">お店を登録</string>
     <string name="place_picker_search_hint">お店の名前や住所を検索</string>
     <string name="place_picker_clear_selection">選択をクリア</string>

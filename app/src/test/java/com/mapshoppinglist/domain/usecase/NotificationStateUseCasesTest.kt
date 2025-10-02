@@ -4,7 +4,9 @@ import com.mapshoppinglist.domain.model.NotificationState
 import com.mapshoppinglist.domain.repository.NotificationStateRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -23,6 +25,9 @@ private class InMemoryNotificationStateRepository : NotificationStateRepository 
     }
 }
 
+/**
+ * 通知クールダウンと履歴更新のユースケースを検証するテスト。
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class NotificationStateUseCasesTest {
 
@@ -34,10 +39,9 @@ class NotificationStateUseCasesTest {
     }
 
     @Test
-    fun shouldSendReturnsFalseWhenSnoozed() = runTest {
-        repository.upsert(NotificationState(1L, lastNotifiedAt = null, snoozeUntil = System.currentTimeMillis() + 60_000))
-        val useCase = ShouldSendNotificationUseCase(repository)
-        assertFalse(useCase(1L, System.currentTimeMillis()))
+    fun shouldSendReturnsTrueWhenNoHistory() = runTest {
+        val useCase = ShouldSendNotificationUseCase(repository, coolDownMillis = 10_000)
+        assertTrue(useCase(1L, System.currentTimeMillis()))
     }
 
     @Test
@@ -49,20 +53,31 @@ class NotificationStateUseCasesTest {
     }
 
     @Test
-    fun recordNotificationClearsSnooze() = runTest {
-        repository.upsert(NotificationState(1L, lastNotifiedAt = null, snoozeUntil = System.currentTimeMillis() + 10_000))
-        val record = RecordPlaceNotificationUseCase(repository)
-        val shouldSend = ShouldSendNotificationUseCase(repository, coolDownMillis = 0)
-        record(1L)
-        assertTrue(shouldSend(1L, System.currentTimeMillis()))
+    fun shouldSendReturnsTrueAfterCooldown() = runTest {
+        val now = System.currentTimeMillis()
+        repository.upsert(NotificationState(1L, lastNotifiedAt = now - 20_000, snoozeUntil = null))
+        val useCase = ShouldSendNotificationUseCase(repository, coolDownMillis = 5_000)
+        assertTrue(useCase(1L, now))
     }
 
     @Test
-    fun snoozeUpdatesState() = runTest {
-        val snooze = SnoozePlaceNotificationsUseCase(repository)
-        snooze(1L, durationMillis = 1_000)
+    fun recordNotificationUpdatesState() = runTest {
+        val record = RecordPlaceNotificationUseCase(repository)
+        val timestamp = 12345L
+        record(1L, timestamp)
         val state = repository.get(1L)
-        assertTrue(state?.snoozeUntil ?: 0L > System.currentTimeMillis())
+        assertEquals(timestamp, state?.lastNotifiedAt)
+        assertNull(state?.snoozeUntil)
+    }
+
+    @Test
+    fun recordNotificationEnforcesCooldown() = runTest {
+        val record = RecordPlaceNotificationUseCase(repository)
+        val shouldSend = ShouldSendNotificationUseCase(repository)
+        record(1L, now = 0L)
+        assertFalse(shouldSend(1L, now = DEFAULT_COOLDOWN_MILLIS - 1L))
+        assertTrue(shouldSend(1L, now = DEFAULT_COOLDOWN_MILLIS + 1L))
     }
 }
 
+private const val DEFAULT_COOLDOWN_MILLIS = 5 * 60 * 1000L

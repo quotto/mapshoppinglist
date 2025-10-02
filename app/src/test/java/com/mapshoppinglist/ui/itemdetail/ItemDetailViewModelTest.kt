@@ -220,7 +220,6 @@ class ItemDetailViewModelTest {
         val viewModel = createViewModel()
         advanceUntilIdle()
 
-        viewModel.onEditClick()
         viewModel.onEditTitleChange("牛乳（特売）")
         viewModel.onEditNoteChange("メモ更新")
 
@@ -229,15 +228,99 @@ class ItemDetailViewModelTest {
             assertTrue(event is ItemDetailEvent.ItemUpdated)
         }
 
-        viewModel.onEditConfirm()
+        val result = viewModel.saveIfNeeded()
         advanceUntilIdle()
 
         assertEquals(1L, shoppingListRepository.updatedItemId)
         assertEquals("牛乳（特売）", shoppingListRepository.updatedTitle)
         assertEquals("メモ更新", shoppingListRepository.updatedNote)
         eventJob.cancel()
-        assertEquals(false, viewModel.uiState.value.isEditDialogVisible)
+        assertTrue(result is ItemDetailSaveResult.Success)
+    }
+
+    @Test
+    fun `blank title keeps existing title without blocking navigation`() = runTest(dispatcher) {
+        val detail = ItemDetail(
+            id = 1L,
+            title = "牛乳",
+            note = "",
+            isPurchased = false,
+            createdAt = 0L,
+            updatedAt = 0L,
+            places = emptyList()
+        )
+        shoppingListRepository.detailFlow.value = detail
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onEditTitleChange("   ")
+
+        val result = viewModel.saveIfNeeded()
+        advanceUntilIdle()
+
+        assertTrue(result is ItemDetailSaveResult.Success)
+        assertEquals(null, shoppingListRepository.updatedTitle)
+        assertEquals("牛乳", viewModel.uiState.value.titleInput)
+        assertEquals(false, viewModel.uiState.value.showTitleValidationError)
+    }
+
+    @Test
+    fun `no changes skips repository update`() = runTest(dispatcher) {
+        val detail = ItemDetail(
+            id = 1L,
+            title = "牛乳",
+            note = "メモ",
+            isPurchased = false,
+            createdAt = 0L,
+            updatedAt = 0L,
+            places = emptyList()
+        )
+        shoppingListRepository.detailFlow.value = detail
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val result = viewModel.saveIfNeeded()
+        advanceUntilIdle()
+
+        assertTrue(result is ItemDetailSaveResult.Success)
+        assertEquals(null, shoppingListRepository.updatedTitle)
+    }
+
+    @Test
+    fun `blank title still allows note update`() = runTest(dispatcher) {
+        val detail = ItemDetail(
+            id = 1L,
+            title = "牛乳",
+            note = "メモ",
+            isPurchased = false,
+            createdAt = 0L,
+            updatedAt = 0L,
+            places = emptyList()
+        )
+        shoppingListRepository.detailFlow.value = detail
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.onEditTitleChange("   ")
+        viewModel.onEditNoteChange("メモ更新")
+
+        val job = backgroundScope.launch {
+            val event = viewModel.events.first()
+            assertTrue(event is ItemDetailEvent.ItemUpdated)
+        }
+
+        val result = viewModel.saveIfNeeded()
+        advanceUntilIdle()
+
+        assertTrue(result is ItemDetailSaveResult.Success)
+        assertEquals("牛乳", shoppingListRepository.updatedTitle)
+        assertEquals("メモ更新", shoppingListRepository.updatedNote)
+        assertEquals("牛乳", viewModel.uiState.value.titleInput)
+        job.cancel()
     }
 }
 
-private class StubContext : ContextWrapper(null)
+private class StubContext : ContextWrapper(null) {}

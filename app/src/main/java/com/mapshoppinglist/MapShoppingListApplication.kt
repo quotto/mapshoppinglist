@@ -29,7 +29,6 @@ import com.mapshoppinglist.domain.usecase.ObserveShoppingItemsUseCase
 import com.mapshoppinglist.domain.usecase.ObserveItemDetailUseCase
 import com.mapshoppinglist.domain.usecase.RecordPlaceNotificationUseCase
 import com.mapshoppinglist.domain.usecase.ShouldSendNotificationUseCase
-import com.mapshoppinglist.domain.usecase.SnoozePlaceNotificationsUseCase
 import com.mapshoppinglist.domain.usecase.UnlinkItemFromPlaceUseCase
 import com.mapshoppinglist.domain.usecase.UpdatePurchasedStateUseCase
 import com.mapshoppinglist.domain.usecase.UpdateItemUseCase
@@ -104,7 +103,7 @@ class MapShoppingListApplication : Application() {
     }
 
     val deleteShoppingItemUseCase: DeleteShoppingItemUseCase by lazy {
-        DeleteShoppingItemUseCase(shoppingListRepository)
+        DeleteShoppingItemUseCase(shoppingListRepository, geofenceSyncScheduler)
     }
 
     val updatePurchasedStateUseCase: UpdatePurchasedStateUseCase by lazy {
@@ -191,10 +190,6 @@ class MapShoppingListApplication : Application() {
 
     val getRecentPlacesUseCase: GetRecentPlacesUseCase by lazy {
         GetRecentPlacesUseCase(placesRepository)
-    }
-
-    val snoozePlaceNotificationsUseCase: SnoozePlaceNotificationsUseCase by lazy {
-        SnoozePlaceNotificationsUseCase(notificationStateRepository)
     }
 
     val shouldSendNotificationUseCase: ShouldSendNotificationUseCase by lazy {

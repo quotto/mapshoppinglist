@@ -31,7 +31,7 @@ class GeofenceNotificationWorker(
             val items = app.shoppingListRepository.getItemsForPlace(placeId)
             if (items.isEmpty()) return@forEach
             val message = app.buildNotificationMessageUseCase.invoke(place.name, items)
-            app.notificationSender.showPlaceReminder(placeId, message)
+            app.notificationSender.showPlaceReminder(placeId, items.map { it.id }, message)
             app.recordPlaceNotificationUseCase(placeId, now)
         }
         return@withContext Result.success()

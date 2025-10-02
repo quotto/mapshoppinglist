@@ -48,6 +48,7 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.MapsInitializer
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.PointOfInterest
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
@@ -116,6 +117,7 @@ fun PlacePickerRoute(
         snackbarHostState = snackbarHostState,
         hasLocationPermission = hasLocationPermission,
         onMapLongClick = viewModel::onMapLongClick,
+        onPoiClick = viewModel::onPoiClick,
         onRequestLocationPermission = {
             permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
@@ -142,6 +144,7 @@ fun PlacePickerScreen(
     snackbarHostState: SnackbarHostState,
     hasLocationPermission: Boolean,
     onMapLongClick: (LatLng) -> Unit,
+    onPoiClick: (PointOfInterest) -> Unit,
     onRequestLocationPermission: () -> Unit
 ) {
     val cameraPositionState = rememberCameraPositionState {
@@ -234,7 +237,8 @@ fun PlacePickerScreen(
                     cameraPositionState = cameraPositionState,
                     uiSettings = MapUiSettings(zoomControlsEnabled = false),
                     properties = mapProperties,
-                    onMapLongClick = onMapLongClick
+                    onMapLongClick = onMapLongClick,
+                    onPOIClick = onPoiClick
                 ) {
                     selected?.let {
                         Marker(

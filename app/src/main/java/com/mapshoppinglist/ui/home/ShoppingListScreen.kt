@@ -57,7 +57,8 @@ import androidx.core.content.ContextCompat
 
 @Composable
 fun ShoppingListRoute(
-    onAddPlaceRequest: () -> Unit = {},
+    onAddPlaceViaSearch: () -> Unit = {},
+    onAddPlaceViaRecent: () -> Unit = {},
     onItemClick: (Long) -> Unit = {},
     newPlaceId: Long? = null,
     onNewPlaceConsumed: () -> Unit = {}
@@ -139,9 +140,8 @@ fun ShoppingListRoute(
         onAddDialogConfirm = viewModel::onAddConfirm,
         onTitleInputChange = viewModel::onTitleInputChange,
         onNoteInputChange = viewModel::onNoteInputChange,
-        onAddPlaceRequest = {
-            onAddPlaceRequest()
-        },
+        onAddPlaceViaSearch = onAddPlaceViaSearch,
+        onAddPlaceViaRecent = onAddPlaceViaRecent,
         onRemovePendingPlace = viewModel::onRemovePendingPlace,
         onItemClick = onItemClick
     )
@@ -159,7 +159,8 @@ fun ShoppingListScreen(
     onAddDialogConfirm: () -> Unit,
     onTitleInputChange: (String) -> Unit,
     onNoteInputChange: (String) -> Unit,
-    onAddPlaceRequest: () -> Unit,
+    onAddPlaceViaSearch: () -> Unit,
+    onAddPlaceViaRecent: () -> Unit,
     onRemovePendingPlace: (Long) -> Unit,
     onItemClick: (Long) -> Unit,
     modifier: Modifier = Modifier
@@ -203,9 +204,11 @@ fun ShoppingListScreen(
             onNoteInputChange = onNoteInputChange,
             onDismiss = onAddDialogDismiss,
             onConfirm = onAddDialogConfirm,
-            onAddPlaceRequest = onAddPlaceRequest,
+            onAddPlaceViaSearch = onAddPlaceViaSearch,
+            onAddPlaceViaRecent = onAddPlaceViaRecent,
             pendingPlaces = uiState.pendingPlaces,
-            onRemovePendingPlace = onRemovePendingPlace
+            onRemovePendingPlace = onRemovePendingPlace,
+            recentPlaces = uiState.recentPlaces
         )
     }
 }
@@ -391,9 +394,11 @@ private fun AddItemDialog(
     onNoteInputChange: (String) -> Unit,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
-    onAddPlaceRequest: () -> Unit,
+    onAddPlaceViaSearch: () -> Unit,
+    onAddPlaceViaRecent: () -> Unit,
     pendingPlaces: List<PendingPlaceUiModel>,
-    onRemovePendingPlace: (Long) -> Unit
+    onRemovePendingPlace: (Long) -> Unit,
+    recentPlaces: List<RecentPlaceUiModel>
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -428,6 +433,32 @@ private fun AddItemDialog(
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = stringResource(R.string.shopping_list_add_place_section_title),
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Button(
+                        onClick = onAddPlaceViaSearch,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = stringResource(R.string.item_detail_add_place_search))
+                    }
+                    Button(
+                        onClick = onAddPlaceViaRecent,
+                        enabled = recentPlaces.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = stringResource(R.string.item_detail_add_place_recent))
+                    }
+                    if (recentPlaces.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.recent_places_empty),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
                 if (pendingPlaces.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(text = stringResource(R.string.shopping_list_linked_places_header), style = MaterialTheme.typography.titleSmall)
@@ -443,9 +474,6 @@ private fun AddItemDialog(
                             }
                         }
                     }
-                }
-                TextButton(onClick = onAddPlaceRequest) {
-                    Text(text = stringResource(id = R.string.shopping_list_add_place))
                 }
             }
         },
@@ -485,7 +513,8 @@ private fun ShoppingListScreenPreview() {
             onAddDialogConfirm = {},
             onTitleInputChange = {},
             onNoteInputChange = {},
-            onAddPlaceRequest = {},
+            onAddPlaceViaSearch = {},
+            onAddPlaceViaRecent = {},
             onRemovePendingPlace = {},
             onItemClick = {}
         )

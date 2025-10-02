@@ -45,7 +45,8 @@ class PermissionsUiTest {
                     onAddDialogConfirm = {},
                     onTitleInputChange = {},
                     onNoteInputChange = {},
-                    onAddPlaceRequest = {},
+                    onAddPlaceViaSearch = {},
+                    onAddPlaceViaRecent = {},
                     onRemovePendingPlace = {},
                     onItemClick = {}
                 )
@@ -77,6 +78,7 @@ class PermissionsUiTest {
                     snackbarHostState = androidx.compose.material3.SnackbarHostState(),
                     hasLocationPermission = false,
                     onMapLongClick = {},
+                    onPoiClick = {},
                     onRequestLocationPermission = { requested = true }
                 )
             }
