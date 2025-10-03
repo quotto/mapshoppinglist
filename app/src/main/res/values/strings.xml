@@ -1,5 +1,6 @@
 <resources>
-    <string name="app_name">買い忘れ防止リスト</string>
+    <string name="app_name">地図で買い物リスト</string>
+    <string name="shopping_list_title">買い物リスト</string>
     <string name="shopping_list_purchased_header">購入済み</string>
     <string name="shopping_list_empty_title">未購入アイテムはありません</string>
     <string name="shopping_list_empty_message">右下の＋ボタンから追加できます</string>

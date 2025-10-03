@@ -231,6 +231,7 @@ private fun ItemDetailContent(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
                     value = uiState.titleInput,
                     onValueChange = onEditTitleChange,
                     label = { Text(text = stringResource(R.string.shopping_list_add_dialog_title_hint)) },
@@ -239,6 +240,7 @@ private fun ItemDetailContent(
                     enabled = !uiState.isSaving
                 )
                 OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
                     value = uiState.noteInput,
                     onValueChange = onEditNoteChange,
                     label = { Text(text = stringResource(R.string.shopping_list_add_dialog_note_hint)) },
