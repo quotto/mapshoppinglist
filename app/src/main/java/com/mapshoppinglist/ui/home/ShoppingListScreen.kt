@@ -4,6 +4,7 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -27,8 +29,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -65,7 +70,10 @@ fun ShoppingListRoute(
     onAddPlaceViaRecent: () -> Unit = {},
     onItemClick: (Long) -> Unit = {},
     newPlaceId: Long? = null,
-    onNewPlaceConsumed: () -> Unit = {}
+    onNewPlaceConsumed: () -> Unit = {},
+    onManagePlaces: () -> Unit = {},
+    onShowPrivacyPolicy: () -> Unit = {},
+    onShowOssLicenses: () -> Unit = {}
 ) {
     val application = LocalContext.current.applicationContext as MapShoppingListApplication
     val factory = remember(application) { ShoppingListViewModelFactory(application) }
@@ -147,7 +155,10 @@ fun ShoppingListRoute(
         onAddPlaceViaSearch = onAddPlaceViaSearch,
         onAddPlaceViaRecent = onAddPlaceViaRecent,
         onRemovePendingPlace = viewModel::onRemovePendingPlace,
-        onItemClick = onItemClick
+        onItemClick = onItemClick,
+        onManagePlaces = onManagePlaces,
+        onShowPrivacyPolicy = onShowPrivacyPolicy,
+        onShowOssLicenses = onShowOssLicenses
     )
 }
 
@@ -167,8 +178,12 @@ fun ShoppingListScreen(
     onAddPlaceViaRecent: () -> Unit,
     onRemovePendingPlace: (Long) -> Unit,
     onItemClick: (Long) -> Unit,
+    onManagePlaces: () -> Unit,
+    onShowPrivacyPolicy: () -> Unit,
+    onShowOssLicenses: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var menuExpanded by remember { mutableStateOf(false) }
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
@@ -178,6 +193,40 @@ fun ShoppingListScreen(
                         text = stringResource(id = R.string.shopping_list_title),
                         color = MaterialTheme.colorScheme.onPrimary
                     )
+                },
+                actions = {
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert,
+                            contentDescription = stringResource(R.string.common_more_options),
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                    DropdownMenu(
+                        modifier = Modifier.background(MaterialTheme.colorScheme.surface),
+                        expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.menu_manage_places)) },
+                            onClick = {
+                                menuExpanded = false
+                                onManagePlaces()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.menu_privacy_policy)) },
+                            onClick = {
+                                menuExpanded = false
+                                onShowPrivacyPolicy()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.menu_oss_licenses)) },
+                            onClick = {
+                                menuExpanded = false
+                                onShowOssLicenses()
+                            }
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -570,7 +619,10 @@ private fun ShoppingListScreenPreview() {
             onAddPlaceViaSearch = {},
             onAddPlaceViaRecent = {},
             onRemovePendingPlace = {},
-            onItemClick = {}
+            onItemClick = {},
+            onManagePlaces = {},
+            onShowPrivacyPolicy = {},
+            onShowOssLicenses = {}
         )
     }
 }

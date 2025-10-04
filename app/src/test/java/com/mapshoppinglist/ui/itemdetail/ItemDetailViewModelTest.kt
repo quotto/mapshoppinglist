@@ -77,9 +77,13 @@ private class FakePlacesRepository : PlacesRepository {
 
     override suspend fun findById(placeId: Long): com.mapshoppinglist.domain.model.Place? = null
 
+    override suspend fun loadAll(): List<com.mapshoppinglist.domain.model.Place> = emptyList()
+
     override suspend fun addPlace(name: String, latE6: Int, lngE6: Int, note: String?): Long = 0L
 
     override suspend fun deletePlace(placeId: Long) {}
+
+    override suspend fun updateName(placeId: Long, newName: String) {}
 
     override suspend fun linkItemToPlace(placeId: Long, itemId: Long) {
         linkCalls += placeId to itemId

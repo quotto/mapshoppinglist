@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.aboutlibraries)
 }
 
 val mapsApiKey: String = (findProperty("MAPS_API_KEY") as String?) ?: run {
@@ -74,6 +75,10 @@ ksp {
     arg("room.skipVerification", "true")
 }
 
+aboutLibraries {
+    android.registerAndroidTasks = true
+}
+
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
 
@@ -97,6 +102,8 @@ dependencies {
     implementation(libs.maps.compose)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.sqlite.framework)
+    implementation(libs.aboutlibraries.core)
+    implementation(libs.aboutlibraries.compose)
 
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

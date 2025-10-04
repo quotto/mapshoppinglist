@@ -23,6 +23,7 @@ private class RecordingPlacesRepository : PlacesRepository {
     val deletedPlaceIds = mutableListOf<Long>()
     val linkCalls = mutableListOf<Pair<Long, Long>>()
     val unlinkCalls = mutableListOf<Pair<Long, Long>>()
+    val updateNameCalls = mutableListOf<Pair<Long, String>>()
 
     data class AddedPlace(val name: String, val latE6: Int, val lngE6: Int, val note: String?)
 
@@ -34,6 +35,8 @@ private class RecordingPlacesRepository : PlacesRepository {
     override suspend fun loadActivePlaces(): List<Place> = emptyList()
 
     override suspend fun findById(placeId: Long): Place? = null
+
+    override suspend fun loadAll(): List<Place> = emptyList()
 
     override suspend fun addPlace(name: String, latE6: Int, lngE6: Int, note: String?): Long {
         totalCount += 1
@@ -55,6 +58,10 @@ private class RecordingPlacesRepository : PlacesRepository {
     }
 
     override suspend fun loadRecentPlaces(limit: Int): List<Place> = emptyList()
+
+    override suspend fun updateName(placeId: Long, newName: String) {
+        updateNameCalls += placeId to newName
+    }
 }
 
 private class RecordingScheduler(context: Context) : GeofenceSyncScheduler(context) {
@@ -120,5 +127,18 @@ class PlaceUseCasesTest {
         assertEquals(listOf(7L to 3L), repository.linkCalls)
         assertEquals(listOf(7L to 3L), repository.unlinkCalls)
         assertEquals(2, scheduler.count)
+    }
+
+    @Test
+    fun updatePlaceNameSchedulesWhenRequested() = runTest {
+        val useCase = UpdatePlaceNameUseCase(repository, scheduler)
+
+        useCase(placeId = 5L, newName = " 新しいスーパー ", scheduleOnRename = true)
+        assertEquals(listOf(5L to " 新しいスーパー "), repository.updateNameCalls)
+        assertEquals(1, scheduler.count)
+
+        useCase(placeId = 6L, newName = "別店舗", scheduleOnRename = false)
+        assertEquals(listOf(5L to " 新しいスーパー ", 6L to "別店舗"), repository.updateNameCalls)
+        assertEquals(1, scheduler.count)
     }
 }

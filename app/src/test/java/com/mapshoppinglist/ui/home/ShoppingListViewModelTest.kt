@@ -160,9 +160,13 @@ private class FakePlacesRepository : PlacesRepository {
 
     override suspend fun findById(placeId: Long): Place? = placeMap[placeId]
 
+    override suspend fun loadAll(): List<Place> = placeMap.values.toList()
+
     override suspend fun addPlace(name: String, latE6: Int, lngE6: Int, note: String?): Long = 0L
 
     override suspend fun deletePlace(placeId: Long) {}
+
+    override suspend fun updateName(placeId: Long, newName: String) {}
 
     override suspend fun linkItemToPlace(placeId: Long, itemId: Long) {}
 

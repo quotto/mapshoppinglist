@@ -35,6 +35,10 @@ class DefaultPlacesRepository(
         placesDao.findById(placeId)?.let(::entityToDomain)
     }
 
+    override suspend fun loadAll(): List<Place> = withContext(ioDispatcher) {
+        placesDao.loadAll().map(::entityToDomain)
+    }
+
     override suspend fun loadRecentPlaces(limit: Int): List<Place> = withContext(ioDispatcher) {
         placesDao.loadRecentPlaces(limit).map(::entityToDomain)
     }
@@ -55,6 +59,16 @@ class DefaultPlacesRepository(
     override suspend fun deletePlace(placeId: Long) {
         withContext(ioDispatcher) {
             placesDao.findById(placeId)?.let { placesDao.delete(it) }
+        }
+    }
+
+    override suspend fun updateName(placeId: Long, newName: String) {
+        val normalized = newName.trim()
+        require(normalized.isNotEmpty()) { "place name must not be blank" }
+        withContext(ioDispatcher) {
+            val target = placesDao.findById(placeId) ?: return@withContext
+            val updated = target.copy(name = normalized, lastUsedAt = System.currentTimeMillis())
+            placesDao.update(updated)
         }
     }
 

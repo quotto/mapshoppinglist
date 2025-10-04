@@ -24,6 +24,8 @@ import com.mapshoppinglist.domain.usecase.CreatePlaceUseCase
 import com.mapshoppinglist.domain.usecase.DeletePlaceUseCase
 import com.mapshoppinglist.domain.usecase.DeleteShoppingItemUseCase
 import com.mapshoppinglist.domain.usecase.LinkItemToPlaceUseCase
+import com.mapshoppinglist.domain.usecase.LoadAllPlacesUseCase
+import com.mapshoppinglist.domain.usecase.LoadRegisteredGeofencesUseCase
 import com.mapshoppinglist.domain.usecase.MarkPlaceItemsPurchasedUseCase
 import com.mapshoppinglist.domain.usecase.ObserveShoppingItemsUseCase
 import com.mapshoppinglist.domain.usecase.ObserveItemDetailUseCase
@@ -32,6 +34,7 @@ import com.mapshoppinglist.domain.usecase.ShouldSendNotificationUseCase
 import com.mapshoppinglist.domain.usecase.UnlinkItemFromPlaceUseCase
 import com.mapshoppinglist.domain.usecase.UpdatePurchasedStateUseCase
 import com.mapshoppinglist.domain.usecase.UpdateItemUseCase
+import com.mapshoppinglist.domain.usecase.UpdatePlaceNameUseCase
 import com.mapshoppinglist.domain.usecase.ValidatePlaceRegistrationUseCase
 import com.mapshoppinglist.domain.usecase.GetRecentPlacesUseCase
 
@@ -162,6 +165,21 @@ class MapShoppingListApplication : Application() {
     val createPlaceUseCase: CreatePlaceUseCase by lazy {
         CreatePlaceUseCase(
             validatePlaceRegistrationUseCase = validatePlaceRegistrationUseCase,
+            placesRepository = placesRepository,
+            geofenceSyncScheduler = geofenceSyncScheduler
+        )
+    }
+
+    val loadAllPlacesUseCase: LoadAllPlacesUseCase by lazy {
+        LoadAllPlacesUseCase(placesRepository)
+    }
+
+    val loadRegisteredGeofencesUseCase: LoadRegisteredGeofencesUseCase by lazy {
+        LoadRegisteredGeofencesUseCase(geofenceRegistryRepository)
+    }
+
+    val updatePlaceNameUseCase: UpdatePlaceNameUseCase by lazy {
+        UpdatePlaceNameUseCase(
             placesRepository = placesRepository,
             geofenceSyncScheduler = geofenceSyncScheduler
         )

@@ -14,12 +14,18 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.mapshoppinglist.ui.itemdetail.ItemDetailRoute
 import com.mapshoppinglist.ui.recentplaces.RecentPlacesRoute
+import com.mapshoppinglist.ui.placemanage.PlaceManagementRoute
+import com.mapshoppinglist.ui.settings.OssLicensesRoute
+import com.mapshoppinglist.ui.settings.PrivacyPolicyRoute
 
 object Destinations {
     const val SHOPPING_LIST = "shopping_list"
     const val ITEM_DETAIL = "item_detail"
     const val PLACE_PICKER = "place_picker"
     const val RECENT_PLACES = "recent_places"
+    const val PLACE_MANAGEMENT = "place_management"
+    const val PRIVACY_POLICY = "privacy_policy"
+    const val OSS_LICENSES = "oss_licenses"
 
     fun itemDetailRoute(itemId: Long): String = "$ITEM_DETAIL/$itemId"
     fun placePickerRoute(requestKey: String): String = "$PLACE_PICKER/$requestKey"
@@ -42,7 +48,10 @@ fun MapShoppingListApp(
                 onAddPlaceViaRecent = { navController.navigate(Destinations.recentPlacesRoute(REQUEST_KEY_SHOPPING_LIST_PLACE)) },
                 onItemClick = { itemId -> navController.navigate(Destinations.itemDetailRoute(itemId)) },
                 newPlaceId = newPlaceId,
-                onNewPlaceConsumed = { savedStateHandle.set<Long?>(REQUEST_KEY_SHOPPING_LIST_PLACE, null) }
+                onNewPlaceConsumed = { savedStateHandle.set<Long?>(REQUEST_KEY_SHOPPING_LIST_PLACE, null) },
+                onManagePlaces = { navController.navigate(Destinations.PLACE_MANAGEMENT) },
+                onShowPrivacyPolicy = { navController.navigate(Destinations.PRIVACY_POLICY) },
+                onShowOssLicenses = { navController.navigate(Destinations.OSS_LICENSES) }
             )
         }
         composable(
@@ -91,6 +100,15 @@ fun MapShoppingListApp(
                 },
                 onClose = { navController.popBackStack() }
             )
+        }
+        composable(Destinations.PLACE_MANAGEMENT) {
+            PlaceManagementRoute(onBack = { navController.popBackStack() })
+        }
+        composable(Destinations.PRIVACY_POLICY) {
+            PrivacyPolicyRoute(onBack = { navController.popBackStack() })
+        }
+        composable(Destinations.OSS_LICENSES) {
+            OssLicensesRoute(onBack = { navController.popBackStack() })
         }
     }
 

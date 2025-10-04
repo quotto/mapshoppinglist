@@ -22,11 +22,17 @@ private class CountingPlacesRepository(
 
     override suspend fun findById(placeId: Long): Place? = null
 
+    override suspend fun loadAll(): List<Place> = emptyList()
+
     override suspend fun addPlace(name: String, latE6: Int, lngE6: Int, note: String?): Long {
         throw NotImplementedError()
     }
 
     override suspend fun deletePlace(placeId: Long) {
+        throw NotImplementedError()
+    }
+
+    override suspend fun updateName(placeId: Long, newName: String) {
         throw NotImplementedError()
     }
 
