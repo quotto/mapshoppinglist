@@ -11,7 +11,6 @@ import com.mapshoppinglist.domain.usecase.DeleteShoppingItemUseCase
 import com.mapshoppinglist.domain.usecase.GetRecentPlacesUseCase
 import com.mapshoppinglist.domain.usecase.LinkItemToPlaceUseCase
 import com.mapshoppinglist.domain.usecase.ObserveShoppingItemsUseCase
-import com.mapshoppinglist.domain.usecase.UnlinkItemFromPlaceUseCase
 import com.mapshoppinglist.domain.usecase.UpdatePurchasedStateUseCase
 import com.mapshoppinglist.geofence.GeofenceSyncScheduler
 import kotlinx.coroutines.Dispatchers
@@ -116,7 +115,6 @@ class ShoppingListViewModelTest {
         val delete = DeleteShoppingItemUseCase(shoppingRepository, geofenceScheduler)
         val updatePurchased = UpdatePurchasedStateUseCase(shoppingRepository)
         val link = LinkItemToPlaceUseCase(placesRepository, geofenceScheduler)
-        val unlink = UnlinkItemFromPlaceUseCase(placesRepository, geofenceScheduler)
         val recent = GetRecentPlacesUseCase(placesRepository)
         return ShoppingListViewModel(
             observeShoppingItems = observe,
@@ -124,7 +122,6 @@ class ShoppingListViewModelTest {
             deleteShoppingItem = delete,
             updatePurchasedState = updatePurchased,
             linkItemToPlaceUseCase = link,
-            unlinkItemFromPlaceUseCase = unlink,
             placesRepository = placesRepository,
             getRecentPlacesUseCase = recent
         )
@@ -177,4 +174,3 @@ private class FakePlacesRepository : PlacesRepository {
 private class TestGeofenceSyncScheduler : GeofenceSyncScheduler(ContextWrapper(null)) {
     override fun scheduleImmediateSync() {}
 }
-
