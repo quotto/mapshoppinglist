@@ -18,7 +18,6 @@ class ShoppingListViewModelFactory(
                 deleteShoppingItem = application.deleteShoppingItemUseCase,
                 updatePurchasedState = application.updatePurchasedStateUseCase,
                 linkItemToPlaceUseCase = application.linkItemToPlaceUseCase,
-                unlinkItemFromPlaceUseCase = application.unlinkItemFromPlaceUseCase,
                 placesRepository = application.placesRepository,
                 getRecentPlacesUseCase = application.getRecentPlacesUseCase
             )

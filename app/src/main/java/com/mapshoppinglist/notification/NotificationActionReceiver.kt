@@ -44,8 +44,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
 
     private suspend fun handleDelete(app: MapShoppingListApplication, placeId: Long, itemIds: List<Long>) {
         Log.d(TAG, "Received delete for placeId=$placeId items=$itemIds")
-        val targets = if (itemIds.isNotEmpty()) itemIds
-        else app.shoppingListRepository.getItemsForPlace(placeId).map { it.id }
+        val targets = itemIds.ifEmpty { app.shoppingListRepository.getItemsForPlace(placeId).map { it.id } }
         targets.forEach { id ->
             app.deleteShoppingItemUseCase(id)
         }

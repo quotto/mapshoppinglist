@@ -10,7 +10,6 @@ import com.mapshoppinglist.domain.usecase.DeleteShoppingItemUseCase
 import com.mapshoppinglist.domain.usecase.GetRecentPlacesUseCase
 import com.mapshoppinglist.domain.usecase.LinkItemToPlaceUseCase
 import com.mapshoppinglist.domain.usecase.ObserveShoppingItemsUseCase
-import com.mapshoppinglist.domain.usecase.UnlinkItemFromPlaceUseCase
 import com.mapshoppinglist.domain.usecase.UpdatePurchasedStateUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +26,6 @@ class ShoppingListViewModel(
     private val deleteShoppingItem: DeleteShoppingItemUseCase,
     private val updatePurchasedState: UpdatePurchasedStateUseCase,
     private val linkItemToPlaceUseCase: LinkItemToPlaceUseCase,
-    private val unlinkItemFromPlaceUseCase: UnlinkItemFromPlaceUseCase,
     private val placesRepository: PlacesRepository,
     private val getRecentPlacesUseCase: GetRecentPlacesUseCase
 ) : ViewModel() {

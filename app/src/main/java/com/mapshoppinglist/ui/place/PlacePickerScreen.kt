@@ -13,8 +13,8 @@ import androidx.compose.foundation.lazy.items
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -22,12 +22,17 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,6 +45,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -57,7 +64,6 @@ import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.mapshoppinglist.MapShoppingListApplication
 import com.mapshoppinglist.R
-import com.mapshoppinglist.ui.place.DEFAULT_LOCATION
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -166,12 +172,25 @@ fun PlacePickerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = stringResource(R.string.place_picker_title)) },
+                title = {
+                    Text(
+                        text = stringResource(R.string.place_picker_title),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "戻る")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.common_back),
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                )
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -188,7 +207,13 @@ fun PlacePickerScreen(
                 onValueChange = onQueryChange,
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text(text = stringResource(R.string.place_picker_search_hint)) },
-                singleLine = true
+                singleLine = true,
+                shape = RoundedCornerShape(24.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    cursorColor = MaterialTheme.colorScheme.primary
+                )
             )
 
             if (uiState.isLoading) {
@@ -211,11 +236,17 @@ fun PlacePickerScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     items(uiState.predictions) { prediction ->
-                        TextButton(
+                        Card(
                             onClick = { onPredictionSelected(prediction) },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
-                            Column(modifier = Modifier.fillMaxWidth()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                            ) {
                                 Text(text = prediction.primaryText, style = MaterialTheme.typography.titleMedium)
                                 prediction.secondaryText?.let {
                                     Text(text = it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -266,7 +297,10 @@ fun PlacePickerScreen(
                     selected.address?.let {
                         Text(text = it, style = MaterialTheme.typography.bodyMedium)
                     }
-                    TextButton(onClick = onClearSelection) {
+                    TextButton(
+                        onClick = onClearSelection,
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.tertiary)
+                    ) {
                         Text(text = stringResource(R.string.place_picker_clear_selection))
                     }
                 }
@@ -275,7 +309,14 @@ fun PlacePickerScreen(
             Button(
                 onClick = onConfirm,
                 enabled = selected != null && !uiState.isCreating,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.tertiary,
+                    contentColor = MaterialTheme.colorScheme.onTertiary,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             ) {
                 if (uiState.isCreating) {
                     CircularProgressIndicator(modifier = Modifier.height(20.dp))
@@ -292,20 +333,35 @@ private fun LocationPermissionPlaceholder(
     onRequestPermission: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(16.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.primaryContainer
     ) {
-        Text(
-            text = stringResource(R.string.permission_location_denied_message),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Button(onClick = onRequestPermission) {
-            Text(text = stringResource(R.string.permission_location_request_button))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.permission_location_denied_message),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimary
+            )
+            Button(
+                onClick = onRequestPermission,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.tertiary,
+                    contentColor = MaterialTheme.colorScheme.onTertiary
+                ),
+                shape = RoundedCornerShape(18.dp)
+            ) {
+                Text(text = stringResource(R.string.permission_location_request_button))
+            }
         }
     }
 }

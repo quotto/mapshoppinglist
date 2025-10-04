@@ -11,18 +11,21 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -30,6 +33,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,6 +43,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -116,7 +123,7 @@ fun ItemDetailRoute(
 
 @Composable
 private fun defaultItemDetailViewModel(itemId: Long): ItemDetailViewModel {
-    val application = androidx.compose.ui.platform.LocalContext.current.applicationContext as MapShoppingListApplication
+    val application = LocalContext.current.applicationContext as MapShoppingListApplication
     val factory = remember(itemId) { ItemDetailViewModelFactory(application, itemId) }
     return viewModel(factory = factory)
 }
@@ -138,13 +145,25 @@ private fun ItemDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = stringResource(R.string.item_detail_title)) },
+                title = {
+                    Text(
+                        text = stringResource(R.string.item_detail_title),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = stringResource(R.string.common_back))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.common_back),
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                )
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -237,7 +256,13 @@ private fun ItemDetailContent(
                     label = { Text(text = stringResource(R.string.shopping_list_add_dialog_title_hint)) },
                     singleLine = true,
                     isError = uiState.showTitleValidationError,
-                    enabled = !uiState.isSaving
+                    enabled = !uiState.isSaving,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
+                    )
                 )
                 OutlinedTextField(
                     modifier = Modifier.fillMaxWidth(),
@@ -245,7 +270,13 @@ private fun ItemDetailContent(
                     onValueChange = onEditNoteChange,
                     label = { Text(text = stringResource(R.string.shopping_list_add_dialog_note_hint)) },
                     minLines = 2,
-                    enabled = !uiState.isSaving
+                    enabled = !uiState.isSaving,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
+                    )
                 )
                 if (uiState.showTitleValidationError) {
                     Text(
@@ -272,7 +303,16 @@ private fun ItemDetailContent(
             }
         }
         item {
-            OutlinedButton(onClick = onAddPlaceClick, modifier = Modifier.fillMaxWidth(), enabled = !uiState.isSaving) {
+            Button(
+                onClick = onAddPlaceClick,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !uiState.isSaving,
+                shape = RoundedCornerShape(20.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiary
+                )
+            ) {
                 Text(text = stringResource(R.string.item_detail_add_place))
             }
         }
@@ -298,23 +338,42 @@ private fun LinkedPlaceRow(
     place: LinkedPlaceUiModel,
     onRemove: () -> Unit
 ) {
-    Column(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(12.dp)
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        androidx.compose.foundation.layout.Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = place.name, style = MaterialTheme.typography.titleMedium)
                 place.address?.takeIf { it.isNotBlank() }?.let {
-                    Text(text = it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
-            IconButton(onClick = onRemove) {
-                Icon(imageVector = Icons.Default.Delete, contentDescription = stringResource(R.string.item_detail_remove_place))
+            FilledIconButton(
+                onClick = onRemove,
+                shape = CircleShape,
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.tertiary,
+                    contentColor = MaterialTheme.colorScheme.onTertiary
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = stringResource(R.string.item_detail_remove_place)
+                )
             }
         }
     }
@@ -331,10 +390,26 @@ private fun AddPlaceOptionDialog(
         title = { Text(text = stringResource(R.string.item_detail_add_place_dialog_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onSearchSelected, modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = onSearchSelected,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
                     Text(text = stringResource(R.string.item_detail_add_place_search))
                 }
-                Button(onClick = onRecentSelected, modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = onRecentSelected,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiary,
+                        contentColor = MaterialTheme.colorScheme.onTertiary
+                    )
+                ) {
                     Text(text = stringResource(R.string.item_detail_add_place_recent))
                 }
             }
