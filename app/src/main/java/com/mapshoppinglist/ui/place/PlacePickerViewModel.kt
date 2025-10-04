@@ -7,13 +7,13 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.PointOfInterest
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
-import com.google.android.libraries.places.api.model.TypeFilter
 import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
 import com.google.android.libraries.places.api.net.PlacesClient
 import com.mapshoppinglist.domain.usecase.CreatePlaceUseCase
 import java.util.Locale
 import android.location.Geocoder
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -55,14 +55,13 @@ class PlacePickerViewModel(
             try {
                 val request = FindAutocompletePredictionsRequest.builder()
                     .setQuery(query)
-                    .setTypeFilter(TypeFilter.ESTABLISHMENT)
                     .build()
                 val response = placesClient.findAutocompletePredictions(request).await()
                 val predictions = response.autocompletePredictions.map { prediction ->
                     PlacePredictionUiModel(
                         placeId = prediction.placeId,
                         primaryText = prediction.getPrimaryText(null).toString(),
-                        secondaryText = prediction.getSecondaryText(null)?.toString()
+                        secondaryText = prediction.getSecondaryText(null).toString()
                     )
                 }
                 _uiState.update {
@@ -169,14 +168,14 @@ class PlacePickerViewModel(
     }
 
     fun onPoiClick(poi: PointOfInterest) {
-        val latLng = poi.latLng ?: return
-        val name = poi.name ?: return
+        val latLng = poi.latLng
+        val name = poi.name
         _uiState.update {
             it.copy(
                 query = name,
                 predictions = emptyList(),
                 selectedPlace = SelectedPlaceUiModel(
-                    placeId = poi.placeId ?: "poi_${latLng.latitude}_${latLng.longitude}",
+                    placeId = poi.placeId,
                     name = name,
                     address = null,
                     latLng = latLng
@@ -198,6 +197,7 @@ class PlacePickerViewModel(
             val results = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
             results?.firstOrNull()?.getAddressLine(0)
         } catch (e: Exception) {
+            Log.e(javaClass.simpleName, "Geocoder failed", e)
             null
         }
     }

@@ -56,7 +56,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mapshoppinglist.MapShoppingListApplication
@@ -571,8 +574,17 @@ private fun AddItemDialog(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(text = place.name, modifier = Modifier.weight(1f))
-                                TextButton(onClick = { onRemovePendingPlace(place.placeId) }) {
-                                    Text(text = stringResource(R.string.shopping_list_remove_place))
+                                FilledIconButton(
+                                    onClick = { onRemovePendingPlace(place.placeId) },
+                                    colors = IconButtonDefaults.filledIconButtonColors(
+                                        containerColor = Color.Transparent,
+                                        contentColor = MaterialTheme.colorScheme.tertiary
+                                    ),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Delete,
+                                        contentDescription = stringResource(R.string.shopping_list_remove_place),
+                                    )
                                 }
                             }
                         }
