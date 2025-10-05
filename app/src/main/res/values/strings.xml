@@ -67,11 +67,11 @@
     <string name="privacy_policy_updated">最終更新日: %1$s</string>
     <string name="privacy_policy_intro">このプライバシーポリシーは、地図で買い物リスト（以下「本アプリ」）における情報の取扱いについて説明するものです。</string>
     <string name="privacy_policy_section1_title">1. アプリが取得する情報</string>
-    <string name="privacy_policy_section1_body">- 端末の位置情報（緯度・経度）: ジオフェンス検知のためにのみ取得し、外部送信は行いません。
+    <string name="privacy_policy_section1_body">- 端末の位置情報（緯度・経度）: ジオフェンス検知のためにのみ取得し、外部送信は行いません。\n
 - アプリ内で登録した買い物アイテム、地点の名称・座標・メモ: 端末内データベースに保存します。</string>
     <string name="privacy_policy_section2_title">2. 位置情報の取り扱い</string>
-    <string name="privacy_policy_section2_body">- 取得タイミング: 登録済み地点（半径100m）への出入りを判定する際に利用します。
-- 保存期間: 位置情報の履歴は保存せず、通知制御のために必要な最小限の状態のみ保持します。
+    <string name="privacy_policy_section2_body">- 取得タイミング: 登録済み地点（半径100m）への出入りを判定する際に利用します。\n
+- 保存期間: 位置情報の履歴は保存せず、通知制御のために必要な最小限の状態のみ保持します。\n
 - 権限設定: 位置情報・通知権限は必要時にリクエストし、端末設定からいつでも変更できます。</string>
     <string name="privacy_policy_section3_title">3. データの第三者提供</string>
     <string name="privacy_policy_section3_body">本アプリは位置情報や買い物アイテムなどのデータを第三者へ提供・共有しません。広告SDKや解析SDKも利用していません。</string>
@@ -80,7 +80,8 @@
     <string name="privacy_policy_section5_title">5. ユーザーの権利</string>
     <string name="privacy_policy_section5_body">地点やアイテムはいつでも編集・削除できます。権限を拒否した場合、一部機能（地点付近での通知）が利用できないことがあります。</string>
     <string name="privacy_policy_section6_title">6. お問い合わせ窓口</string>
-    <string name="privacy_policy_section6_body">ご意見・お問い合わせは support@example.com までご連絡ください。</string>
+    <string name="privacy_policy_section6_body">ご意見・お問い合わせは以下のメールアドレスまでご連絡ください。</string>
+    <string name="privacy_policy_contact_email">support@example.com</string>
     <string name="privacy_policy_section7_title">7. ポリシーの変更</string>
     <string name="privacy_policy_section7_body">本ポリシーを変更する場合は、アプリ内のお知らせやリリースノートで告知します。変更後もアプリを利用することで、改定後の内容に同意したものとみなします。</string>
     <string name="place_management_title">地点を管理</string>

@@ -1,5 +1,6 @@
 package com.mapshoppinglist.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,11 +19,15 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mapshoppinglist.R
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 
-private data class PolicySection(val title: String, val body: String)
+private data class PolicySection(val title: String, val lines: List<String>, val contactEmail: String? = null)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,31 +36,32 @@ fun PrivacyPolicyRoute(onBack: () -> Unit) {
     val sections = listOf(
         PolicySection(
             title = stringResource(R.string.privacy_policy_section1_title),
-            body = stringResource(R.string.privacy_policy_section1_body)
+            lines = stringResource(R.string.privacy_policy_section1_body).split("\n")
         ),
         PolicySection(
             title = stringResource(R.string.privacy_policy_section2_title),
-            body = stringResource(R.string.privacy_policy_section2_body)
+            lines = stringResource(R.string.privacy_policy_section2_body).split("\n")
         ),
         PolicySection(
             title = stringResource(R.string.privacy_policy_section3_title),
-            body = stringResource(R.string.privacy_policy_section3_body)
+            lines = stringResource(R.string.privacy_policy_section3_body).split("\n")
         ),
         PolicySection(
             title = stringResource(R.string.privacy_policy_section4_title),
-            body = stringResource(R.string.privacy_policy_section4_body)
+            lines = stringResource(R.string.privacy_policy_section4_body).split("\n")
         ),
         PolicySection(
             title = stringResource(R.string.privacy_policy_section5_title),
-            body = stringResource(R.string.privacy_policy_section5_body)
+            lines = stringResource(R.string.privacy_policy_section5_body).split("\n")
         ),
         PolicySection(
             title = stringResource(R.string.privacy_policy_section6_title),
-            body = stringResource(R.string.privacy_policy_section6_body)
+            lines = stringResource(R.string.privacy_policy_section6_body).split("\n"),
+            contactEmail = stringResource(R.string.privacy_policy_contact_email)
         ),
         PolicySection(
             title = stringResource(R.string.privacy_policy_section7_title),
-            body = stringResource(R.string.privacy_policy_section7_body)
+            lines = stringResource(R.string.privacy_policy_section7_body).split("\n")
         )
     )
 
@@ -106,16 +112,41 @@ fun PrivacyPolicyRoute(onBack: () -> Unit) {
                 )
             }
             items(sections) { section ->
+                val uriHandler = LocalUriHandler.current
                 Text(
                     text = section.title,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
-                Text(
-                    text = section.body,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                section.lines.forEach { line ->
+                    Text(
+                        text = line,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                section.contactEmail?.let { email ->
+                    val annotated = buildAnnotatedString {
+                        val tag = "email"
+                        pushStringAnnotation(tag, "mailto:$email")
+                        withStyle(
+                            SpanStyle(color = MaterialTheme.colorScheme.primary)
+                        ) {
+                            append(email)
+                        }
+                        pop()
+                    }
+                    Text(
+                        text = annotated,
+                        modifier = Modifier
+                            .padding(top = 4.dp)
+                            .clickable {
+                                annotated.getStringAnnotations("email", 0, annotated.length)
+                                    .firstOrNull()?.let { uriHandler.openUri(it.item) }
+                            },
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
         }
     }
