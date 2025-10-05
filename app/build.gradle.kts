@@ -1,3 +1,4 @@
+import com.github.triplet.gradle.androidpublisher.ReleaseStatus
 import java.util.Properties
 
 plugins {
@@ -6,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.aboutlibraries)
+    alias(libs.plugins.play.publisher)
 }
 
 val mapsApiKey: String = (findProperty("MAPS_API_KEY") as String?) ?: run {
@@ -17,6 +19,30 @@ val mapsApiKey: String = (findProperty("MAPS_API_KEY") as String?) ?: run {
     localProps.getProperty("MAPS_API_KEY", "")
 }
 
+val versionProps = Properties()
+val versionPropsFile = rootProject.file("gradle/version.properties")
+if (versionPropsFile.exists()) {
+    versionPropsFile.inputStream().use(versionProps::load)
+}
+
+fun envVersion(name: String, fallback: Int, upperBound: Int = 9_999): Int {
+    val value = System.getenv(name)?.toIntOrNull() ?: fallback
+    return value.coerceAtLeast(0).coerceAtMost(upperBound)
+}
+
+val versionMajor = versionProps.getProperty("major", "1").toInt()
+val versionMinor = envVersion("CI_VERSION_MINOR", versionProps.getProperty("minor", "0").toInt(), 9_999)
+val versionPatch = envVersion("CI_VERSION_PATCH", versionProps.getProperty("patch", "0").toInt(), 9_999)
+
+val computedVersionCode = versionMajor * 1_000_000 + versionMinor * 10_000 + versionPatch
+val computedVersionName = listOf(versionMajor, versionMinor, versionPatch).joinToString(separator = ".")
+
+val keystoreFile = rootProject.file("gradle/keystore.jks")
+val keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+val keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+val keyPassword = System.getenv("ANDROID_KEY_ALIAS_PASSWORD")
+val isReleaseKeystoreConfigured = keystoreFile.exists() && !keystorePassword.isNullOrBlank() && !keyAlias.isNullOrBlank() && !keyPassword.isNullOrBlank()
+
 android {
     namespace = "com.mapshoppinglist"
     compileSdk = 36
@@ -25,13 +51,27 @@ android {
         applicationId = "com.mapshoppinglist"
         minSdk = 29
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = computedVersionCode
+        versionName = computedVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
         resValue("string", "google_maps_key", mapsApiKey)
+    }
+
+    signingConfigs {
+        if (isReleaseKeystoreConfigured) {
+            create("release") {
+                val resolvedStorePassword = keystorePassword!!
+                val resolvedKeyAlias = keyAlias!!
+                val resolvedKeyPassword = keyPassword!!
+                storeFile = keystoreFile
+                storePassword = resolvedStorePassword
+                keyAlias = resolvedKeyAlias
+                keyPassword = resolvedKeyPassword
+            }
+        }
     }
 
     buildTypes {
@@ -41,6 +81,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
     compileOptions {
@@ -77,6 +118,24 @@ ksp {
 
 aboutLibraries {
     android.registerAndroidTasks = true
+}
+
+val playCredentialsPath = System.getenv("PLAY_SERVICE_ACCOUNT_JSON_PATH")?.let(::file)
+val defaultPlayCredentialsFile = rootProject.file("gradle/play-service-account.json")
+val playCredentialsFile = when {
+    playCredentialsPath != null && playCredentialsPath.exists() -> playCredentialsPath
+    defaultPlayCredentialsFile.exists() -> defaultPlayCredentialsFile
+    else -> null
+}
+
+play {
+    enabled.set(playCredentialsFile != null)
+    defaultToAppBundles.set(true)
+    track.set("internal")
+    releaseStatus.set(ReleaseStatus.DRAFT)
+    playCredentialsFile?.let { credentials ->
+        serviceAccountCredentials.set(credentials)
+    }
 }
 
 dependencies {

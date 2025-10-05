@@ -1,0 +1,19 @@
+name: Android Promote
+
+on:
+  push:
+    branches:
+      - release
+
+jobs:
+  promote:
+    uses: ./.github/workflows/_reusable-android-build.yml
+    with:
+      gradle-args: "promoteReleaseArtifact --from-track internal --promote-track production --release-status completed"
+    secrets:
+      MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
+      PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_ALIAS_PASSWORD: ${{ secrets.ANDROID_KEY_ALIAS_PASSWORD }}

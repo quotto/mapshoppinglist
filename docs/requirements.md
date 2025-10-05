@@ -323,3 +323,21 @@ flowchart LR
 - 「お店を紐づけて保存」: S2→S3/S4→S2→差分更新
 - 「境界に入る→通知→購入済み」: 受信→通知→アクション→差分更新
 - 「再起動後の復旧」: Boot→Work→Geofence再登録
+
+---
+
+## 11. CI/CD 運用方針
+
+- **CI/CD 基盤**: GitHub Actions。共通ジョブ定義 `_reusable-android-build.yml` を介して JDK 21・Android SDK セットアップ・Gradle キャッシュ・Secrets 注入を統一化する。
+- **ブランチ別ワークフロー**
+    - `push`（`main`/`release` 以外）: `android-ci.yml` でユニットテストと `assembleDebug` を実行し、デバッグ APK／テストレポートをアーティファクト化する。
+    - `pull_request`（base=`release`）: `android-release.yml` でユニットテスト→API 29 & 35 の計装テスト→`bundleRelease`+`publishReleaseBundle` を実行し、内部テストトラックへ自動アップロードする。Firebase Test Lab 実行はサービスアカウント Secret 設定時のみ行う。
+    - `push`（`release`）: `android-promote.yml` が `promoteReleaseArtifact` を起動し、内部テストから製品版トラックへプロモートする（審査提出は手動）。
+- **バージョン採番**
+    - `gradle/version.properties` に格納したメジャー番号を手動更新。
+    - マイナー番号は Pull Request 番号を CI 環境変数で注入しストーリー単位で採番。
+    - パッチ番号は `github.run_number` を利用しビルド単位で採番。`versionCode = major*1_000_000 + minor*10_000 + patch`、`versionName = "major.minor.patch"`。
+- **Secrets 管理**
+    - GitHub Secrets を使用し、`MAPS_API_KEY`、`PLAY_SERVICE_ACCOUNT_JSON`、`ANDROID_KEYSTORE_*`、`FIREBASE_TEST_LAB_SA_JSON` を登録。
+    - ワークフロー内で一時ファイルとして `local.properties`、`gradle/keystore.jks`、`gradle/play-service-account.json` を生成し、ジョブ終了時に削除する。
+    - Keystore・Play 資格情報が存在しない場合でもビルドを継続し、必要時のみ署名・配信処理を有効にする。
