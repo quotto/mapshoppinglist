@@ -208,7 +208,7 @@ flowchart LR
 
 ## 5. 非機能要件（抜粋）
 
-- **対応OS**: minSdk 26+, targetSdk 最新
+- **対応OS**: minSdk 29+, targetSdk 最新
 - **電池**: バックグラウンドポーリング禁止。Geofence + WorkManagerのみ。
 - **パフォーマンス**: 一覧1000件規模で快適表示（Room + Paging推奨は任意）
 - **信頼性**: 再起動時/アプリ更新時の**ジオフェンス自動再登録**を保証

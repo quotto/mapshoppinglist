@@ -56,10 +56,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mapshoppinglist.MapShoppingListApplication
@@ -94,7 +92,7 @@ fun ShoppingListRoute(
     val backgroundPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        showBackgroundPrompt = !granted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+        showBackgroundPrompt = !granted
     }
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -113,9 +111,7 @@ fun ShoppingListRoute(
                         message = context.getString(R.string.permission_background_message),
                         actionLabel = context.getString(R.string.permission_background_button),
                         onClick = {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                                backgroundPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-                            }
+                            backgroundPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
                         }
                     )
                 )
@@ -640,7 +636,6 @@ private fun ShoppingListScreenPreview() {
 }
 
 private fun shouldRequestBackgroundLocation(context: android.content.Context): Boolean {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
     val foregroundGranted = ContextCompat.checkSelfPermission(
         context,
         Manifest.permission.ACCESS_FINE_LOCATION
