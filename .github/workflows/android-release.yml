@@ -82,11 +82,12 @@ jobs:
   firebase-test:
     name: Firebase Test Lab
     needs: unit
-    if: ${{ secrets.FIREBASE_TEST_LAB_SA_JSON != '' }}
-    runs-on: ubuntu-latest
     env:
       CI_VERSION_MINOR: ${{ github.event.pull_request.number }}
       CI_VERSION_PATCH: ${{ github.run_number }}
+      FIREBASE_TEST_LAB_SA_JSON: ${{ secrets.FIREBASE_TEST_LAB_SA_JSON }}
+      FIREBASE_SA_PRESENT: ${{ secrets.FIREBASE_TEST_LAB_SA_JSON != '' }}
+    if: ${{ env.FIREBASE_SA_PRESENT == 'true' }}
     steps:
       - name: コードをチェックアウト
         uses: actions/checkout@v4
@@ -106,7 +107,7 @@ jobs:
       - name: Firebase Test Lab へ送信
         uses: wzieba/firebase-test-lab@v2
         with:
-          credentials_json: ${{ secrets.FIREBASE_TEST_LAB_SA_JSON }}
+          credentials_json: ${{ env.FIREBASE_TEST_LAB_SA_JSON }}
           gcloud_command: test android run --type instrumentation --app app/build/outputs/bundle/release/app-release.aab
 
   publish:
