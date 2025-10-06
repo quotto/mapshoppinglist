@@ -91,13 +91,10 @@ jobs:
           if [[ -n "${{ secrets.MAPS_API_KEY }}" ]]; then
             printf 'MAPS_API_KEY=%s\n' "${{ secrets.MAPS_API_KEY }}" > local.properties
           fi
-
           mkdir -p gradle
-
           if [[ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]]; then
             echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > gradle/keystore.jks
           fi
-
           if [[ -n "${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}" ]]; then
             printf '%s' "${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}" > gradle/play-service-account.json
           fi
