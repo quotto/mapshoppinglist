@@ -82,6 +82,7 @@ jobs:
   firebase-test:
     name: Firebase Test Lab
     needs: unit
+    runs-on: ubuntu-latest
     env:
       CI_VERSION_MINOR: ${{ github.event.pull_request.number }}
       CI_VERSION_PATCH: ${{ github.run_number }}
