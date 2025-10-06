@@ -88,7 +88,6 @@ jobs:
       CI_VERSION_PATCH: ${{ github.run_number }}
       FIREBASE_TEST_LAB_SA_JSON: ${{ secrets.FIREBASE_TEST_LAB_SA_JSON }}
       FIREBASE_SA_PRESENT: ${{ secrets.FIREBASE_TEST_LAB_SA_JSON != '' }}
-    if: ${{ env.FIREBASE_SA_PRESENT == 'true' }}
     steps:
       - name: コードをチェックアウト
         uses: actions/checkout@v4
