@@ -1,0 +1,139 @@
+name: Android Gradle Runner
+
+description: |
+  Java/Android SDK をセットアップし、Gradle タスクを実行するコンポジットアクション。
+  Secrets をファイルと環境変数に注入し、実行後にクリーンアップします。
+
+inputs:
+  gradle-args:
+    description: 実行する Gradle タスク（スペース区切り）
+    required: true
+  working-directory:
+    description: Gradle 実行ディレクトリ
+    required: false
+    default: .
+  java-version:
+    description: 使用する Java バージョン
+    required: false
+    default: '21'
+  android-api-level:
+    description: セットアップする Android API レベル
+    required: false
+    default: '34'
+  android-platform:
+    description: インストールする platforms;android-* の指定
+    required: false
+    default: 'android-36'
+  android-build-tools:
+    description: インストールする build-tools バージョン
+    required: false
+    default: '36.0.0'
+  maps-api-key:
+    description: Google Maps API キー
+    required: false
+    default: ''
+  play-service-account-json:
+    description: Play Developer API 用サービスアカウント JSON
+    required: false
+    default: ''
+  android-keystore-base64:
+    description: Base64 でエンコードした Android 署名キーストア
+    required: false
+    default: ''
+  android-keystore-password:
+    description: 署名キーストアのパスワード
+    required: false
+    default: ''
+  android-key-alias:
+    description: 署名キーのエイリアス
+    required: false
+    default: ''
+  android-key-alias-password:
+    description: 署名キーのパスワード
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: コードをチェックアウト
+      uses: actions/checkout@v4
+
+    - name: JDK をセットアップ
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: ${{ inputs.java-version }}
+        cache: gradle
+
+    - name: Gradle キャッシュを構成
+      uses: gradle/actions/setup-gradle@v4
+
+    - name: Android SDK をセットアップ
+      uses: android-actions/setup-android@v3
+      with:
+        api-level: ${{ inputs.android-api-level }}
+        components: |
+          platforms;${{ inputs.android-platform }}
+          build-tools;${{ inputs.android-build-tools }}
+
+    - name: Gradle ラッパーに実行権限を付与
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: chmod +x ./gradlew
+
+    - name: Secrets を注入
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        MAPS_API_KEY_INPUT: ${{ inputs.maps-api-key }}
+        PLAY_JSON_INPUT: ${{ inputs.play-service-account-json }}
+        KEYSTORE_BASE64_INPUT: ${{ inputs.android-keystore-base64 }}
+        KEYSTORE_PASSWORD_INPUT: ${{ inputs.android-keystore-password }}
+        KEY_ALIAS_INPUT: ${{ inputs.android-key-alias }}
+        KEY_ALIAS_PASSWORD_INPUT: ${{ inputs.android-key-alias-password }}
+      run: |
+        set -euo pipefail
+        if [ -n "${MAPS_API_KEY_INPUT}" ]; then
+          printf 'MAPS_API_KEY=%s\n' "${MAPS_API_KEY_INPUT}" > local.properties
+        fi
+
+        mkdir -p gradle
+
+        if [ -n "${KEYSTORE_BASE64_INPUT}" ]; then
+          printf '%s' "${KEYSTORE_BASE64_INPUT}" | base64 --decode > gradle/keystore.jks
+        fi
+
+        if [ -n "${PLAY_JSON_INPUT}" ]; then
+          printf '%s' "${PLAY_JSON_INPUT}" > gradle/play-service-account.json
+        fi
+
+        if [ -n "${KEYSTORE_PASSWORD_INPUT}" ]; then
+          printf 'ANDROID_KEYSTORE_PASSWORD=%s\n' "${KEYSTORE_PASSWORD_INPUT}" >> "$GITHUB_ENV"
+        fi
+
+        if [ -n "${KEY_ALIAS_INPUT}" ]; then
+          printf 'ANDROID_KEY_ALIAS=%s\n' "${KEY_ALIAS_INPUT}" >> "$GITHUB_ENV"
+        fi
+
+        if [ -n "${KEY_ALIAS_PASSWORD_INPUT}" ]; then
+          printf 'ANDROID_KEY_ALIAS_PASSWORD=%s\n' "${KEY_ALIAS_PASSWORD_INPUT}" >> "$GITHUB_ENV"
+        fi
+
+    - name: Gradle タスクを実行
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: ./gradlew ${{ inputs.gradle-args }} --stacktrace --no-daemon
+
+    - name: Secrets ファイルを削除
+      if: always()
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        rm -f local.properties
+        rm -f gradle/keystore.jks
+        rm -f gradle/play-service-account.json
+
+branding:
+  icon: play-circle
+  color: blue

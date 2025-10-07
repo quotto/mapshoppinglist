@@ -8,13 +8,19 @@ on:
 
 jobs:
   build:
-    uses: ./.github/workflows/_reusable-android-build.yml
-    with:
-      gradle-args: "test assembleDebug"
-      upload-artifact: true
-      artifact-name: debug-build
-      artifact-path: |
-        app/build/outputs/apk/debug
-        app/build/reports/tests
-    secrets:
-      MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Unitテスト
+        uses: ./.github/actions/android-gradle
+        with:
+          gradle-args: test
+          maps-api-key: ${{ secrets.MAPS_API_KEY }}
+
+      - name: デバッグ成果物をアップロード
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-build
+          path: |
+            app/build/reports/tests
+          if-no-files-found: warn

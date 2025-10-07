@@ -328,7 +328,7 @@ flowchart LR
 
 ## 11. CI/CD 運用方針
 
-- **CI/CD 基盤**: GitHub Actions。共通ジョブ定義 `_reusable-android-build.yml` を介して JDK 21・Android SDK セットアップ・Gradle キャッシュ・Secrets 注入を統一化する。
+- **CI/CD 基盤**: GitHub Actions。コンポジットアクション `./.github/actions/android-gradle` を介して JDK 21・Android SDK セットアップ・Gradle キャッシュ・Secrets 注入を統一化する。
 - **ブランチ別ワークフロー**
     - `push`（`main`/`release` 以外）: `android-ci.yml` でユニットテストと `assembleDebug` を実行し、デバッグ APK／テストレポートをアーティファクト化する。
     - `pull_request`（base=`release`）: `android-release.yml` でユニットテスト→API 29 & 35 の計装テスト→`bundleRelease`+`publishReleaseBundle` を実行し、内部テストトラックへ自動アップロードする。Firebase Test Lab 実行はサービスアカウント Secret 設定時のみ行う。

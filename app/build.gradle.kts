@@ -108,13 +108,27 @@ android {
         }
         managedDevices {
             localDevices {
-                create("pixel2api31") {
+                create("pixel2api29") {
                     // Use device profiles you typically see in Android Studio.
                     device = "Pixel 2"
                     // Use only API levels 27 and higher.
-                    apiLevel = 31
+                    apiLevel = 29
                     // To include Google services, use "google".
                     systemImageSource = "google-atd"
+                }
+                create("pixel9api36") {
+                    // Use device profiles you typically see in Android Studio.
+                    device = "Pixel 9"
+                    // Use only API levels 27 and higher.
+                    apiLevel = 36
+                    // To include Google services, use "google".
+                    systemImageSource = "google-atd"
+                }
+                groups {
+                    create("minumAndMaxApi") {
+                        targetDevices.add(allDevices["pixel2api29"])
+                        targetDevices.add(allDevices["pixel9api36"])
+                    }
                 }
             }
         }
