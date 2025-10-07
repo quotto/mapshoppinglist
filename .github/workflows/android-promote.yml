@@ -9,7 +9,10 @@ jobs:
   promote:
     runs-on: ubuntu-latest
     steps:
-      - name: Gradle タスクを実行
+      - name: チェックアウト
+        uses: actions/checkout@v4
+
+      - name: 内部テストを製品版に昇格
         uses: ./.github/actions/android-gradle
         with:
           gradle-args: promoteReleaseArtifact --from-track internal --promote-track production --release-status completed

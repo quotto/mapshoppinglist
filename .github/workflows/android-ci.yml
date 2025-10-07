@@ -10,6 +10,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: チェックアウト
+        uses: actions/checkout@v4
+
       - name: Unitテスト
         uses: ./.github/actions/android-gradle
         with:

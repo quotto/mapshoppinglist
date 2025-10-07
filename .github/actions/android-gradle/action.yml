@@ -56,9 +56,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: コードをチェックアウト
-      uses: actions/checkout@v4
-
     - name: JDK をセットアップ
       uses: actions/setup-java@v4
       with:

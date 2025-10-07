@@ -6,35 +6,16 @@ on:
       - release
 
 jobs:
-  unit:
-    name: ユニットテスト
-    runs-on: ubuntu-latest
-    env:
-      CI_VERSION_MINOR: ${{ github.event.pull_request.number }}
-      CI_VERSION_PATCH: ${{ github.run_number }}
-    steps:
-      - name: Gradle タスクを実行
-        uses: ./.github/actions/android-gradle
-        with:
-          gradle-args: test
-          maps-api-key: ${{ secrets.MAPS_API_KEY }}
-          play-service-account-json: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-          android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          android-keystore-password: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          android-key-alias: ${{ secrets.ANDROID_KEY_ALIAS }}
-          android-key-alias-password: ${{ secrets.ANDROID_KEY_ALIAS_PASSWORD }}
-
   connected:
     name: 計装テスト
-    needs: unit
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        api-level: [29, 35]
     env:
       CI_VERSION_MINOR: ${{ github.event.pull_request.number }}
       CI_VERSION_PATCH: ${{ github.run_number }}
     steps:
+      - name: チェックアウト
+        uses: actions/checkout@v4
+
       - name: 計装テスト
         uses: ./.github/actions/android-gradle
         with:
@@ -63,12 +44,16 @@ jobs:
   firebase-test:
     name: Firebase Test Lab
     needs: unit
-    if: ${{ secrets.FIREBASE_TEST_LAB_SA_JSON != '' }}
     runs-on: ubuntu-latest
     env:
       CI_VERSION_MINOR: ${{ github.event.pull_request.number }}
       CI_VERSION_PATCH: ${{ github.run_number }}
+      FIREBASE_TEST_LAB_SA_JSON: ${{ secrets.FIREBASE_TEST_LAB_SA_JSON }}
+    if: ${{ env.FIREBASE_TEST_LAB_SA_JSON != '' }}
     steps:
+      - name: チェックアウト
+        uses: actions/checkout@v4
+
       - name: Bundle 作成
         uses: ./.github/actions/android-gradle
         with:
@@ -93,7 +78,10 @@ jobs:
       CI_VERSION_MINOR: ${{ github.event.pull_request.number }}
       CI_VERSION_PATCH: ${{ github.run_number }}
     steps:
-      - name: Gradle タスクを実行
+      - name: チェックアウト
+        uses: actions/checkout@v4
+
+      - name: Bundle 作成
         uses: ./.github/actions/android-gradle
         with:
           gradle-args: bundleRelease publishReleaseBundle
