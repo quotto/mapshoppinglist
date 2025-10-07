@@ -106,6 +106,18 @@ android {
         unitTests {
             isIncludeAndroidResources = true
         }
+        managedDevices {
+            localDevices {
+                create("pixel2api31") {
+                    // Use device profiles you typically see in Android Studio.
+                    device = "Pixel 2"
+                    // Use only API levels 27 and higher.
+                    apiLevel = 31
+                    // To include Google services, use "google".
+                    systemImageSource = "google-atd"
+                }
+            }
+        }
     }
 }
 
