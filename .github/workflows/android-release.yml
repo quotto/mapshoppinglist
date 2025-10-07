@@ -5,13 +5,15 @@ on:
     branches:
       - release
 
+env:
+  CI_VERSION_MINOR: ${{ github.event.pull_request.number }}
+  CI_VERSION_PATCH: ${{ github.run_number }}
+  FIREBASE_TEST_LAB_SA_JSON: ${{ secrets.FIREBASE_TEST_LAB_SA_JSON }}
+
 jobs:
   connected:
     name: 計装テスト
     runs-on: ubuntu-latest
-    env:
-      CI_VERSION_MINOR: ${{ github.event.pull_request.number }}
-      CI_VERSION_PATCH: ${{ github.run_number }}
     steps:
       - name: チェックアウト
         uses: actions/checkout@v4
@@ -45,10 +47,6 @@ jobs:
     name: Firebase Test Lab
     needs: unit
     runs-on: ubuntu-latest
-    env:
-      CI_VERSION_MINOR: ${{ github.event.pull_request.number }}
-      CI_VERSION_PATCH: ${{ github.run_number }}
-      FIREBASE_TEST_LAB_SA_JSON: ${{ secrets.FIREBASE_TEST_LAB_SA_JSON }}
     if: ${{ env.FIREBASE_TEST_LAB_SA_JSON != '' }}
     steps:
       - name: チェックアウト
@@ -74,9 +72,6 @@ jobs:
     name: 内部テストへアップロード
     needs: [unit, connected]
     runs-on: ubuntu-latest
-    env:
-      CI_VERSION_MINOR: ${{ github.event.pull_request.number }}
-      CI_VERSION_PATCH: ${{ github.run_number }}
     steps:
       - name: チェックアウト
         uses: actions/checkout@v4
