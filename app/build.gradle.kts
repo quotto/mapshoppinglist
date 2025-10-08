@@ -38,10 +38,10 @@ val computedVersionCode = versionMajor * 1_000_000 + versionMinor * 10_000 + ver
 val computedVersionName = listOf(versionMajor, versionMinor, versionPatch).joinToString(separator = ".")
 
 val keystoreFile = rootProject.file("gradle/keystore.jks")
-val keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-val keyAlias = System.getenv("ANDROID_KEY_ALIAS")
-val keyPassword = System.getenv("ANDROID_KEY_ALIAS_PASSWORD")
-val isReleaseKeystoreConfigured = keystoreFile.exists() && !keystorePassword.isNullOrBlank() && !keyAlias.isNullOrBlank() && !keyPassword.isNullOrBlank()
+val androidKeyStorePassword:String? = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+val androidKeyAlias: String? = System.getenv("ANDROID_KEY_ALIAS")
+val androidKeyPassword: String? = System.getenv("ANDROID_KEY_ALIAS_PASSWORD")
+val isReleaseKeystoreConfigured = keystoreFile.exists() && !androidKeyStorePassword.isNullOrBlank() && !androidKeyAlias.isNullOrBlank() && !androidKeyPassword.isNullOrBlank()
 
 android {
     namespace = "com.mapshoppinglist"
@@ -63,16 +63,16 @@ android {
     signingConfigs {
         if (isReleaseKeystoreConfigured) {
             create("release") {
-                val resolvedStorePassword = keystorePassword!!
-                val resolvedKeyAlias = keyAlias!!
-                val resolvedKeyPassword = keyPassword!!
                 storeFile = keystoreFile
-                storePassword = resolvedStorePassword
-                keyAlias = resolvedKeyAlias
-                keyPassword = resolvedKeyPassword
+                storePassword = androidKeyStorePassword
+                keyAlias = androidKeyAlias
+                keyPassword = androidKeyPassword
             }
         }
     }
+
+    testBuildType = (findProperty("testBuildType") as
+            String?) ?: "debug"
 
     buildTypes {
         release {
@@ -114,7 +114,7 @@ android {
                     // Use only API levels 27 and higher.
                     apiLevel = 29
                     // To include Google services, use "google".
-                    systemImageSource = "google-atd"
+                    systemImageSource = "google"
                 }
                 create("pixel9api36") {
                     // Use device profiles you typically see in Android Studio.

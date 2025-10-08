@@ -21,7 +21,7 @@ jobs:
       - name: 計装テスト
         uses: ./.github/actions/android-gradle
         with:
-          gradle-args: minimumAndMaxApiReleaseAndroidTest
+          gradle-args: minimumAndMaxApiDebugAndroidTest
           maps-api-key: ${{ secrets.MAPS_API_KEY }}
           play-service-account-json: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -45,7 +45,6 @@ jobs:
 
   firebase-test:
     name: Firebase Test Lab
-    needs: connected
     runs-on: ubuntu-latest
     steps:
       - name: チェックアウト
