@@ -3,9 +3,6 @@ package com.mapshoppinglist.util
 import androidx.test.core.app.ApplicationProvider
 import com.mapshoppinglist.MapShoppingListApplication
 import com.mapshoppinglist.domain.usecase.CreatePlaceUseCase
-import com.mapshoppinglist.data.local.dao.ItemWithPlaces
-import com.mapshoppinglist.data.local.entity.PlaceEntity
-import com.mapshoppinglist.data.local.entity.ItemEntity
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -50,27 +47,4 @@ object TestDataHelper {
         }
     }
 
-    fun getItemWithPlaces(itemId: Long): ItemWithPlaces? {
-        return runBlocking {
-            app().database.itemsDao().getItemWithPlaces(itemId)
-        }
-    }
-
-    fun getPlace(placeId: Long): PlaceEntity? {
-        return runBlocking {
-            app().database.placesDao().findById(placeId)
-        }
-    }
-
-    fun getLinkedPlaceIds(itemId: Long): List<Long> {
-        return runBlocking {
-            app().database.itemPlaceDao().findLinksByItem(itemId).map { it.placeId }
-        }
-    }
-
-    fun findItemByTitle(title: String): ItemEntity? {
-        return runBlocking {
-            app().database.itemsDao().loadNotPurchased().firstOrNull { it.title == title }
-        }
-    }
 }

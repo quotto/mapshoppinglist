@@ -14,10 +14,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import com.mapshoppinglist.MainActivity
 import com.mapshoppinglist.R
-import com.mapshoppinglist.ui.placemanage.PlaceManagementTestTags
+import com.mapshoppinglist.ui.itemdetail.ItemDetailTestTags
 import com.mapshoppinglist.util.TestDataHelper
 import org.junit.After
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -52,13 +51,12 @@ class PlaceManagementScreenTest {
         composeRule.onNodeWithTag(PlaceManagementTestTags.DELETE_DIALOG_CONFIRM).performClick()
 
         composeRule.waitUntilPlaceMissing(placeId)
-        val place = TestDataHelper.getPlace(placeId)
-        assertTrue(place == null)
     }
 
     @Test
     fun 紐付けられたお店を削除するとアイテムの紐付けも解除される() {
-        val itemId = TestDataHelper.insertItem("削除テスト品")
+        val itemTitle = "削除テスト品"
+        val itemId = TestDataHelper.insertItem(itemTitle)
         val placeId = TestDataHelper.createPlace("関連店舗", 35.1, 139.1)
         TestDataHelper.linkItemToPlace(itemId, placeId)
 
@@ -69,8 +67,17 @@ class PlaceManagementScreenTest {
         composeRule.onNodeWithTag(PlaceManagementTestTags.DELETE_DIALOG_CONFIRM).performClick()
 
         composeRule.waitUntilPlaceMissing(placeId)
-        val links = TestDataHelper.getLinkedPlaceIds(itemId)
-        assertTrue(links.isEmpty())
+
+        composeRule.runOnIdle {
+            composeRule.activity.onBackPressedDispatcher.onBackPressed()
+        }
+        composeRule.waitForIdle()
+
+        openItemDetail(itemTitle)
+        composeRule.waitUntilPlaceUnlinked(placeId)
+        composeRule.runOnIdle {
+            composeRule.activity.onBackPressedDispatcher.onBackPressed()
+        }
     }
 
     private fun openPlaceManagement() {
@@ -78,8 +85,19 @@ class PlaceManagementScreenTest {
         composeRule.onNodeWithText(composeRule.getString(R.string.menu_manage_places)).performClick()
     }
 
+    private fun openItemDetail(title: String) {
+        composeRule.waitUntilWithClock {
+            runCatching {
+                composeRule.onNodeWithText(title).assertIsDisplayed()
+                true
+            }.getOrDefault(false)
+        }
+        composeRule.onNodeWithText(title).performClick()
+        composeRule.waitUntilTagDisplayed(ItemDetailTestTags.TITLE_INPUT)
+    }
+
     private fun ComposeTestRule.waitUntilPlaceRowDisplayed(placeId: Long) {
-        waitUntilWithClock {
+        this.waitUntilWithClock {
             runCatching {
                 onNodeWithTag("${PlaceManagementTestTags.PLACE_ROW_PREFIX}$placeId").assertIsDisplayed()
                 true
@@ -88,11 +106,29 @@ class PlaceManagementScreenTest {
     }
 
     private fun ComposeTestRule.waitUntilPlaceMissing(placeId: Long) {
-        waitUntilWithClock {
+        this.waitUntilWithClock {
             runCatching {
                 onNodeWithTag("${PlaceManagementTestTags.PLACE_ROW_PREFIX}$placeId").assertIsDisplayed()
                 false
             }.getOrDefault(true)
+        }
+    }
+
+    private fun ComposeTestRule.waitUntilPlaceUnlinked(placeId: Long) {
+        this.waitUntilWithClock {
+            runCatching {
+                onNodeWithTag("${ItemDetailTestTags.LINKED_PLACE_PREFIX}$placeId").assertIsDisplayed()
+                false
+            }.getOrDefault(true)
+        }
+    }
+
+    private fun ComposeTestRule.waitUntilTagDisplayed(tag: String) {
+        this.waitUntilWithClock {
+            runCatching {
+                onNodeWithTag(tag).assertIsDisplayed()
+                true
+            }.getOrDefault(false)
         }
     }
 

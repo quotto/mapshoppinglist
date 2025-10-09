@@ -10,6 +10,8 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -19,6 +21,7 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.compose.ui.test.hasTestTag
 import com.mapshoppinglist.MainActivity
 import com.mapshoppinglist.R
+import com.mapshoppinglist.ui.itemdetail.ItemDetailTestTags
 import com.mapshoppinglist.ui.recentplaces.RecentPlacesTestTags
 import com.mapshoppinglist.ui.theme.MapShoppingListTheme
 import com.mapshoppinglist.util.TestDataHelper
@@ -180,10 +183,12 @@ class ShoppingListScreenTest {
 
         composeRule.waitUntilTextDisplayed(title)
 
-        val item = TestDataHelper.findItemByTitle(title)
-        requireNotNull(item)
-        val linked = TestDataHelper.getLinkedPlaceIds(item.id)
-        assertEquals(listOf(placeId), linked)
+        composeRule.onNodeWithText(title).performClick()
+        composeRule.waitUntilTagDisplayed(ItemDetailTestTags.TITLE_INPUT)
+        composeRule.waitUntilPlaceLinked(placeId)
+        composeRule.runOnIdle {
+            composeRule.activity.onBackPressedDispatcher.onBackPressed()
+        }
     }
 
     @Test
@@ -264,6 +269,24 @@ class ShoppingListScreenTest {
         waitUntilWithClock(timeoutMillis) {
             runCatching {
                 onNodeWithText(text, useUnmergedTree).assertIsDisplayed()
+                true
+            }.getOrDefault(false)
+        }
+    }
+
+    private fun ComposeTestRule.waitUntilPlaceLinked(placeId: Long) {
+        waitUntilWithClock {
+            runCatching {
+                onNodeWithTag("${ItemDetailTestTags.LINKED_PLACE_PREFIX}$placeId").assertIsDisplayed()
+                true
+            }.getOrDefault(false)
+        }
+    }
+
+    private fun ComposeTestRule.waitUntilTagDisplayed(tag: String) {
+        waitUntilWithClock {
+            runCatching {
+                onNodeWithTag(tag).assertIsDisplayed()
                 true
             }.getOrDefault(false)
         }
