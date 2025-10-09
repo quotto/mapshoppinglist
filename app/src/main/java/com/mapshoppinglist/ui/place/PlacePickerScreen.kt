@@ -1,17 +1,9 @@
 package com.mapshoppinglist.ui.place
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Location
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -33,6 +25,16 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Surface
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,7 +45,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -68,16 +73,21 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
+internal val PlacePickerCameraTargetKey = SemanticsPropertyKey<LatLng>("place_picker_camera_target")
+
 @Composable
 fun PlacePickerRoute(
     onPlaceRegistered: (Long) -> Unit,
     onClose: () -> Unit,
-    viewModel: PlacePickerViewModel = defaultPlacePickerViewModel()
+    viewModel: PlacePickerViewModel = defaultPlacePickerViewModel(),
+    locationProvider: CurrentLocationProvider? = null
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
-    val fusedClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+    val resolvedLocationProvider = remember(context, locationProvider) {
+        locationProvider ?: DefaultCurrentLocationProvider(context)
+    }
     val coroutineScope = rememberCoroutineScope()
     var hasLocationPermission by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)
@@ -91,10 +101,10 @@ fun PlacePickerRoute(
         }
     }
 
-    LaunchedEffect(hasLocationPermission) {
+    LaunchedEffect(hasLocationPermission, resolvedLocationProvider) {
         if (hasLocationPermission) {
             MapsInitializer.initialize(context)
-            val location = fusedClient.lastLocation.await()
+            val location = resolvedLocationProvider.getLastLocation()
             location?.let {
                 viewModel.updateCameraLocation(LatLng(it.latitude, it.longitude))
             }
@@ -264,7 +274,12 @@ fun PlacePickerScreen(
                 GoogleMap(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
+                        .weight(1f)
+                        .testTag(PlacePickerTestTags.MAP)
+                        .semantics {
+                            // UIテストからカメラ位置を検証できるようにする
+                            this[PlacePickerCameraTargetKey] = cameraPositionState.position.target
+                        },
                     cameraPositionState = cameraPositionState,
                     uiSettings = MapUiSettings(zoomControlsEnabled = false),
                     properties = mapProperties,
@@ -285,6 +300,7 @@ fun PlacePickerScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
+                        .testTag(PlacePickerTestTags.LOCATION_PERMISSION_PLACEHOLDER)
                 )
             }
 
@@ -328,6 +344,14 @@ fun PlacePickerScreen(
     }
 }
 
+/**
+ * UIテストで利用するタグ。
+ */
+object PlacePickerTestTags {
+    const val MAP: String = "test_tag_place_picker_map"
+    const val LOCATION_PERMISSION_PLACEHOLDER: String = "test_tag_place_picker_location_placeholder"
+}
+
 @Composable
 private fun LocationPermissionPlaceholder(
     onRequestPermission: () -> Unit,
@@ -363,5 +387,20 @@ private fun LocationPermissionPlaceholder(
                 Text(text = stringResource(R.string.permission_location_request_button))
             }
         }
+    }
+}
+
+/**
+ * 現在地を取得するためのシンプルな抽象化。
+ */
+fun interface CurrentLocationProvider {
+    suspend fun getLastLocation(): Location?
+}
+
+private class DefaultCurrentLocationProvider(context: Context) : CurrentLocationProvider {
+    private val fusedClient = LocationServices.getFusedLocationProviderClient(context)
+
+    override suspend fun getLastLocation(): Location? {
+        return fusedClient.lastLocation.await()
     }
 }

@@ -58,6 +58,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mapshoppinglist.MapShoppingListApplication
@@ -235,6 +236,7 @@ fun ShoppingListScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
+                modifier = Modifier.testTag(stringResource(R.string.test_tag_shopping_list_add_fab)),
                 onClick = onAddItemClick,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onTertiary
@@ -348,7 +350,8 @@ private fun EmptySection(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 48.dp),
+            .padding(vertical = 48.dp)
+            .testTag(stringResource(R.string.test_tag_shopping_list_empty_state)),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -372,9 +375,16 @@ private fun ShoppingListRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val rowTag = if (model.isPurchased) {
+        "${stringResource(R.string.test_tag_shopping_list_item_purchased)}${model.id}"
+    } else {
+        "${stringResource(R.string.test_tag_shopping_list_item_not_purchased)}${model.id}"
+    }
+    val checkboxTag = "${stringResource(R.string.test_tag_shopping_list_item_checkbox)}${model.id}"
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .testTag(rowTag)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
@@ -390,6 +400,7 @@ private fun ShoppingListRow(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(
+                        modifier = Modifier.testTag(checkboxTag),
                         checked = model.isPurchased,
                         onCheckedChange = onTogglePurchased,
                         colors = CheckboxDefaults.colors(
@@ -428,7 +439,9 @@ private fun ShoppingListRow(
                 )
             }
             FilledIconButton(
-                modifier = modifier.align(Alignment.CenterVertically),
+                modifier = modifier.align(Alignment.CenterVertically).testTag(
+                    stringResource(R.string.test_tag_shopping_list_item_delete) + model.id
+                ),
                 onClick = onDeleteItem,
                 shape = CircleShape,
                 colors = IconButtonDefaults.filledIconButtonColors(
@@ -512,7 +525,8 @@ private fun AddItemDialog(
                     onValueChange = onTitleInputChange,
                     label = { Text(text = stringResource(id = R.string.shopping_list_add_dialog_title_hint)) },
                     singleLine = true,
-                    isError = showTitleValidationError
+                    isError = showTitleValidationError,
+                    modifier = Modifier.testTag(stringResource(R.string.test_tag_add_item_title_input ))
                 )
                 OutlinedTextField(
                     value = note,
@@ -655,4 +669,16 @@ private fun shouldRequestNotificationPermission(context: android.content.Context
         Manifest.permission.POST_NOTIFICATIONS
     ) == android.content.pm.PackageManager.PERMISSION_GRANTED
     return !granted
+}
+
+/**
+ * UIテストが使用するタグ定義。
+ */
+object ShoppingListTestTags {
+    const val EMPTY_STATE: String = "test_tag_shopping_list_empty_state"
+    const val ADD_FAB: String = "test_tag_shopping_list_add_fab"
+    const val ITEM_NOT_PURCHASED_PREFIX: String = "test_tag_shopping_list_item_not_purchased"
+    const val ITEM_PURCHASED_PREFIX: String = "test_tag_shopping_list_item_purchased"
+    const val ITEM_CHECKBOX_PREFIX: String = "test_tag_shopping_list_item_checkbox"
+    const val ITEM_DELETE_PREFIX: String = "test_tag_shopping_list_item_delete"
 }

@@ -42,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -212,7 +213,8 @@ private fun PlaceList(
     LazyColumn(
         modifier = Modifier
             .padding(contentPadding)
-            .fillMaxSize(),
+            .fillMaxSize()
+            .testTag(PlaceManagementTestTags.PLACE_LIST),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -232,8 +234,12 @@ private fun ManagedPlaceRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val rowTag = "${PlaceManagementTestTags.PLACE_ROW_PREFIX}${place.id}"
+    val deleteTag = "${PlaceManagementTestTags.PLACE_DELETE_PREFIX}${place.id}"
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(rowTag),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
@@ -295,7 +301,10 @@ private fun ManagedPlaceRow(
                             contentDescription = stringResource(R.string.place_management_edit)
                         )
                     }
-                    IconButton(onClick = onDelete) {
+                    IconButton(
+                        modifier = Modifier.testTag(deleteTag),
+                        onClick = onDelete
+                    ) {
                         Icon(
                             imageVector = Icons.Filled.Delete,
                             contentDescription = stringResource(R.string.place_management_delete)
@@ -374,6 +383,7 @@ private fun DeletePlaceDialog(
         },
         confirmButton = {
             Button(
+                modifier = Modifier.testTag(PlaceManagementTestTags.DELETE_DIALOG_CONFIRM),
                 onClick = onConfirm,
                 enabled = !state.isProcessing,
                 colors = ButtonDefaults.buttonColors(
@@ -389,9 +399,24 @@ private fun DeletePlaceDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !state.isProcessing) {
+            TextButton(
+                modifier = Modifier.testTag(PlaceManagementTestTags.DELETE_DIALOG_CANCEL),
+                onClick = onDismiss,
+                enabled = !state.isProcessing
+            ) {
                 Text(text = stringResource(R.string.place_management_delete_dialog_cancel))
             }
         }
     )
+}
+
+/**
+ * UIテスト用のタグ定義。
+ */
+object PlaceManagementTestTags {
+    const val PLACE_LIST: String = "place_management_list"
+    const val PLACE_ROW_PREFIX: String = "place_management_row_"
+    const val PLACE_DELETE_PREFIX: String = "place_management_delete_"
+    const val DELETE_DIALOG_CONFIRM: String = "place_management_delete_confirm"
+    const val DELETE_DIALOG_CANCEL: String = "place_management_delete_cancel"
 }

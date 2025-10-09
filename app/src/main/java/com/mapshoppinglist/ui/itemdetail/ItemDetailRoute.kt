@@ -49,6 +49,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -251,7 +252,9 @@ private fun ItemDetailContent(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(ItemDetailTestTags.TITLE_INPUT),
                     value = uiState.titleInput,
                     onValueChange = onEditTitleChange,
                     label = { Text(text = stringResource(R.string.shopping_list_add_dialog_title_hint)) },
@@ -266,7 +269,9 @@ private fun ItemDetailContent(
                     )
                 )
                 OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(ItemDetailTestTags.NOTE_INPUT),
                     value = uiState.noteInput,
                     onValueChange = onEditNoteChange,
                     label = { Text(text = stringResource(R.string.shopping_list_add_dialog_note_hint)) },
@@ -306,7 +311,9 @@ private fun ItemDetailContent(
         item {
             Button(
                 onClick = onAddPlaceClick,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(ItemDetailTestTags.ADD_PLACE_BUTTON),
                 enabled = !uiState.isSaving,
                 shape = RoundedCornerShape(20.dp),
                 colors = ButtonDefaults.buttonColors(
@@ -339,10 +346,13 @@ private fun LinkedPlaceRow(
     place: LinkedPlaceUiModel,
     onRemove: () -> Unit
 ) {
+    val rowTag = "${ItemDetailTestTags.LINKED_PLACE_PREFIX}${place.placeId}"
+    val removeTag = "${ItemDetailTestTags.LINKED_PLACE_REMOVE_PREFIX}${place.placeId}"
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 4.dp)
+            .testTag(rowTag),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -364,6 +374,7 @@ private fun LinkedPlaceRow(
                 }
             }
             FilledIconButton(
+                modifier = Modifier.testTag(removeTag),
                 onClick = onRemove,
                 shape = CircleShape,
                 colors = IconButtonDefaults.filledIconButtonColors(
@@ -393,7 +404,9 @@ private fun AddPlaceOptionDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton (
                     onClick = onSearchSelected,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(ItemDetailTestTags.ADD_PLACE_DIALOG_SEARCH),
                     shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.onPrimary,
@@ -404,7 +417,9 @@ private fun AddPlaceOptionDialog(
                 }
                 OutlinedButton(
                     onClick = onRecentSelected,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(ItemDetailTestTags.ADD_PLACE_DIALOG_RECENT),
                     shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.onPrimary,
@@ -421,4 +436,17 @@ private fun AddPlaceOptionDialog(
             }
         }
     )
+}
+
+/**
+ * UIテストで利用するタグをまとめる。
+ */
+object ItemDetailTestTags {
+    const val TITLE_INPUT: String = "item_detail_title_input"
+    const val NOTE_INPUT: String = "item_detail_note_input"
+    const val ADD_PLACE_BUTTON: String = "item_detail_add_place_button"
+    const val LINKED_PLACE_PREFIX: String = "item_detail_linked_place_"
+    const val LINKED_PLACE_REMOVE_PREFIX: String = "item_detail_linked_place_remove_"
+    const val ADD_PLACE_DIALOG_SEARCH: String = "item_detail_add_place_search"
+    const val ADD_PLACE_DIALOG_RECENT: String = "item_detail_add_place_recent"
 }

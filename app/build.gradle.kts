@@ -133,6 +133,15 @@ android {
             }
         }
     }
+    /**
+     * デフォルトでは debug のみ androidTest が有効。
+     * release でも androidTest を生成したい場合は明示的に有効化する。
+     */
+    androidComponents {
+        beforeVariants(selector().withBuildType("release")) { variant ->
+            variant.enableAndroidTest = true
+        }
+    }
 }
 
 ksp {
@@ -203,9 +212,12 @@ dependencies {
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4-android")
+    androidTestImplementation("androidx.compose.ui:ui-test")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.androidx.test.rules)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)

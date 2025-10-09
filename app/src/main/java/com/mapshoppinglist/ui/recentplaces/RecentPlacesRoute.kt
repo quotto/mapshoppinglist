@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -193,7 +194,8 @@ private fun PlaceList(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(contentPadding),
+            .padding(contentPadding)
+            .testTag(RecentPlacesTestTags.PLACE_LIST),
         contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp, start = 16.dp, end = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -202,7 +204,9 @@ private fun PlaceList(
                 onClick = { onPlaceSelected(place.id) },
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("${RecentPlacesTestTags.PLACE_ROW_PREFIX}${place.id}")
             ) {
                 Text(
                     text = place.name,
@@ -214,4 +218,9 @@ private fun PlaceList(
             }
         }
     }
+}
+
+object RecentPlacesTestTags {
+    const val PLACE_LIST: String = "recent_places_list"
+    const val PLACE_ROW_PREFIX: String = "recent_places_row_"
 }
