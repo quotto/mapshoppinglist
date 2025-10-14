@@ -63,6 +63,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mapshoppinglist.MapShoppingListApplication
 import com.mapshoppinglist.R
+import com.mapshoppinglist.testtag.ShoppingListTestTags
 import com.mapshoppinglist.ui.theme.MapShoppingListTheme
 import androidx.core.content.ContextCompat
 
@@ -236,7 +237,7 @@ fun ShoppingListScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                modifier = Modifier.testTag(stringResource(R.string.test_tag_shopping_list_add_fab)),
+                modifier = Modifier.testTag(ShoppingListTestTags.ADD_FAB),
                 onClick = onAddItemClick,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onTertiary
@@ -351,7 +352,7 @@ private fun EmptySection(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 48.dp)
-            .testTag(stringResource(R.string.test_tag_shopping_list_empty_state)),
+            .testTag(ShoppingListTestTags.EMPTY_STATE),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -376,11 +377,11 @@ private fun ShoppingListRow(
     modifier: Modifier = Modifier
 ) {
     val rowTag = if (model.isPurchased) {
-        "${stringResource(R.string.test_tag_shopping_list_item_purchased)}${model.id}"
+        "${ShoppingListTestTags.ITEM_PURCHASED_PREFIX}${model.id}"
     } else {
-        "${stringResource(R.string.test_tag_shopping_list_item_not_purchased)}${model.id}"
+        "${ShoppingListTestTags.ITEM_NOT_PURCHASED_PREFIX}${model.id}"
     }
-    val checkboxTag = "${stringResource(R.string.test_tag_shopping_list_item_checkbox)}${model.id}"
+    val checkboxTag = "${ShoppingListTestTags.ITEM_CHECKBOX_PREFIX}${model.id}"
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -440,7 +441,7 @@ private fun ShoppingListRow(
             }
             FilledIconButton(
                 modifier = modifier.align(Alignment.CenterVertically).testTag(
-                    stringResource(R.string.test_tag_shopping_list_item_delete) + model.id
+                    ShoppingListTestTags.ITEM_DELETE_PREFIX + model.id
                 ),
                 onClick = onDeleteItem,
                 shape = CircleShape,
@@ -526,7 +527,7 @@ private fun AddItemDialog(
                     label = { Text(text = stringResource(id = R.string.shopping_list_add_dialog_title_hint)) },
                     singleLine = true,
                     isError = showTitleValidationError,
-                    modifier = Modifier.testTag(stringResource(R.string.test_tag_add_item_title_input ))
+                    modifier = Modifier.testTag(ShoppingListTestTags.ADD_ITEM_TITLE_INPUT)
                 )
                 OutlinedTextField(
                     value = note,
@@ -669,16 +670,4 @@ private fun shouldRequestNotificationPermission(context: android.content.Context
         Manifest.permission.POST_NOTIFICATIONS
     ) == android.content.pm.PackageManager.PERMISSION_GRANTED
     return !granted
-}
-
-/**
- * UIテストが使用するタグ定義。
- */
-object ShoppingListTestTags {
-    const val EMPTY_STATE: String = "test_tag_shopping_list_empty_state"
-    const val ADD_FAB: String = "test_tag_shopping_list_add_fab"
-    const val ITEM_NOT_PURCHASED_PREFIX: String = "test_tag_shopping_list_item_not_purchased"
-    const val ITEM_PURCHASED_PREFIX: String = "test_tag_shopping_list_item_purchased"
-    const val ITEM_CHECKBOX_PREFIX: String = "test_tag_shopping_list_item_checkbox"
-    const val ITEM_DELETE_PREFIX: String = "test_tag_shopping_list_item_delete"
 }

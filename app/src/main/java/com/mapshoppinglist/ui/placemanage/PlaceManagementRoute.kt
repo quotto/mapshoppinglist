@@ -49,6 +49,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mapshoppinglist.MapShoppingListApplication
 import com.mapshoppinglist.R
+import com.mapshoppinglist.testtag.PlaceManagementTestTags
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -408,15 +409,4 @@ private fun DeletePlaceDialog(
             }
         }
     )
-}
-
-/**
- * UIテスト用のタグ定義。
- */
-object PlaceManagementTestTags {
-    const val PLACE_LIST: String = "place_management_list"
-    const val PLACE_ROW_PREFIX: String = "place_management_row_"
-    const val PLACE_DELETE_PREFIX: String = "place_management_delete_"
-    const val DELETE_DIALOG_CONFIRM: String = "place_management_delete_confirm"
-    const val DELETE_DIALOG_CANCEL: String = "place_management_delete_cancel"
 }

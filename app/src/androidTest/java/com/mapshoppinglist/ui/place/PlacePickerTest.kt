@@ -21,6 +21,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.rule.GrantPermissionRule
 import com.google.android.gms.maps.model.LatLng
 import com.mapshoppinglist.R
+import com.mapshoppinglist.testtag.PlacePickerTestTags
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

@@ -40,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mapshoppinglist.MapShoppingListApplication
 import com.mapshoppinglist.R
+import com.mapshoppinglist.testtag.RecentPlacesTestTags
 
 @Composable
 fun RecentPlacesRoute(
@@ -218,9 +219,4 @@ private fun PlaceList(
             }
         }
     }
-}
-
-object RecentPlacesTestTags {
-    const val PLACE_LIST: String = "recent_places_list"
-    const val PLACE_ROW_PREFIX: String = "recent_places_row_"
 }

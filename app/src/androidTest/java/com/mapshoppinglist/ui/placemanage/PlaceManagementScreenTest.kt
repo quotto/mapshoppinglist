@@ -14,7 +14,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import com.mapshoppinglist.MainActivity
 import com.mapshoppinglist.R
-import com.mapshoppinglist.ui.itemdetail.ItemDetailTestTags
+import com.mapshoppinglist.testtag.ItemDetailTestTags
+import com.mapshoppinglist.testtag.PlaceManagementTestTags
 import com.mapshoppinglist.util.TestDataHelper
 import org.junit.After
 import org.junit.Before

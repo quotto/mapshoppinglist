@@ -56,6 +56,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mapshoppinglist.MapShoppingListApplication
 import com.mapshoppinglist.R
+import com.mapshoppinglist.testtag.ItemDetailTestTags
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -436,17 +437,4 @@ private fun AddPlaceOptionDialog(
             }
         }
     )
-}
-
-/**
- * UIテストで利用するタグをまとめる。
- */
-object ItemDetailTestTags {
-    const val TITLE_INPUT: String = "item_detail_title_input"
-    const val NOTE_INPUT: String = "item_detail_note_input"
-    const val ADD_PLACE_BUTTON: String = "item_detail_add_place_button"
-    const val LINKED_PLACE_PREFIX: String = "item_detail_linked_place_"
-    const val LINKED_PLACE_REMOVE_PREFIX: String = "item_detail_linked_place_remove_"
-    const val ADD_PLACE_DIALOG_SEARCH: String = "item_detail_add_place_search"
-    const val ADD_PLACE_DIALOG_RECENT: String = "item_detail_add_place_recent"
 }

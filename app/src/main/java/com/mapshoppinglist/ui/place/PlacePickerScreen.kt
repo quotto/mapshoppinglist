@@ -69,6 +69,7 @@ import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.mapshoppinglist.MapShoppingListApplication
 import com.mapshoppinglist.R
+import com.mapshoppinglist.testtag.PlacePickerTestTags
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -343,15 +344,6 @@ fun PlacePickerScreen(
         }
     }
 }
-
-/**
- * UIテストで利用するタグ。
- */
-object PlacePickerTestTags {
-    const val MAP: String = "test_tag_place_picker_map"
-    const val LOCATION_PERMISSION_PLACEHOLDER: String = "test_tag_place_picker_location_placeholder"
-}
-
 @Composable
 private fun LocationPermissionPlaceholder(
     onRequestPermission: () -> Unit,

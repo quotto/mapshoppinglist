@@ -101,12 +101,4 @@
     <string name="place_management_snackbar_updated">地点名称を更新しました</string>
     <string name="place_management_snackbar_deleted">地点を削除しました</string>
 
-    <string name="test_tag_add_item_title_input">test_tag_add_item_title_input</string>
-    <string name="test_tag_shopping_list_empty_state">test_tag_shopping_list_empty_state</string>
-    <string name="test_tag_shopping_list_add_fab">test_tag_shopping_list_add_fab</string>
-    <string name="test_tag_shopping_list_item_not_purchased">test_tag_shopping_list_item_not_purchased</string>
-    <string name="test_tag_shopping_list_item_purchased">test_tag_shopping_list_item_purchased</string>
-    <string name="test_tag_shopping_list_item_checkbox">test_tag_shopping_list_item_checkbox</string>
-    <string name="test_tag_shopping_list_item_delete">test_tag_shopping_list_item_delete</string>
-    <string name="test_tag_place_picker_map">test_tag_place_picker_map</string>
 </resources>

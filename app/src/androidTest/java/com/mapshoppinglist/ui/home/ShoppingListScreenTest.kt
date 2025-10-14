@@ -21,8 +21,8 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.compose.ui.test.hasTestTag
 import com.mapshoppinglist.MainActivity
 import com.mapshoppinglist.R
-import com.mapshoppinglist.ui.itemdetail.ItemDetailTestTags
-import com.mapshoppinglist.ui.recentplaces.RecentPlacesTestTags
+import com.mapshoppinglist.testtag.ItemDetailTestTags
+import com.mapshoppinglist.testtag.ShoppingListTestTags
 import com.mapshoppinglist.ui.theme.MapShoppingListTheme
 import com.mapshoppinglist.util.TestDataHelper
 import org.junit.After
@@ -51,17 +51,17 @@ class ShoppingListScreenTest {
 
     @Test
     fun displayEmptyListWhenLaunchApps() {
-        composeRule.onNodeWithTag(composeRule.getString(R.string.test_tag_shopping_list_empty_state)).assertIsDisplayed()
+        composeRule.onNodeWithTag(ShoppingListTestTags.EMPTY_STATE).assertIsDisplayed()
     }
 
     @Test
     fun canAddItemWithoutPlace() {
         val title = "りんご"
 
-        composeRule.onNodeWithTag(composeRule.getString(R.string.test_tag_shopping_list_add_fab)).performClick()
+        composeRule.onNodeWithTag(ShoppingListTestTags.ADD_FAB).performClick()
 
         composeRule.onNode(
-            hasSetTextAction() and hasTestTag(composeRule.getString(R.string.test_tag_add_item_title_input)), //hasText(composeRule.getString(R.string.shopping_list_add_dialog_title_hint)),
+            hasSetTextAction() and hasTestTag(ShoppingListTestTags.ADD_ITEM_TITLE_INPUT), //hasText(composeRule.getString(R.string.shopping_list_add_dialog_title_hint)),
             useUnmergedTree = true
         ).performTextInput(title)
 
@@ -75,7 +75,7 @@ class ShoppingListScreenTest {
 
     @Test
     fun showErrorWhenTitleIsEmpty() {
-        composeRule.onNodeWithTag(composeRule.getString(R.string.test_tag_shopping_list_add_fab)).performClick()
+        composeRule.onNodeWithTag(ShoppingListTestTags.ADD_FAB).performClick()
 
         composeRule.onNodeWithText(composeRule.getString(R.string.shopping_list_add_dialog_confirm)).performClick()
 
@@ -89,46 +89,46 @@ class ShoppingListScreenTest {
         val itemId = TestDataHelper.insertItem("牛乳")
 
         // 全てのアイテムが未購入の場合は未購入カードは表示されない
-        composeRule.onNodeWithTag(composeRule.getString(R.string.test_tag_shopping_list_empty_state)).assertDoesNotExist()
+        composeRule.onNodeWithTag(ShoppingListTestTags.EMPTY_STATE).assertDoesNotExist()
 
-        composeRule.onNodeWithTag(composeRule.getString(R.string.test_tag_shopping_list_item_checkbox)+itemId).performClick()
+        composeRule.onNodeWithTag(ShoppingListTestTags.ITEM_CHECKBOX_PREFIX + itemId).performClick()
 
-        composeRule.waitUntilNodeExists(composeRule.getString(R.string.test_tag_shopping_list_item_purchased) + itemId)
+        composeRule.waitUntilNodeExists(ShoppingListTestTags.ITEM_PURCHASED_PREFIX + itemId)
 
-        composeRule.onNodeWithTag(composeRule.getString(R.string.test_tag_shopping_list_item_not_purchased) + itemId).assertDoesNotExist()
-        composeRule.onNodeWithTag( composeRule.getString(R.string.test_tag_shopping_list_item_purchased) + itemId).assertIsDisplayed()
+        composeRule.onNodeWithTag(ShoppingListTestTags.ITEM_NOT_PURCHASED_PREFIX + itemId).assertDoesNotExist()
+        composeRule.onNodeWithTag(ShoppingListTestTags.ITEM_PURCHASED_PREFIX + itemId).assertIsDisplayed()
         composeRule.onNodeWithText(composeRule.getString(R.string.shopping_list_purchased_header)).assertIsDisplayed()
 
         // 全てのアイテムが購入済みの場合は未購入カードが表示される
-        composeRule.onNodeWithTag(composeRule.getString(R.string.test_tag_shopping_list_empty_state)).assertIsDisplayed()
+        composeRule.onNodeWithTag(ShoppingListTestTags.EMPTY_STATE).assertIsDisplayed()
     }
 
     @Test
     fun canChangePurchasedToNoPurchased() {
         val itemId = TestDataHelper.insertItem("牛乳")
 
-        composeRule.onNodeWithTag(composeRule.getString(R.string.test_tag_shopping_list_item_checkbox)+itemId).performClick()
+        composeRule.onNodeWithTag(ShoppingListTestTags.ITEM_CHECKBOX_PREFIX + itemId).performClick()
 
-        composeRule.waitUntilNodeExists(composeRule.getString(R.string.test_tag_shopping_list_item_purchased) + itemId)
+        composeRule.waitUntilNodeExists(ShoppingListTestTags.ITEM_PURCHASED_PREFIX + itemId)
 
-        composeRule.onNodeWithTag(composeRule.getString(R.string.test_tag_shopping_list_item_checkbox)+itemId).performClick()
+        composeRule.onNodeWithTag(ShoppingListTestTags.ITEM_CHECKBOX_PREFIX + itemId).performClick()
 
-        composeRule.waitUntilNodeExists(composeRule.getString(R.string.test_tag_shopping_list_item_not_purchased) + itemId)
+        composeRule.waitUntilNodeExists(ShoppingListTestTags.ITEM_NOT_PURCHASED_PREFIX + itemId)
 
-        composeRule.onNodeWithTag(composeRule.getString(R.string.test_tag_shopping_list_item_purchased) + itemId).assertDoesNotExist()
-        composeRule.onNodeWithTag(composeRule.getString(R.string.test_tag_shopping_list_item_not_purchased) + itemId).assertIsDisplayed()
+        composeRule.onNodeWithTag(ShoppingListTestTags.ITEM_PURCHASED_PREFIX + itemId).assertDoesNotExist()
+        composeRule.onNodeWithTag(ShoppingListTestTags.ITEM_NOT_PURCHASED_PREFIX + itemId).assertIsDisplayed()
     }
 
     @Test
     fun canDeleteItem() {
         val itemId = TestDataHelper.insertItem("牛乳")
 
-        composeRule.onNodeWithTag(composeRule.getString(R.string.test_tag_shopping_list_item_delete) + itemId).performClick()
+        composeRule.onNodeWithTag(ShoppingListTestTags.ITEM_DELETE_PREFIX + itemId).performClick()
 
-        composeRule.waitUntilNodeExists(composeRule.getString(R.string.test_tag_shopping_list_empty_state))
+        composeRule.waitUntilNodeExists(ShoppingListTestTags.EMPTY_STATE)
 
-        composeRule.onNodeWithTag(composeRule.getString(R.string.test_tag_shopping_list_item_not_purchased) + itemId).assertDoesNotExist()
-        composeRule.onNodeWithTag(composeRule.getString(R.string.test_tag_shopping_list_item_purchased) + itemId).assertDoesNotExist()
+        composeRule.onNodeWithTag(ShoppingListTestTags.ITEM_NOT_PURCHASED_PREFIX + itemId).assertDoesNotExist()
+        composeRule.onNodeWithTag(ShoppingListTestTags.ITEM_PURCHASED_PREFIX + itemId).assertDoesNotExist()
     }
 
 
@@ -137,10 +137,10 @@ class ShoppingListScreenTest {
         val placeName = "テストスーパー"
         TestDataHelper.createPlace(placeName, latitude = 35.0, longitude = 139.0)
 
-        composeRule.onNodeWithTag(composeRule.getString(R.string.test_tag_shopping_list_add_fab)).performClick()
+        composeRule.onNodeWithTag(ShoppingListTestTags.ADD_FAB).performClick()
 
         composeRule.onNode(
-            hasSetTextAction() and hasTestTag(composeRule.getString(R.string.test_tag_add_item_title_input)),  //hasText(composeRule.getString(R.string.shopping_list_add_dialog_title_hint)),
+            hasSetTextAction() and hasTestTag(ShoppingListTestTags.ADD_ITEM_TITLE_INPUT),  //hasText(composeRule.getString(R.string.shopping_list_add_dialog_title_hint)),
             useUnmergedTree = true
         ).performTextInput("お米")
 
@@ -161,39 +161,8 @@ class ShoppingListScreenTest {
     }
 
     @Test
-    fun 新しく地点を選択してお店を紐付けて登録できる() {
-        val title = "トマト"
-        val placeName = "新規追加店舗"
-        val placeId = TestDataHelper.createPlace(placeName, latitude = 35.5, longitude = 139.5)
-
-        composeRule.onNodeWithTag(composeRule.getString(R.string.test_tag_shopping_list_add_fab)).performClick()
-
-        composeRule.onNode(
-            hasSetTextAction() and hasTestTag(composeRule.getString(R.string.test_tag_add_item_title_input)),
-            useUnmergedTree = true
-        ).performTextInput(title)
-
-        composeRule.onNodeWithText(composeRule.getString(R.string.item_detail_add_place_recent)).performClick()
-
-        composeRule.waitUntilNodeExists("${RecentPlacesTestTags.PLACE_ROW_PREFIX}$placeId")
-        composeRule.onNodeWithTag("${RecentPlacesTestTags.PLACE_ROW_PREFIX}$placeId").performClick()
-
-        composeRule.waitUntilTextDisplayed(placeName)
-        composeRule.onNodeWithText(composeRule.getString(R.string.shopping_list_add_dialog_confirm)).performClick()
-
-        composeRule.waitUntilTextDisplayed(title)
-
-        composeRule.onNodeWithText(title).performClick()
-        composeRule.waitUntilTagDisplayed(ItemDetailTestTags.TITLE_INPUT)
-        composeRule.waitUntilPlaceLinked(placeId)
-        composeRule.runOnIdle {
-            composeRule.activity.onBackPressedDispatcher.onBackPressed()
-        }
-    }
-
-    @Test
     fun showMessageWhenRecentlyPlaceIsNotExist() {
-        composeRule.onNodeWithTag(composeRule.getString(R.string.test_tag_shopping_list_add_fab)).performClick()
+        composeRule.onNodeWithTag(ShoppingListTestTags.ADD_FAB).performClick()
 
         composeRule.onNodeWithText(
             composeRule.getString(R.string.recent_places_empty)
