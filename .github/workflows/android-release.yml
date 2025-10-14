@@ -11,38 +11,6 @@ env:
   FIREBASE_TEST_LAB_SA_JSON: ${{ secrets.FIREBASE_TEST_LAB_SA_JSON }}
 
 jobs:
-  connected:
-    name: 計装テスト
-    runs-on: ubuntu-latest
-    steps:
-      - name: チェックアウト
-        uses: actions/checkout@v4
-
-      - name: 計装テスト
-        uses: ./.github/actions/android-gradle
-        with:
-          gradle-args: minimumAndMaxApiDebugAndroidTest
-          maps-api-key: ${{ secrets.MAPS_API_KEY }}
-          play-service-account-json: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-          android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          android-keystore-password: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          android-key-alias: ${{ secrets.ANDROID_KEY_ALIAS }}
-          android-key-alias-password: ${{ secrets.ANDROID_KEY_ALIAS_PASSWORD }}
-
-      - name: テストレポートをアップロード
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: androidTest-${{ matrix.api-level }}
-          path: app/build/reports/
-          if-no-files-found: warn
-
-      - name: Secrets ファイルを削除
-        if: always()
-        run: |
-          rm -f local.properties
-          rm -f gradle/keystore.jks
-
   firebase-test:
     name: Firebase Test Lab
     runs-on: ubuntu-latest
@@ -53,22 +21,29 @@ jobs:
       - name: Bundle 作成
         uses: ./.github/actions/android-gradle
         with:
-          gradle-args: bundleRelease
+          gradle-args: assembleDebugAndroidTest
           maps-api-key: ${{ secrets.MAPS_API_KEY }}
-          android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          android-keystore-password: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          android-key-alias: ${{ secrets.ANDROID_KEY_ALIAS }}
-          android-key-alias-password: ${{ secrets.ANDROID_KEY_ALIAS_PASSWORD }}
+      - id: Google Cloud 認証
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCLOUD_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCLOUD_WORKLOAD_IDENTITY_SERVICE_ACCOUNT_NAME }}
+
+      - name: Google Cloud SDK セットアップ
+        uses: google-github-actions/setup-gcloud@v3
 
       - name: Firebase Test Lab へ送信
-        uses: wzieba/firebase-test-lab@v2
-        with:
-          credentials_json: ${{ secrets.FIREBASE_TEST_LAB_SA_JSON }}
-          gcloud_command: test android run --type instrumentation --app app/build/outputs/bundle/release/app-release.aab
+        run: |
+            gcloud firebase test android run \
+                --type instrumentation \
+                --app app/build/outputs/bundle/debug/app-debug.aab \
+                --test app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
+                --device model=Pixel9a,version=36,locale=ja,orientation=portrait \
+                --timeout 10m
 
   publish:
     name: 内部テストへアップロード
-    needs: [connected, firebase-test]
+    needs: firebase-test
     runs-on: ubuntu-latest
     steps:
       - name: チェックアウト
