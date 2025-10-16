@@ -14,6 +14,9 @@ jobs:
   firebase-test:
     name: Firebase Test Lab
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: チェックアウト
         uses: actions/checkout@v4
