@@ -31,6 +31,7 @@ jobs:
         with:
           workload_identity_provider: ${{ secrets.GCLOUD_WORKLOAD_IDENTITY_PROVIDER }}
           project_id: ${{ secrets.GCLOUD_PROJECT_ID }}
+          service_account: ${{ GCLOUD_WORKLOAD_IDENTITY_SERVICE_ACCOUNT_NAME }}
 
       - name: Google Cloud SDK セットアップ
         uses: google-github-actions/setup-gcloud@v3
