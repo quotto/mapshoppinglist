@@ -41,7 +41,6 @@ val keystoreFile = rootProject.file("gradle/keystore.jks")
 val androidKeyStorePassword:String? = System.getenv("ANDROID_KEYSTORE_PASSWORD")
 val androidKeyAlias: String? = System.getenv("ANDROID_KEY_ALIAS")
 val androidKeyPassword: String? = System.getenv("ANDROID_KEY_ALIAS_PASSWORD")
-val isReleaseKeystoreConfigured = keystoreFile.exists() && !androidKeyStorePassword.isNullOrBlank() && !androidKeyAlias.isNullOrBlank() && !androidKeyPassword.isNullOrBlank()
 
 android {
     namespace = "com.mapshoppinglist"
@@ -61,13 +60,11 @@ android {
     }
 
     signingConfigs {
-        if (isReleaseKeystoreConfigured) {
-            create("release") {
-                storeFile = keystoreFile
-                storePassword = androidKeyStorePassword
-                keyAlias = androidKeyAlias
-                keyPassword = androidKeyPassword
-            }
+        create("release") {
+            storeFile = keystoreFile
+            storePassword = androidKeyStorePassword
+            keyAlias = androidKeyAlias
+            keyPassword = androidKeyPassword
         }
     }
 
@@ -76,7 +73,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
