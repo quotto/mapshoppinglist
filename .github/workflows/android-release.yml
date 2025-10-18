@@ -32,12 +32,20 @@ jobs:
         with:
           gradle-args: assembleDebugAndroidTest
           maps-api-key: ${{ secrets.MAPS_API_KEY }}
+
       - name: Google Cloud 認証
         uses: google-github-actions/auth@v3
+        id: auth
         with:
           workload_identity_provider: ${{ secrets.GCLOUD_WORKLOAD_IDENTITY_PROVIDER }}
-          project_id: ${{ secrets.GCLOUD_PROJECT_ID }}
           service_account: ${{ secrets.GCLOUD_WORKLOAD_IDENTITY_SERVICE_ACCOUNT_NAME }}
+
+      - name: 認証デバッグ
+        run: |
+          echo "${{ steps.auth.outputs.project_id }}"
+          echo "${{ steps.auth.outputs.id_token }}"
+          echo "${{ steps.auth.outputs.access_token }}"
+          echo "${{ steps.auth.outputs.auth_token }}"
 
       - name: Google Cloud SDK セットアップ
         uses: google-github-actions/setup-gcloud@v3
