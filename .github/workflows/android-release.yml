@@ -24,6 +24,12 @@ jobs:
       - name: Bundle 作成
         uses: ./.github/actions/android-gradle
         with:
+          gradle-args: bundleDebug
+          maps-api-key: ${{ secrets.MAPS_API_KEY }}
+
+      - name: AndroidTest 作成
+        uses: ./.github/actions/android-gradle
+        with:
           gradle-args: assembleDebugAndroidTest
           maps-api-key: ${{ secrets.MAPS_API_KEY }}
       - name: Google Cloud 認証
@@ -43,6 +49,7 @@ jobs:
                 --app app/build/outputs/bundle/debug/app-debug.aab \
                 --test app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
                 --device model=tokay,version=36,locale=ja,orientation=portrait \
+                --device model=a10,version=29,locale=ja,orientation=portrait \
                 --timeout 10m
 
   publish:
