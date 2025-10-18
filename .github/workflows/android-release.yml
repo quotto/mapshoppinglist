@@ -42,7 +42,7 @@ jobs:
                 --type instrumentation \
                 --app app/build/outputs/bundle/debug/app-debug.aab \
                 --test app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
-                --device model=Pixel9a,version=36,locale=ja,orientation=portrait \
+                --device model=tokay,version=36,locale=ja,orientation=portrait \
                 --timeout 10m
 
   publish:
