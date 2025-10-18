@@ -52,10 +52,28 @@ inputs:
     description: 署名キーのパスワード
     required: false
     default: ''
+  ensure-android-components:
+    description: Android SDK コンポーネントを確実にインストールするかどうか
+    required: false
+    default: 'false'
+  required-build-tools:
+    description: 必須の build-tools バージョン（カンマ区切り）
+    required: false
+    default: ''
+  required-platforms:
+    description: 必須の platforms;android-* 指定（カンマ区切り）
+    required: false
+    default: ''
 
 runs:
   using: composite
   steps:
+    - name: 環境変数を設定
+      shell: bash
+      run: |
+        echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+        echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+
     - name: JDK をセットアップ
       uses: actions/setup-java@v4
       with:
@@ -67,12 +85,67 @@ runs:
       uses: gradle/actions/setup-gradle@v4
 
     - name: Android SDK をセットアップ
+      if: ${{ inputs.ensure-android-components == 'true' }}
       uses: android-actions/setup-android@v3
       with:
-        api-level: ${{ inputs.android-api-level }}
-        components: |
-          platforms;${{ inputs.android-platform }}
-          build-tools;${{ inputs.android-build-tools }}
+        packages: ''
+
+    - name: 必要な Android コンポーネントを確認
+      if: ${{ inputs.ensure-android-components == 'true' }}
+      shell: bash
+      env:
+        REQUIRED_BUILD_TOOLS: ${{ inputs.required-build-tools }}
+        REQUIRED_PLATFORMS: ${{ inputs.required-platforms }}
+      run: |
+        set -euo pipefail
+        export ANDROID_HOME=${ANDROID_HOME:-/usr/local/lib/android/sdk}
+        export ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}
+
+        install_component() {
+          local component="$1"
+          local type="${component%%;*}"
+          local value="${component#*;}"
+          local target_path=""
+
+          case "$type" in
+            build-tools)
+              target_path="$ANDROID_SDK_ROOT/build-tools/$value"
+              ;;
+            platforms)
+              target_path="$ANDROID_SDK_ROOT/platforms/$value"
+              ;;
+            platform-tools)
+              target_path="$ANDROID_SDK_ROOT/platform-tools"
+              ;;
+            *)
+              target_path=""
+              ;;
+          esac
+
+          if [ -n "$target_path" ] && [ -d "$target_path" ]; then
+            echo "${component} は既にインストール済み"
+            return
+          fi
+
+          echo "${component} をインストールします"
+          yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" "$component"
+        }
+
+        IFS=',' read -r -a build_tools <<<"${REQUIRED_BUILD_TOOLS}"
+        for item in "${build_tools[@]}"; do
+          trimmed="$(echo "$item" | xargs)"
+          if [ -n "$trimmed" ]; then
+            install_component "build-tools;$trimmed"
+          fi
+        done
+
+        IFS=',' read -r -a platforms <<<"${REQUIRED_PLATFORMS}"
+        for item in "${platforms[@]}"; do
+          trimmed="$(echo "$item" | xargs)"
+          if [ -n "$trimmed" ]; then
+            install_component "platforms;$trimmed"
+          fi
+        done
 
     - name: Gradle ラッパーに実行権限を付与
       shell: bash

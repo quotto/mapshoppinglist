@@ -328,11 +328,12 @@ flowchart LR
 
 ## 11. CI/CD 運用方針
 
-- **CI/CD 基盤**: GitHub Actions。コンポジットアクション `./.github/actions/android-gradle` を介して JDK 21・Android SDK セットアップ・Gradle キャッシュ・Secrets 注入を統一化する。
+- **CI/CD 基盤**: GitHub Actions。コンポジットアクション `./.github/actions/android-gradle` を介して JDK 21・Secrets 注入・Gradle 実行を統一化し、既定では GitHub ホストランナーにプリインストール済みの Android SDK を利用する。追加コンポーネントが必要なジョブのみ `ensure-android-components=true` として `sdkmanager` を実行する。
 - **ブランチ別ワークフロー**
     - `push`（`main`/`release` 以外）: `android-ci.yml` でユニットテストと `assembleDebug` を実行し、デバッグ APK／テストレポートをアーティファクト化する。
     - `pull_request`（base=`release`）: `android-release.yml` でユニットテスト→API 29 & 35 の計装テスト→`bundleRelease`+`publishReleaseBundle` を実行し、内部テストトラックへ自動アップロードする。Firebase Test Lab 実行はサービスアカウント Secret 設定時のみ行う。
     - `push`（`release`）: `android-promote.yml` が `promoteReleaseArtifact` を起動し、内部テストから製品版トラックへプロモートする（審査提出は手動）。
+- **キャッシュ方針**: すべてのワークフローで `actions/cache@v4` を活用し、`/usr/local/lib/android/sdk/{build-tools,platforms,platform-tools}` と `~/.android` をキー `android-sdk-${ runner.os }-${ hashFiles('gradle/libs.versions.toml') }` で再利用する。キャッシュミス時は `ensure-android-components` 有効化ジョブが不足分を取得する。
 - **バージョン採番**
     - `gradle/version.properties` に格納したメジャー番号を手動更新。
     - マイナー番号は Pull Request 番号を CI 環境変数で注入しストーリー単位で採番。

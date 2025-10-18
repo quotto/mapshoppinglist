@@ -5,19 +5,28 @@ on:
     branches:
       - release
 
-env:
-  CI_VERSION_MINOR: ${{ github.event.pull_request.number }}
-  CI_VERSION_PATCH: ${{ github.run_number }}
-  FIREBASE_TEST_LAB_SA_JSON: ${{ secrets.FIREBASE_TEST_LAB_SA_JSON }}
-
 jobs:
   firebase-test:
     name: Firebase Test Lab
+    if: ${{ secrets.FIREBASE_TEST_LAB_SA_JSON != '' }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
+    env:
+      CI_VERSION_MINOR: ${{ github.event.pull_request.number }}
+      CI_VERSION_PATCH: ${{ github.run_number }}
     steps:
+      - name: Android SDK キャッシュを復元
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/lib/android/sdk/build-tools
+            /usr/local/lib/android/sdk/platforms
+            /usr/local/lib/android/sdk/platform-tools
+            ~/.android
+          key: android-sdk-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+
       - name: チェックアウト
         uses: actions/checkout@v4
 
@@ -26,6 +35,8 @@ jobs:
         with:
           gradle-args: bundleDebug
           maps-api-key: ${{ secrets.MAPS_API_KEY }}
+          required-build-tools: 36.0.0
+          required-platforms: android-36
 
       - name: AndroidTest 作成
         uses: ./.github/actions/android-gradle
@@ -40,35 +51,41 @@ jobs:
           workload_identity_provider: ${{ secrets.GCLOUD_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCLOUD_WORKLOAD_IDENTITY_SERVICE_ACCOUNT_NAME }}
 
-      - name: 認証デバッグ
-        run: |
-          echo "${{ steps.auth.outputs.project_id }}"
-          echo "${{ steps.auth.outputs.id_token }}"
-          echo "${{ steps.auth.outputs.access_token }}"
-          echo "${{ steps.auth.outputs.auth_token }}"
-
       - name: Google Cloud SDK セットアップ
         uses: google-github-actions/setup-gcloud@v3
 
       - name: Firebase Test Lab へ送信
         run: |
-            gcloud firebase test android run \
-                --type instrumentation \
-                --app app/build/outputs/bundle/debug/app-debug.aab \
-                --test app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
-                --device model=tokay,version=36,locale=ja,orientation=portrait \
-                --device model=a10,version=29,locale=ja,orientation=portrait \
-                --timeout 10m
+          gcloud firebase test android run \
+              --type instrumentation \
+              --app app/build/outputs/bundle/debug/app-debug.aab \
+              --test app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
+              --device model=tokay,version=36,locale=ja,orientation=portrait \
+              --device model=a10,version=29,locale=ja,orientation=portrait \
+              --timeout 10m
 
   publish:
     name: 内部テストへアップロード
     needs: firebase-test
     runs-on: ubuntu-latest
+    env:
+      CI_VERSION_MINOR: ${{ github.event.pull_request.number }}
+      CI_VERSION_PATCH: ${{ github.run_number }}
     steps:
+      - name: Android SDK キャッシュを復元
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/lib/android/sdk/build-tools
+            /usr/local/lib/android/sdk/platforms
+            /usr/local/lib/android/sdk/platform-tools
+            ~/.android
+          key: android-sdk-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+
       - name: チェックアウト
         uses: actions/checkout@v4
 
-      - name: Bundle 作成
+      - name: Gradle タスクを実行
         uses: ./.github/actions/android-gradle
         with:
           gradle-args: bundleRelease publishReleaseBundle

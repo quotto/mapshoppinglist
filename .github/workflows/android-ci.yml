@@ -10,13 +10,23 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Android SDK キャッシュを復元
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/lib/android/sdk/build-tools
+            /usr/local/lib/android/sdk/platforms
+            /usr/local/lib/android/sdk/platform-tools
+            ~/.android
+          key: android-sdk-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+
       - name: チェックアウト
         uses: actions/checkout@v4
 
-      - name: Unitテスト
+      - name: Unitテスト・デバッグビルド
         uses: ./.github/actions/android-gradle
         with:
-          gradle-args: test
+          gradle-args: test assembleDebug
           maps-api-key: ${{ secrets.MAPS_API_KEY }}
 
       - name: デバッグ成果物をアップロード
@@ -26,4 +36,5 @@ jobs:
           name: debug-build
           path: |
             app/build/reports/tests
+            app/build/outputs/apk/debug
           if-no-files-found: warn
