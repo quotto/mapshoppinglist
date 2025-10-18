@@ -10,8 +10,6 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -89,6 +87,7 @@ class ShoppingListScreenTest {
         val itemId = TestDataHelper.insertItem("牛乳")
 
         // 全てのアイテムが未購入の場合は未購入カードは表示されない
+        composeRule.waitUntilTagDisplayed(ShoppingListTestTags.ITEM_NOT_PURCHASED_PREFIX + itemId)
         composeRule.onNodeWithTag(ShoppingListTestTags.EMPTY_STATE).assertDoesNotExist()
 
         composeRule.onNodeWithTag(ShoppingListTestTags.ITEM_CHECKBOX_PREFIX + itemId).performClick()
@@ -106,12 +105,18 @@ class ShoppingListScreenTest {
     @Test
     fun canChangePurchasedToNoPurchased() {
         val itemId = TestDataHelper.insertItem("牛乳")
+        TestDataHelper.insertItem("パン")
+        val checkboxTag = ShoppingListTestTags.ITEM_CHECKBOX_PREFIX + itemId
 
-        composeRule.onNodeWithTag(ShoppingListTestTags.ITEM_CHECKBOX_PREFIX + itemId).performClick()
+        // 未購入リストが空になるとリスト構造が再構成されチェックボックスが一時的に消える場合があるため、
+        // 補助データを投入して未購入セクションを維持しつつ、描画が安定するまで待機する。
+        composeRule.waitUntilTagDisplayed(checkboxTag)
+        composeRule.onNodeWithTag(checkboxTag).performClick()
 
         composeRule.waitUntilNodeExists(ShoppingListTestTags.ITEM_PURCHASED_PREFIX + itemId)
 
-        composeRule.onNodeWithTag(ShoppingListTestTags.ITEM_CHECKBOX_PREFIX + itemId).performClick()
+        composeRule.waitUntilTagDisplayed(checkboxTag)
+        composeRule.onNodeWithTag(checkboxTag).performClick()
 
         composeRule.waitUntilNodeExists(ShoppingListTestTags.ITEM_NOT_PURCHASED_PREFIX + itemId)
 
@@ -122,8 +127,10 @@ class ShoppingListScreenTest {
     @Test
     fun canDeleteItem() {
         val itemId = TestDataHelper.insertItem("牛乳")
+        val deleteTag = ShoppingListTestTags.ITEM_DELETE_PREFIX + itemId
 
-        composeRule.onNodeWithTag(ShoppingListTestTags.ITEM_DELETE_PREFIX + itemId).performClick()
+        composeRule.waitUntilTagDisplayed(deleteTag, useUnmergedTree = true)
+        composeRule.onNodeWithTag(deleteTag, useUnmergedTree = true).performClick()
 
         composeRule.waitUntilNodeExists(ShoppingListTestTags.EMPTY_STATE)
 
@@ -155,9 +162,10 @@ class ShoppingListScreenTest {
 
         composeRule.waitUntilTextDisplayed("お米")
 
-        composeRule.onNodeWithText(
-            composeRule.getString(R.string.shopping_list_linked_places_count, 1)
-        ).assertIsDisplayed()
+        val linkedCountText = composeRule.getString(R.string.shopping_list_linked_places_count, 1)
+        // アイテムへの地点紐付けは非同期で反映されるため、表示が安定するまで待機する
+        composeRule.waitUntilTextDisplayed(linkedCountText)
+        composeRule.onNodeWithText(linkedCountText).assertIsDisplayed()
     }
 
     @Test
@@ -252,10 +260,13 @@ class ShoppingListScreenTest {
         }
     }
 
-    private fun ComposeTestRule.waitUntilTagDisplayed(tag: String) {
+    private fun ComposeTestRule.waitUntilTagDisplayed(
+        tag: String,
+        useUnmergedTree: Boolean = false
+    ) {
         waitUntilWithClock {
             runCatching {
-                onNodeWithTag(tag).assertIsDisplayed()
+                onNodeWithTag(tag, useUnmergedTree).assertIsDisplayed()
                 true
             }.getOrDefault(false)
         }
