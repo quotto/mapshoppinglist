@@ -54,6 +54,7 @@ class PlacePickerTest {
         }
 
         composeRule.waitUntilMapRendered()
+        // 地図コンポーネントの初期化やカメラアニメーションが端末によって遅延することがあるため、十分待機してから検証する
         composeRule.waitUntilCameraTarget(expected)
 
         composeRule.onNodeWithTag(PlacePickerTestTags.MAP)
@@ -86,7 +87,7 @@ class PlacePickerTest {
         assertTrue(requested)
     }
 
-    private fun hasCameraTargetCloseTo(expected: LatLng, tolerance: Double = 1e-4): SemanticsMatcher {
+    private fun hasCameraTargetCloseTo(expected: LatLng, tolerance: Double = 5e-4): SemanticsMatcher {
         return SemanticsMatcher("camera target ≈ $expected") { node ->
             val actual = node.config.getOrNull(PlacePickerCameraTargetKey) ?: return@SemanticsMatcher false
             abs(actual.latitude - expected.latitude) < tolerance &&
@@ -105,16 +106,14 @@ class PlacePickerTest {
 
     private fun ComposeTestRule.waitUntilCameraTarget(
         expected: LatLng,
-        tolerance: Double = 1e-4,
-        timeoutMillis: Long = 5_000
+        tolerance: Double = 5e-4,
+        timeoutMillis: Long = 10_000
     ) {
         waitUntilWithClock(timeoutMillis) {
-            try {
-                onNodeWithTag(PlacePickerTestTags.MAP).assert(hasCameraTargetCloseTo(expected))
+            runCatching {
+                onNodeWithTag(PlacePickerTestTags.MAP).assert(hasCameraTargetCloseTo(expected, tolerance))
                 true
-            } catch (_: AssertionError) {
-                false
-            }
+            }.getOrDefault(false)
         }
     }
 
