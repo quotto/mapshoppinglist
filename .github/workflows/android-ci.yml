@@ -19,15 +19,15 @@ jobs:
       - name: Unitテスト・カバレッジレポート生成
         uses: ./.github/actions/android-gradle
         with:
-          gradle-args: testDebugUnitTest jacocoTestReport
+          gradle-args: koverHtmlReportDebug
           maps-api-key: ${{ secrets.MAPS_API_KEY }}
 
-      - name: Jacoco レポートを保存
+      - name: Kover レポートを保存
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-report
-          path: app/build/reports/jacoco/jacocoTestReport
+          path: app/build/reports/kover/htmlDebug
           if-no-files-found: warn
           retention-days: 1
 
