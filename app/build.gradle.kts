@@ -80,6 +80,7 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
+            ndk.debugSymbolLevel = "FULL"
         }
     }
     compileOptions {
