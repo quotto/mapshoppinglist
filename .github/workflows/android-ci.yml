@@ -12,28 +12,24 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      checks: write
     steps:
       - name: チェックアウト
         uses: actions/checkout@v4
 
-      - name: Unitテスト・デバッグビルド
+      - name: Unitテスト・カバレッジレポート生成
         uses: ./.github/actions/android-gradle
         with:
-          gradle-args: testDebugUnitTest assembleDebug
+          gradle-args: testDebugUnitTest jacocoTestReport
           maps-api-key: ${{ secrets.MAPS_API_KEY }}
 
-      - name: テストレポートをアップロード
+      - name: Jacoco レポートを保存
         if: always()
-        uses: dorny/test-reporter@v2
+        uses: actions/upload-artifact@v4
         with:
-          name: Unit Test Report
-          path: app/build/test-results/**/TEST-*.xml
-          reporter: java-junit
-          fail-on-error: false
-          list-suites: failed
-          list-tests: failed
-          use-actions-summary: true
+          name: jacoco-report
+          path: app/build/reports/jacoco/jacocoTestReport
+          if-no-files-found: warn
+          retention-days: 1
 
   lint:
     name: Android Lint

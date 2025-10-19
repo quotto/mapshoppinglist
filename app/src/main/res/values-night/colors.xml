@@ -1,20 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="brand_primary">#FF1B7CB0</color>
-    <color name="brand_primary_light">#FF1B8AC0</color>
     <color name="brand_primary_dark">#FF135072</color>
     <color name="brand_on_primary">#FFF6F4F3</color>
-    <color name="brand_surface_light">#FF162636</color>
-    <color name="brand_surface_dark">#FF0B1621</color>
     <color name="brand_surface_high">#FF0B1621</color>
-    <color name="brand_text_primary">#FFF6F4F3</color>
-    <color name="brand_text_secondary">#FFCED9E3</color>
     <color name="brand_secondary">#FF102235</color>
     <color name="brand_secondary_container">#FF1E3850</color>
     <color name="brand_on_secondary_container">#FFF6F4F3</color>
     <color name="brand_accent">#FFEA5F52</color>
-    <color name="brand_accent_light">#FFF6F4F3</color>
-    <color name="brand_divider">#FF2A3A4A</color>
-    <color name="brand_success">#FF52D18A</color>
-    <color name="brand_error">#FFFF6F61</color>
 </resources>

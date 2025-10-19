@@ -8,7 +8,6 @@
     <string name="shopping_list_add_item">アイテム追加</string>
     <string name="shopping_list_linked_places_header">紐づけ予定のお店</string>
     <string name="shopping_list_remove_place">削除</string>
-    <string name="shopping_list_recent_places_header">最近選んだお店から追加</string>
     <string name="shopping_list_add_dialog_title">アイテムを追加</string>
     <string name="shopping_list_add_dialog_title_hint">タイトル</string>
     <string name="shopping_list_add_dialog_note_hint">メモ（任意）</string>
@@ -16,7 +15,6 @@
     <string name="shopping_list_add_dialog_cancel">キャンセル</string>
     <string name="shopping_list_validation_title_required">タイトルは必須です</string>
     <string name="shopping_list_delete_item">アイテムを削除</string>
-    <string name="shopping_list_add_place">お店を追加</string>
     <string name="shopping_list_add_place_section_title">お店を紐づける</string>
     <string name="notification_channel_name">買い忘れ防止リマインダー</string>
     <string name="notification_channel_desc">お店に近づいた際の買い物リマインダー通知</string>
@@ -28,12 +26,10 @@
     <string name="place_picker_search_hint">お店の名前や住所を検索</string>
     <string name="place_picker_clear_selection">選択をクリア</string>
     <string name="place_picker_confirm">この地点を登録</string>
-    <string name="place_picker_searching">候補を検索しています…</string>
     <string name="common_back">戻る</string>
     <string name="common_close">閉じる</string>
     <string name="common_more_options">その他の操作</string>
     <string name="item_detail_title">アイテム詳細</string>
-    <string name="item_detail_purchased_toggle">購入済み</string>
     <string name="item_detail_add_place">お店を追加</string>
     <string name="item_detail_no_places">紐づいたお店がありません</string>
     <string name="item_detail_not_found">アイテムが見つかりません</string>
@@ -42,9 +38,6 @@
     <string name="item_detail_add_place_recent">最近使ったお店から選ぶ</string>
     <string name="item_detail_remove_place">紐づきを解除</string>
     <string name="item_detail_place_linked">お店を紐づけました</string>
-    <string name="item_detail_edit">編集</string>
-    <string name="item_detail_edit_dialog_title">アイテムを編集</string>
-    <string name="item_detail_edit_dialog_confirm">更新</string>
     <string name="item_detail_updated_message">アイテムを更新しました</string>
     <string name="recent_places_title">最近使ったお店</string>
     <string name="recent_places_empty">最近の登録履歴がありません</string>
@@ -60,9 +53,6 @@
     <string name="menu_privacy_policy">プライバシーポリシー</string>
     <string name="menu_oss_licenses">オープンソースライセンス</string>
     <string name="oss_licenses_title">オープンソースライセンス</string>
-    <string name="oss_licenses_message">本アプリで利用しているOSSライブラリのライセンス一覧を表示します。</string>
-    <string name="oss_licenses_button">ライセンス一覧を開く</string>
-    <string name="oss_licenses_native_title">ライセンス一覧</string>
     <string name="privacy_policy_title">プライバシーポリシー</string>
     <string name="privacy_policy_updated">最終更新日: %1$s</string>
     <string name="privacy_policy_intro">

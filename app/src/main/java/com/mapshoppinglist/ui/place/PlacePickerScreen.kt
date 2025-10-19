@@ -390,9 +390,16 @@ fun interface CurrentLocationProvider {
 }
 
 private class DefaultCurrentLocationProvider(context: Context) : CurrentLocationProvider {
-    private val fusedClient = LocationServices.getFusedLocationProviderClient(context)
+    private val appContext = context.applicationContext
+    private val fusedClient = LocationServices.getFusedLocationProviderClient(appContext)
 
     override suspend fun getLastLocation(): Location? {
+        val hasFineLocation = ContextCompat.checkSelfPermission(appContext, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val hasCoarseLocation = ContextCompat.checkSelfPermission(appContext, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (!hasFineLocation && !hasCoarseLocation) {
+            // 位置情報権限が無い場合は null を返して呼び出し側で再リクエストさせる
+            return null
+        }
         return fusedClient.lastLocation.await()
     }
 }

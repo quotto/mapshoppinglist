@@ -1,7 +1,11 @@
 import com.github.triplet.gradle.androidpublisher.ReleaseStatus
+import org.gradle.api.tasks.testing.Test
 import java.util.Properties
+import org.gradle.testing.jacoco.tasks.JacocoReport
+import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
 
 plugins {
+    id("jacoco")
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
@@ -80,7 +84,9 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
-            ndk.debugSymbolLevel = "FULL"
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
         }
     }
     compileOptions {
@@ -211,8 +217,8 @@ dependencies {
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4-android")
-    androidTestImplementation("androidx.compose.ui:ui-test")
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4.android)
+    androidTestImplementation(libs.androidx.compose.ui.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.room.testing)
@@ -220,4 +226,56 @@ dependencies {
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+jacoco {
+    toolVersion = "0.8.12"
+}
+
+// Jacoco レポート用に単体テストの実行結果を収集する設定
+tasks.withType<Test>().configureEach {
+    extensions.configure<JacocoTaskExtension> {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
+    }
+}
+
+val jacocoTestReport by tasks.registering(JacocoReport::class) {
+    dependsOn("testDebugUnitTest")
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(true)
+    }
+
+    val debugTree = fileTree("${'$'}buildDir/tmp/kotlin-classes/debug") {
+        exclude(
+            "**/R.class",
+            "**/R$*.class",
+            "**/BuildConfig.*",
+            "**/Manifest*.*",
+            "**/*Test*.*",
+            "**/*Companion*"
+        )
+    }
+
+    val javaDebugTree = fileTree("${'$'}buildDir/intermediates/javac/debug") {
+        exclude(
+            "**/R.class",
+            "**/R$*.class",
+            "**/BuildConfig.*",
+            "**/Manifest*.*",
+            "**/*Test*.*"
+        )
+    }
+
+    classDirectories.setFrom(files(debugTree, javaDebugTree))
+    sourceDirectories.setFrom(files("src/main/java", "src/main/kotlin"))
+    executionData.setFrom(
+        files(
+            "${'$'}buildDir/jacoco/testDebugUnitTest.exec",
+            "${'$'}buildDir/outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec"
+        )
+    )
 }
