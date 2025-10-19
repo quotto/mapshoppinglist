@@ -7,8 +7,12 @@ on:
       - release
 
 jobs:
-  build:
+  unit-tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
     steps:
       - name: チェックアウト
         uses: actions/checkout@v4
@@ -16,5 +20,90 @@ jobs:
       - name: Unitテスト・デバッグビルド
         uses: ./.github/actions/android-gradle
         with:
-          gradle-args: test assembleDebug
+          gradle-args: testDebugUnitTest assembleDebug
           maps-api-key: ${{ secrets.MAPS_API_KEY }}
+
+      - name: テストレポートをアップロード
+        if: always()
+        uses: dorny/test-reporter@v2
+        with:
+          name: Unit Test Report
+          path: app/build/test-results/**/TEST-*.xml
+          reporter: java-junit
+          fail-on-error: false
+          list-suites: failed
+          list-tests: failed
+          use-actions-summary: true
+
+  lint:
+    name: Android Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v4
+
+      - name: Lint 実行
+        uses: ./.github/actions/android-gradle
+        with:
+          gradle-args: lintDebug
+          maps-api-key: ${{ secrets.MAPS_API_KEY }}
+
+      - name: Lint 結果を Job Summary に出力
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          report_xml="app/build/reports/lint-results-debug.xml"
+          if [ ! -f "$report_xml" ]; then
+            echo "Lint レポートが見つかりませんでした" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          python - <<'PY'
+import os
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+summary_path = Path(os.getenv("GITHUB_STEP_SUMMARY"))
+report_path = Path("app/build/reports/lint-results-debug.xml")
+
+root = ET.parse(report_path).getroot()
+error_count = int(root.get("errorCount", 0))
+warning_count = int(root.get("warningCount", 0))
+issue_lines = []
+for issue in root.findall("issue")[:10]:
+    severity = issue.get("severity", "unknown")
+    message = issue.get("message", "")
+    location = issue.find("location")
+    if location is not None:
+        file = location.get("file", "")
+        line = location.get("line")
+        location_str = f"{file}:{line}" if line else file
+    else:
+        location_str = ""
+    issue_lines.append(f"- {severity}: {message} ({location_str})")
+
+with summary_path.open("a", encoding="utf-8") as fh:
+    fh.write("### Lint 結果\n\n")
+    fh.write(f"- エラー: {error_count}\n")
+    fh.write(f"- 警告: {warning_count}\n\n")
+    if issue_lines:
+        fh.write("#### 件数上位の指摘\n")
+        fh.write("\n".join(issue_lines))
+        fh.write("\n")
+    else:
+        fh.write("指摘はありません。\n")
+PY
+
+      - name: Lint レポートを保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: |
+            app/build/reports/lint-results-debug.html
+            app/build/reports/lint-results-debug.xml
+          if-no-files-found: warn
+          retention-days: 1
