@@ -153,9 +153,11 @@ class ItemDetailScreenTest {
     }
 
     private fun clickBack() {
-        composeRule.runOnIdle {
+        // 戻る操作はUIスレッドで行う必要があるため、明示的にUIスレッドで呼び出す
+        composeRule.runOnUiThread {
             composeRule.activity.onBackPressedDispatcher.onBackPressed()
         }
+        composeRule.waitForIdle()
     }
 
     private fun ComposeTestRule.waitUntilPlaceLinked(placeId: Long) {

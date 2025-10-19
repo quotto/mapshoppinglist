@@ -3,7 +3,7 @@ name: Android Promote
 on:
   push:
     branches:
-      - release
+      - main
 
 jobs:
   promote:
@@ -15,7 +15,7 @@ jobs:
       - name: 内部テストを製品版に昇格
         uses: ./.github/actions/android-gradle
         with:
-          gradle-args: promoteReleaseArtifact --from-track internal --promote-track production --release-status completed
+          gradle-args: promoteReleaseArtifact --from-track internal --promote-track production --release-status draft
           maps-api-key: ${{ secrets.MAPS_API_KEY }}
           play-service-account-json: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}

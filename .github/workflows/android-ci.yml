@@ -18,13 +18,3 @@ jobs:
         with:
           gradle-args: test assembleDebug
           maps-api-key: ${{ secrets.MAPS_API_KEY }}
-
-      - name: デバッグ成果物をアップロード
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-build
-          path: |
-            app/build/reports/tests
-            app/build/outputs/apk/debug
-          if-no-files-found: warn
