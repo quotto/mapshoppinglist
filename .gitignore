@@ -61,5 +61,5 @@ fastlane/test_output/
 .kotlinc/
 .annotation-processors/
 
-docs/tasks.md
-docs/reports
+requirements/tasks.md
+requirements/reports
