@@ -1,6 +1,7 @@
 package com.mapshoppinglist.ui
 
 import androidx.activity.ComponentActivity
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -48,7 +49,10 @@ class PermissionsUiTest {
                     onAddPlaceViaSearch = {},
                     onAddPlaceViaRecent = {},
                     onRemovePendingPlace = {},
-                    onItemClick = {}
+                    onItemClick = {},
+                    onManagePlaces = {},
+                    onShowPrivacyPolicy = {},
+                    onShowOssLicenses = {}
                 )
             }
         }
@@ -75,7 +79,7 @@ class PermissionsUiTest {
                     onConfirm = {},
                     onClearSelection = {},
                     onClose = {},
-                    snackbarHostState = androidx.compose.material3.SnackbarHostState(),
+                    snackbarHostState = SnackbarHostState(),
                     hasLocationPermission = false,
                     onMapLongClick = {},
                     onPoiClick = {},

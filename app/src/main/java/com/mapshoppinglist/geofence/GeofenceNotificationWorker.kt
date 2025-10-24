@@ -1,12 +1,17 @@
 package com.mapshoppinglist.geofence
 
 import android.content.Context
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.mapshoppinglist.MapShoppingListApplication
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -20,6 +25,15 @@ class GeofenceNotificationWorker(
         val app = applicationContext as MapShoppingListApplication
         val placeIds = inputData.getLongArray(KEY_PLACE_IDS)?.toList().orEmpty()
         if (placeIds.isEmpty()) {
+            return@withContext Result.success()
+        }
+        val canShowNotifications = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(app, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else {
+            NotificationManagerCompat.from(app).areNotificationsEnabled()
+        }
+        if (!canShowNotifications) {
+            // POST_NOTIFICATIONS 権限が無い場合は通知処理を中断する
             return@withContext Result.success()
         }
         val now = System.currentTimeMillis()

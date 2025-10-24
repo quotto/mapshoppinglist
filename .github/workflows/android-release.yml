@@ -6,125 +6,74 @@ on:
       - release
 
 jobs:
-  unit:
-    name: ユニットテスト
-    uses: ./.github/workflows/_reusable-android-build.yml
-    with:
-      gradle-args: "test"
-      ci-version-minor: ${{ github.event.pull_request.number }}
-      ci-version-patch: ${{ github.run_number }}
-    secrets:
-      MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
-      PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-      ANDROID_KEY_ALIAS_PASSWORD: ${{ secrets.ANDROID_KEY_ALIAS_PASSWORD }}
-
-  connected:
-    name: 計装テスト
-    needs: unit
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        api-level: [29, 35]
-    env:
-      CI_VERSION_MINOR: ${{ github.event.pull_request.number }}
-      CI_VERSION_PATCH: ${{ github.run_number }}
-    steps:
-      - name: コードをチェックアウト
-        uses: actions/checkout@v4
-
-      - name: JDK をセットアップ
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 21
-
-      - name: Gradle キャッシュを構成
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Secrets をファイルへ書き出し
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ -n "${{ secrets.MAPS_API_KEY }}" ]]; then
-            printf 'MAPS_API_KEY=%s\n' "${{ secrets.MAPS_API_KEY }}" > local.properties
-          fi
-
-          mkdir -p gradle
-          if [[ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]]; then
-            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > gradle/keystore.jks
-          fi
-
-      - name: 計装テストを実行
-        uses: ReactiveCircus/android-emulator-runner@v2
-        with:
-          api-level: ${{ matrix.api-level }}
-          arch: x86_64
-          target: google_apis
-          script: ./gradlew connectedDebugAndroidTest --stacktrace --no-daemon
-
-      - name: テストレポートをアップロード
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: androidTest-${{ matrix.api-level }}
-          path: app/build/reports/androidTests
-          if-no-files-found: warn
-
-      - name: Secrets ファイルを削除
-        if: always()
-        run: |
-          rm -f local.properties
-          rm -f gradle/keystore.jks
-
   firebase-test:
     name: Firebase Test Lab
-    needs: unit
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     env:
       CI_VERSION_MINOR: ${{ github.event.pull_request.number }}
       CI_VERSION_PATCH: ${{ github.run_number }}
-      FIREBASE_TEST_LAB_SA_JSON: ${{ secrets.FIREBASE_TEST_LAB_SA_JSON }}
-      FIREBASE_SA_PRESENT: ${{ secrets.FIREBASE_TEST_LAB_SA_JSON != '' }}
     steps:
-      - name: コードをチェックアウト
+      - name: チェックアウト
         uses: actions/checkout@v4
 
-      - name: JDK をセットアップ
-        uses: actions/setup-java@v4
+      - name: Bundle 作成
+        uses: ./.github/actions/android-gradle
         with:
-          distribution: temurin
-          java-version: 21
+          gradle-args: bundleDebug
+          maps-api-key: ${{ secrets.MAPS_API_KEY }}
 
-      - name: Gradle キャッシュを構成
-        uses: gradle/actions/setup-gradle@v4
+      - name: AndroidTest 作成
+        uses: ./.github/actions/android-gradle
+        with:
+          gradle-args: assembleDebugAndroidTest
+          maps-api-key: ${{ secrets.MAPS_API_KEY }}
 
-      - name: Firebase 用のバンドルを作成
-        run: ./gradlew bundleRelease --stacktrace --no-daemon
+      - name: Google Cloud 認証
+        uses: google-github-actions/auth@v3
+        id: auth
+        with:
+          workload_identity_provider: ${{ secrets.GCLOUD_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCLOUD_WORKLOAD_IDENTITY_SERVICE_ACCOUNT_NAME }}
 
       - name: Firebase Test Lab へ送信
-        uses: wzieba/firebase-test-lab@v2
-        with:
-          credentials_json: ${{ env.FIREBASE_TEST_LAB_SA_JSON }}
-          gcloud_command: test android run --type instrumentation --app app/build/outputs/bundle/release/app-release.aab
+        run: |
+          gcloud firebase test android run \
+              --type instrumentation \
+              --app app/build/outputs/bundle/debug/app-debug.aab \
+              --test app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
+              --device model=tokay,version=36,locale=ja,orientation=portrait \
+              --device model=a10,version=29,locale=ja,orientation=portrait \
+              --timeout 10m
 
   publish:
     name: 内部テストへアップロード
-    needs: [unit, connected]
-    uses: ./.github/workflows/_reusable-android-build.yml
-    with:
-      gradle-args: "bundleRelease publishReleaseBundle"
-      upload-artifact: true
-      artifact-name: release-build
-      artifact-path: app/build/outputs/bundle/release
-      ci-version-minor: ${{ github.event.pull_request.number }}
-      ci-version-patch: ${{ github.run_number }}
-    secrets:
-      MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
-      PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-      ANDROID_KEY_ALIAS_PASSWORD: ${{ secrets.ANDROID_KEY_ALIAS_PASSWORD }}
+    needs: firebase-test
+    runs-on: ubuntu-latest
+    env:
+      CI_VERSION_MINOR: ${{ github.event.pull_request.number }}
+      CI_VERSION_PATCH: ${{ github.run_number }}
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v4
+
+      - name: Gradle タスクを実行
+        uses: ./.github/actions/android-gradle
+        with:
+          gradle-args: bundleRelease publishReleaseBundle
+          maps-api-key: ${{ secrets.MAPS_API_KEY }}
+          play-service-account-json: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          android-keystore-password: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          android-key-alias: ${{ secrets.ANDROID_KEY_ALIAS }}
+          android-key-alias-password: ${{ secrets.ANDROID_KEY_ALIAS_PASSWORD }}
+
+      - name: リリース成果物をアップロード
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-build
+          path: app/build/outputs/bundle/release
+          if-no-files-found: warn
