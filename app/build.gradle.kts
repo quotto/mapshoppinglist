@@ -2,6 +2,7 @@ import com.github.triplet.gradle.androidpublisher.ReleaseStatus
 import java.util.Properties
 
 plugins {
+    id("org.jetbrains.kotlinx.kover") version "0.9.3"
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
@@ -38,10 +39,9 @@ val computedVersionCode = versionMajor * 1_000_000 + versionMinor * 10_000 + ver
 val computedVersionName = listOf(versionMajor, versionMinor, versionPatch).joinToString(separator = ".")
 
 val keystoreFile = rootProject.file("gradle/keystore.jks")
-val keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-val keyAlias = System.getenv("ANDROID_KEY_ALIAS")
-val keyPassword = System.getenv("ANDROID_KEY_ALIAS_PASSWORD")
-val isReleaseKeystoreConfigured = keystoreFile.exists() && !keystorePassword.isNullOrBlank() && !keyAlias.isNullOrBlank() && !keyPassword.isNullOrBlank()
+val androidKeyStorePassword:String? = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+val androidKeyAlias: String? = System.getenv("ANDROID_KEY_ALIAS")
+val androidKeyPassword: String? = System.getenv("ANDROID_KEY_ALIAS_PASSWORD")
 
 android {
     namespace = "com.mapshoppinglist"
@@ -61,27 +61,29 @@ android {
     }
 
     signingConfigs {
-        if (isReleaseKeystoreConfigured) {
-            create("release") {
-                val resolvedStorePassword = keystorePassword!!
-                val resolvedKeyAlias = keyAlias!!
-                val resolvedKeyPassword = keyPassword!!
-                storeFile = keystoreFile
-                storePassword = resolvedStorePassword
-                keyAlias = resolvedKeyAlias
-                keyPassword = resolvedKeyPassword
-            }
+        create("release") {
+            storeFile = keystoreFile
+            storePassword = androidKeyStorePassword
+            keyAlias = androidKeyAlias
+            keyPassword = androidKeyPassword
         }
     }
 
+    testBuildType = (findProperty("testBuildType") as
+            String?) ?: "debug"
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
         }
     }
     compileOptions {
@@ -105,6 +107,41 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+        }
+        managedDevices {
+            localDevices {
+                create("pixel2api29") {
+                    // Use device profiles you typically see in Android Studio.
+                    device = "Pixel 2"
+                    // Use only API levels 27 and higher.
+                    apiLevel = 29
+                    // To include Google services, use "google".
+                    systemImageSource = "google"
+                }
+                create("pixel9api36") {
+                    // Use device profiles you typically see in Android Studio.
+                    device = "Pixel 9"
+                    // Use only API levels 27 and higher.
+                    apiLevel = 36
+                    // To include Google services, use "google".
+                    systemImageSource = "google-atd"
+                }
+                groups {
+                    create("minumAndMaxApi") {
+                        targetDevices.add(allDevices["pixel2api29"])
+                        targetDevices.add(allDevices["pixel9api36"])
+                    }
+                }
+            }
+        }
+    }
+    /**
+     * デフォルトでは debug のみ androidTest が有効。
+     * release でも androidTest を生成したい場合は明示的に有効化する。
+     */
+    androidComponents {
+        beforeVariants(selector().withBuildType("release")) { variant ->
+            variant.enableAndroidTest = true
         }
     }
 }
@@ -177,9 +214,12 @@ dependencies {
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4.android)
+    androidTestImplementation(libs.androidx.compose.ui.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.androidx.test.rules)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)

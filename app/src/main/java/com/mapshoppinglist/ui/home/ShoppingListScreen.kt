@@ -58,10 +58,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mapshoppinglist.MapShoppingListApplication
 import com.mapshoppinglist.R
+import com.mapshoppinglist.testtag.ShoppingListTestTags
 import com.mapshoppinglist.ui.theme.MapShoppingListTheme
 import androidx.core.content.ContextCompat
 
@@ -235,6 +237,7 @@ fun ShoppingListScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
+                modifier = Modifier.testTag(ShoppingListTestTags.ADD_FAB),
                 onClick = onAddItemClick,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onTertiary
@@ -348,7 +351,8 @@ private fun EmptySection(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 48.dp),
+            .padding(vertical = 48.dp)
+            .testTag(ShoppingListTestTags.EMPTY_STATE),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -372,9 +376,16 @@ private fun ShoppingListRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val rowTag = if (model.isPurchased) {
+        "${ShoppingListTestTags.ITEM_PURCHASED_PREFIX}${model.id}"
+    } else {
+        "${ShoppingListTestTags.ITEM_NOT_PURCHASED_PREFIX}${model.id}"
+    }
+    val checkboxTag = "${ShoppingListTestTags.ITEM_CHECKBOX_PREFIX}${model.id}"
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .testTag(rowTag)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
@@ -390,6 +401,7 @@ private fun ShoppingListRow(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(
+                        modifier = Modifier.testTag(checkboxTag),
                         checked = model.isPurchased,
                         onCheckedChange = onTogglePurchased,
                         colors = CheckboxDefaults.colors(
@@ -428,7 +440,9 @@ private fun ShoppingListRow(
                 )
             }
             FilledIconButton(
-                modifier = modifier.align(Alignment.CenterVertically),
+                modifier = modifier.align(Alignment.CenterVertically).testTag(
+                    ShoppingListTestTags.ITEM_DELETE_PREFIX + model.id
+                ),
                 onClick = onDeleteItem,
                 shape = CircleShape,
                 colors = IconButtonDefaults.filledIconButtonColors(
@@ -512,7 +526,8 @@ private fun AddItemDialog(
                     onValueChange = onTitleInputChange,
                     label = { Text(text = stringResource(id = R.string.shopping_list_add_dialog_title_hint)) },
                     singleLine = true,
-                    isError = showTitleValidationError
+                    isError = showTitleValidationError,
+                    modifier = Modifier.testTag(ShoppingListTestTags.ADD_ITEM_TITLE_INPUT)
                 )
                 OutlinedTextField(
                     value = note,

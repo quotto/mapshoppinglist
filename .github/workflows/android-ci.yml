@@ -7,14 +7,52 @@ on:
       - release
 
 jobs:
-  build:
-    uses: ./.github/workflows/_reusable-android-build.yml
-    with:
-      gradle-args: "test assembleDebug"
-      upload-artifact: true
-      artifact-name: debug-build
-      artifact-path: |
-        app/build/outputs/apk/debug
-        app/build/reports/tests
-    secrets:
-      MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v4
+
+      - name: Unitテスト・カバレッジレポート生成
+        uses: ./.github/actions/android-gradle
+        with:
+          gradle-args: koverHtmlReportDebug
+          maps-api-key: ${{ secrets.MAPS_API_KEY }}
+
+      - name: Kover レポートを保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: app/build/reports/kover/htmlDebug
+          if-no-files-found: warn
+          retention-days: 1
+
+  lint:
+    name: Android Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v4
+
+      - name: Lint 実行
+        uses: ./.github/actions/android-gradle
+        with:
+          gradle-args: lintDebug
+          maps-api-key: ${{ secrets.MAPS_API_KEY }}
+
+      - name: Lint レポートを保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: |
+            app/build/reports/lint-results-debug.html
+            app/build/reports/lint-results-debug.xml
+          if-no-files-found: warn
+          retention-days: 1

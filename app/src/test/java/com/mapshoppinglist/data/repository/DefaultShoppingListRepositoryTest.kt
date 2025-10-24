@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.runBlocking
 import com.mapshoppinglist.domain.exception.DuplicateItemException
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -22,7 +23,6 @@ import org.robolectric.annotation.Config
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [Build.VERSION_CODES.TIRAMISU])
-@Ignore("Room統合テストはInstrumentedテストへ移行予定")
 class DefaultShoppingListRepositoryTest {
 
     private lateinit var context: Context
@@ -44,7 +44,7 @@ class DefaultShoppingListRepositoryTest {
     }
 
     @Test
-    fun addItemAndObserveReflectsNewEntry() = runBlocking {
+    fun addItemAndObserveReflectsNewEntry() = runTest {
         val initial = repository.observeAllItems().first()
         assertTrue(initial.isEmpty())
 
@@ -59,7 +59,7 @@ class DefaultShoppingListRepositoryTest {
     }
 
     @Test
-    fun togglePurchasedUpdatesState() = runBlocking {
+    fun togglePurchasedUpdatesState() = runTest {
         repository.addItem(title = "卵", note = null)
         val firstItem = repository.observeAllItems()
             .first { it.isNotEmpty() }
@@ -74,7 +74,7 @@ class DefaultShoppingListRepositoryTest {
     }
 
     @Test
-    fun deleteItemRemovesFromFlow() = runBlocking {
+    fun deleteItemRemovesFromFlow() = runTest {
         repository.addItem(title = "パン", note = null)
         val initial = repository.observeAllItems().first { it.isNotEmpty() }
         val target = initial.first()
@@ -87,7 +87,7 @@ class DefaultShoppingListRepositoryTest {
     }
 
     @Test(expected = DuplicateItemException::class)
-    fun addItemThrowsWhenDuplicateTitle() = runBlocking {
+    fun addItemThrowsWhenDuplicateTitle() = runTest {
         repository.addItem(title = "牛乳", note = null)
         repository.addItem(title = "牛乳", note = null)
     }
