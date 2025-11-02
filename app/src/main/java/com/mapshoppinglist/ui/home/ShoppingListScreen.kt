@@ -253,7 +253,11 @@ fun ShoppingListScreen(
             }
         }
     ) { innerPadding ->
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
             TabRow(
                 selectedTabIndex = uiState.selectedTab.ordinal,
                 containerColor = MaterialTheme.colorScheme.surface
@@ -275,7 +279,7 @@ fun ShoppingListScreen(
                     ShoppingListContent(
                         uiState = uiState,
                         permissionPrompts = permissionPrompts,
-                        contentPadding = innerPadding,
+                        contentPadding = PaddingValues(0.dp),
                         onTogglePurchased = onTogglePurchased,
                         onDeleteItem = onDeleteItem,
                         onItemClick = onItemClick
@@ -284,7 +288,7 @@ fun ShoppingListScreen(
                 ListTab.PlaceGroup -> {
                     PlaceGroupContent(
                         uiState = uiState,
-                        contentPadding = innerPadding,
+                        contentPadding = PaddingValues(0.dp),
                         onTogglePurchased = onTogglePurchased,
                         onDeleteItem = onDeleteItem,
                         onItemClick = onItemClick
@@ -328,8 +332,8 @@ private fun ShoppingListContent(
         contentPadding = PaddingValues(
             start = 16.dp,
             end = 16.dp,
-            top = contentPadding.calculateTopPadding() + 8.dp,
-            bottom = contentPadding.calculateBottomPadding() + 80.dp
+            top = 8.dp,
+            bottom = 80.dp
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -722,8 +726,8 @@ private fun PlaceGroupContent(
         contentPadding = PaddingValues(
             start = 16.dp,
             end = 16.dp,
-            top = contentPadding.calculateTopPadding() + 8.dp,
-            bottom = contentPadding.calculateBottomPadding() + 80.dp
+            top = 8.dp,
+            bottom = 80.dp
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
