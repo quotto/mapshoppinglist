@@ -3,15 +3,21 @@ package com.mapshoppinglist.data.repository
 import com.mapshoppinglist.data.local.dao.ItemsDao
 import com.mapshoppinglist.data.local.dao.ItemWithPlaceCount
 import com.mapshoppinglist.data.local.dao.ItemWithPlaces
+import com.mapshoppinglist.data.local.dao.PlaceWithItems
+import com.mapshoppinglist.data.local.dao.PlacesDao
 import com.mapshoppinglist.data.local.entity.ItemEntity
+import com.mapshoppinglist.data.local.entity.PlaceEntity
 import com.mapshoppinglist.domain.exception.DuplicateItemException
 import com.mapshoppinglist.domain.model.ItemDetail
+import com.mapshoppinglist.domain.model.Place
+import com.mapshoppinglist.domain.model.PlaceGroup
 import com.mapshoppinglist.domain.model.PlaceSummary
 import com.mapshoppinglist.domain.model.ShoppingItem
 import com.mapshoppinglist.domain.repository.ShoppingListRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
@@ -20,6 +26,7 @@ import kotlinx.coroutines.withContext
  */
 class DefaultShoppingListRepository(
     private val itemsDao: ItemsDao,
+    private val placesDao: PlacesDao,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ShoppingListRepository {
 
@@ -98,6 +105,61 @@ class DefaultShoppingListRepository(
             )
             itemsDao.update(updated)
         }
+    }
+
+    override fun observePlaceGroups(): Flow<List<PlaceGroup>> {
+        return combine(
+            placesDao.observePlacesWithItems(),
+            itemsDao.observeItemsWithoutPlace()
+        ) { placesWithItems, itemsWithoutPlace ->
+            val groups = mutableListOf<PlaceGroup>()
+
+            // 地点に紐づくアイテムをグルーピング
+            placesWithItems
+                .filter { it.items.isNotEmpty() }
+                .forEach { placeWithItems ->
+                    groups.add(
+                        PlaceGroup(
+                            place = placeWithItems.place.toPlace(),
+                            items = placeWithItems.items.map { it.toShoppingItem() }
+                        )
+                    )
+                }
+
+            // 地点未設定のアイテムグループを追加
+            if (itemsWithoutPlace.isNotEmpty()) {
+                groups.add(
+                    PlaceGroup(
+                        place = null,
+                        items = itemsWithoutPlace.map { it.toShoppingItem() }
+                    )
+                )
+            }
+
+            groups
+        }
+    }
+
+    private fun PlaceEntity.toPlace(): Place {
+        return Place(
+            id = id,
+            name = name,
+            latitudeE6 = latitudeE6,
+            longitudeE6 = longitudeE6,
+            isActive = isActive
+        )
+    }
+
+    private fun ItemEntity.toShoppingItem(): ShoppingItem {
+        return ShoppingItem(
+            id = id,
+            title = title,
+            note = note,
+            isPurchased = isPurchased,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+            linkedPlaceCount = 0 // グループ表示では不要
+        )
     }
 
     private fun ItemEntity.toDomain(linkedPlaceCount: Int): ShoppingItem {

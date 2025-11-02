@@ -62,7 +62,8 @@ class MapShoppingListApplication : Application() {
      */
     val shoppingListRepository: ShoppingListRepository by lazy {
         DefaultShoppingListRepository(
-            itemsDao = database.itemsDao()
+            itemsDao = database.itemsDao(),
+            placesDao = database.placesDao()
         )
     }
 

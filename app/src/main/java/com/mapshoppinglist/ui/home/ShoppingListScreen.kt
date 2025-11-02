@@ -38,6 +38,8 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -159,7 +161,8 @@ fun ShoppingListRoute(
         onItemClick = onItemClick,
         onManagePlaces = onManagePlaces,
         onShowPrivacyPolicy = onShowPrivacyPolicy,
-        onShowOssLicenses = onShowOssLicenses
+        onShowOssLicenses = onShowOssLicenses,
+        onTabSelected = viewModel::onTabSelected
     )
 }
 
@@ -182,6 +185,7 @@ fun ShoppingListScreen(
     onManagePlaces: () -> Unit,
     onShowPrivacyPolicy: () -> Unit,
     onShowOssLicenses: () -> Unit,
+    onTabSelected: (ListTab) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -249,14 +253,45 @@ fun ShoppingListScreen(
             }
         }
     ) { innerPadding ->
-        ShoppingListContent(
-            uiState = uiState,
-            permissionPrompts = permissionPrompts,
-            contentPadding = innerPadding,
-            onTogglePurchased = onTogglePurchased,
-            onDeleteItem = onDeleteItem,
-            onItemClick = onItemClick
-        )
+        Column(modifier = Modifier.fillMaxSize()) {
+            TabRow(
+                selectedTabIndex = uiState.selectedTab.ordinal,
+                containerColor = MaterialTheme.colorScheme.surface
+            ) {
+                Tab(
+                    selected = uiState.selectedTab == ListTab.PurchaseStatus,
+                    onClick = { onTabSelected(ListTab.PurchaseStatus) },
+                    text = { Text(stringResource(R.string.tab_purchase_status)) }
+                )
+                Tab(
+                    selected = uiState.selectedTab == ListTab.PlaceGroup,
+                    onClick = { onTabSelected(ListTab.PlaceGroup) },
+                    text = { Text(stringResource(R.string.tab_place_group)) }
+                )
+            }
+
+            when (uiState.selectedTab) {
+                ListTab.PurchaseStatus -> {
+                    ShoppingListContent(
+                        uiState = uiState,
+                        permissionPrompts = permissionPrompts,
+                        contentPadding = innerPadding,
+                        onTogglePurchased = onTogglePurchased,
+                        onDeleteItem = onDeleteItem,
+                        onItemClick = onItemClick
+                    )
+                }
+                ListTab.PlaceGroup -> {
+                    PlaceGroupContent(
+                        uiState = uiState,
+                        contentPadding = innerPadding,
+                        onTogglePurchased = onTogglePurchased,
+                        onDeleteItem = onDeleteItem,
+                        onItemClick = onItemClick
+                    )
+                }
+            }
+        }
     }
 
     if (uiState.isAddDialogVisible) {
@@ -645,7 +680,8 @@ private fun ShoppingListScreenPreview() {
             onItemClick = {},
             onManagePlaces = {},
             onShowPrivacyPolicy = {},
-            onShowOssLicenses = {}
+            onShowOssLicenses = {},
+            onTabSelected = {}
         )
     }
 }
@@ -671,3 +707,77 @@ private fun shouldRequestNotificationPermission(context: android.content.Context
     ) == android.content.pm.PackageManager.PERMISSION_GRANTED
     return !granted
 }
+
+@Composable
+private fun PlaceGroupContent(
+    uiState: ShoppingListUiState,
+    contentPadding: PaddingValues,
+    onTogglePurchased: (Long, Boolean) -> Unit,
+    onDeleteItem: (Long) -> Unit,
+    onItemClick: (Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = contentPadding.calculateTopPadding() + 8.dp,
+            bottom = contentPadding.calculateBottomPadding() + 80.dp
+        ),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        if (uiState.placeGroups.isEmpty()) {
+            item(key = "empty_place_group") {
+                EmptySection()
+            }
+        } else {
+            uiState.placeGroups.forEach { group ->
+                item(key = "header_${group.placeId ?: "unset"}") {
+                    PlaceGroupHeader(
+                        placeName = group.placeName,
+                        itemCount = group.items.size
+                    )
+                }
+                items(
+                    items = group.items,
+                    key = { "place_${group.placeId}_item_${it.id}" }
+                ) { item ->
+                    ShoppingListRow(
+                        model = item,
+                        onTogglePurchased = { onTogglePurchased(item.id, it) },
+                        onDeleteItem = { onDeleteItem(item.id) },
+                        onClick = { onItemClick(item.id) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlaceGroupHeader(
+    placeName: String,
+    itemCount: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "📍 $placeName",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = "($itemCount)",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
