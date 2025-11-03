@@ -265,12 +265,14 @@ fun ShoppingListScreen(
                 Tab(
                     selected = uiState.selectedTab == ListTab.PurchaseStatus,
                     onClick = { onTabSelected(ListTab.PurchaseStatus) },
-                    text = { Text(stringResource(R.string.tab_purchase_status)) }
+                    text = { Text(stringResource(R.string.tab_purchase_status)) },
+                    modifier = Modifier.testTag(ShoppingListTestTags.TAB_PURCHASE_STATUS)
                 )
                 Tab(
                     selected = uiState.selectedTab == ListTab.PlaceGroup,
                     onClick = { onTabSelected(ListTab.PlaceGroup) },
-                    text = { Text(stringResource(R.string.tab_place_group)) }
+                    text = { Text(stringResource(R.string.tab_place_group)) },
+                    modifier = Modifier.testTag(ShoppingListTestTags.TAB_PLACE_GROUP)
                 )
             }
 
@@ -740,7 +742,8 @@ private fun PlaceGroupContent(
                 item(key = "header_${group.placeId ?: "unset"}") {
                     PlaceGroupHeader(
                         placeName = group.placeName,
-                        itemCount = group.items.size
+                        itemCount = group.items.size,
+                        placeId = group.placeId
                     )
                 }
                 items(
@@ -751,7 +754,11 @@ private fun PlaceGroupContent(
                         model = item,
                         onTogglePurchased = { onTogglePurchased(item.id, it) },
                         onDeleteItem = { onDeleteItem(item.id) },
-                        onClick = { onItemClick(item.id) }
+                        onClick = { onItemClick(item.id) },
+                        modifier = Modifier.testTag(
+                            ShoppingListTestTags.PLACE_GROUP_ITEM_PREFIX + 
+                            "${group.placeId ?: "unset"}_${item.id}"
+                        )
                     )
                 }
             }
@@ -763,12 +770,14 @@ private fun PlaceGroupContent(
 private fun PlaceGroupHeader(
     placeName: String,
     itemCount: Int,
+    placeId: Long?,
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 8.dp)
+            .testTag(ShoppingListTestTags.PLACE_GROUP_HEADER_PREFIX + (placeId?.toString() ?: "unset")),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(

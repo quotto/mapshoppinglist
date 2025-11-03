@@ -11,6 +11,10 @@ object ShoppingListTestTags {
     const val ITEM_CHECKBOX_PREFIX: String = "test_tag_shopping_list_item_checkbox"
     const val ITEM_DELETE_PREFIX: String = "test_tag_shopping_list_item_delete"
     const val ADD_ITEM_TITLE_INPUT: String = "test_tag_add_item_title_input"
+    const val TAB_PURCHASE_STATUS: String = "test_tag_tab_purchase_status"
+    const val TAB_PLACE_GROUP: String = "test_tag_tab_place_group"
+    const val PLACE_GROUP_HEADER_PREFIX: String = "test_tag_place_group_header_"
+    const val PLACE_GROUP_ITEM_PREFIX: String = "test_tag_place_group_item_"
 }
 
 /**
