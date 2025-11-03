@@ -16,10 +16,16 @@
 - タスク完了後、変更をコミットする。
 
 ## 開発ガイドライン
-- 「調査」の結果は都度 requirements/reports に記載すること
-- 「計画」の指示に対しては、requirements/tasks内にタスクリストを作成して管理する。
-- 「実装」の指示は、requirements/tasks.md に記載された内容に基づいて実装を行う
-    - UIテストは、Espressoを使用して実装することを基本とする。
+### 調査
+- 仕様検討やバグの原因分析のために調査した内容はwork/reports 内にMarkdown形式で記録する。
+
+### 計画
+- 計画したタスク一覧はwork/tasks 内にMarkdown形式で作成する。
+
+### 実装
+- work/tasks 内のタスク一覧に従い作業を進める。
+- 実装・テスト以外の作業（レビューや環境セットアップなど）で、報告用の記録を作成する場合はwork/review 内にMarkdown形式で作成する。
+- UIテストは、Espressoを使用して実装することを基本とする。
 
 ## ドキュメント
 - requirements/document.md : 要件定義
