@@ -3,6 +3,7 @@ package com.mapshoppinglist.ui.home
 import android.content.ContextWrapper
 import com.mapshoppinglist.domain.model.ItemDetail
 import com.mapshoppinglist.domain.model.Place
+import com.mapshoppinglist.domain.model.PlaceGroup
 import com.mapshoppinglist.domain.model.ShoppingItem
 import com.mapshoppinglist.domain.repository.PlacesRepository
 import com.mapshoppinglist.domain.repository.ShoppingListRepository
@@ -123,7 +124,8 @@ class ShoppingListViewModelTest {
             updatePurchasedState = updatePurchased,
             linkItemToPlaceUseCase = link,
             placesRepository = placesRepository,
-            getRecentPlacesUseCase = recent
+            getRecentPlacesUseCase = recent,
+            shoppingListRepository = shoppingRepository
         )
     }
 }
@@ -146,6 +148,8 @@ private class FakeShoppingListRepository : ShoppingListRepository {
     override fun observeItemDetail(itemId: Long): Flow<ItemDetail?> = emptyFlow()
 
     override suspend fun updateItem(itemId: Long, title: String, note: String?) {}
+
+    override fun observePlaceGroups(): Flow<List<PlaceGroup>> = emptyFlow()
 }
 
 private class FakePlacesRepository : PlacesRepository {

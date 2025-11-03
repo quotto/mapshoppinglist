@@ -34,7 +34,8 @@ class DefaultShoppingListRepositoryTest {
         context = ApplicationProvider.getApplicationContext()
         database = AppDatabase.buildInMemory(context)
         repository = DefaultShoppingListRepository(
-            itemsDao = database.itemsDao()
+            itemsDao = database.itemsDao(),
+            placesDao = database.placesDao()
         )
     }
 
@@ -90,5 +91,24 @@ class DefaultShoppingListRepositoryTest {
     fun addItemThrowsWhenDuplicateTitle() = runTest {
         repository.addItem(title = "牛乳", note = null)
         repository.addItem(title = "牛乳", note = null)
+    }
+
+    @Test
+    fun observePlaceGroupsReturnsEmptyInitially() = runTest {
+        val groups = repository.observePlaceGroups().first()
+        assertTrue(groups.isEmpty())
+    }
+
+    @Test
+    fun observePlaceGroupsReturnsItemsWithoutPlace() = runTest {
+        repository.addItem(title = "牛乳", note = null)
+        
+        val groups = repository.observePlaceGroups().first { it.isNotEmpty() }
+        
+        assertEquals(1, groups.size)
+        assertEquals(null, groups.first().place)
+        assertEquals("未設定", groups.first().place?.name ?: "未設定")
+        assertEquals(1, groups.first().items.size)
+        assertEquals("牛乳", groups.first().items.first().title)
     }
 }
