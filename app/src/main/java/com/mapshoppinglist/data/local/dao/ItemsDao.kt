@@ -76,6 +76,16 @@ interface ItemsDao {
     @Transaction
     @Query("SELECT * FROM items WHERE id = :itemId")
     suspend fun getItemWithPlaces(itemId: Long): ItemWithPlaces?
+
+    /**
+     * 地点に紐づいていないアイテムを取得する（購入場所タブ用）
+     */
+    @Query(
+        "SELECT * FROM items WHERE id NOT IN (" +
+            "SELECT DISTINCT item_id FROM item_place" +
+            ") ORDER BY updated_at DESC"
+    )
+    fun observeItemsWithoutPlace(): Flow<List<ItemEntity>>
 }
 
 data class ItemWithPlaceCount(

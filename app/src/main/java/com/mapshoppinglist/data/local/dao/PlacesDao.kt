@@ -1,12 +1,20 @@
 package com.mapshoppinglist.data.local.dao
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Delete
+import androidx.room.Embedded
 import androidx.room.Insert
+import androidx.room.Junction
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Relation
+import androidx.room.Transaction
 import androidx.room.Update
+import com.mapshoppinglist.data.local.entity.ItemEntity
+import com.mapshoppinglist.data.local.entity.ItemPlaceCrossRef
 import com.mapshoppinglist.data.local.entity.PlaceEntity
+import kotlinx.coroutines.flow.Flow
 
 /**
  * お店テーブルを扱うDAO。
@@ -55,4 +63,11 @@ interface PlacesDao {
             "LIMIT :limit"
     )
     suspend fun loadRecentPlaces(limit: Int): List<PlaceEntity>
+
+    /**
+     * 地点ごとのアイテムリストを取得する（購入場所タブ用）
+     */
+    @Transaction
+    @Query("SELECT * FROM places ORDER BY name ASC")
+    fun observePlacesWithItems(): Flow<List<PlaceWithItems>>
 }

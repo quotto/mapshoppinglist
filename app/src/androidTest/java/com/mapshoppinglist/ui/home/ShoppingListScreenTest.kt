@@ -208,7 +208,8 @@ class ShoppingListScreenTest {
                         onItemClick = {},
                         onManagePlaces = {},
                         onShowPrivacyPolicy = {},
-                        onShowOssLicenses = {}
+                        onShowOssLicenses = {},
+                        onTabSelected = {}
                     )
                 }
             }
@@ -219,6 +220,163 @@ class ShoppingListScreenTest {
         composeRule.onNodeWithText(prompt.message).assertIsDisplayed()
         composeRule.onNodeWithText(prompt.actionLabel).performClick()
         assertEquals(1, actionCount)
+    }
+
+    @Test
+    fun tabsAreDisplayedAndSwitchable() {
+        // タブが表示されることを確認
+        composeRule.onNodeWithTag(ShoppingListTestTags.TAB_PURCHASE_STATUS).assertIsDisplayed()
+        composeRule.onNodeWithTag(ShoppingListTestTags.TAB_PLACE_GROUP).assertIsDisplayed()
+
+        // 初期表示は購入状況タブ
+        composeRule.onNodeWithText(composeRule.getString(R.string.tab_purchase_status)).assertIsDisplayed()
+
+        // 買う場所タブに切り替え
+        composeRule.onNodeWithTag(ShoppingListTestTags.TAB_PLACE_GROUP).performClick()
+        composeRule.waitForIdle()
+
+        // 購入状況タブに戻す
+        composeRule.onNodeWithTag(ShoppingListTestTags.TAB_PURCHASE_STATUS).performClick()
+        composeRule.waitForIdle()
+    }
+
+    @Test
+    fun placeGroupTabShowsItemsGroupedByPlace() {
+        // テストデータ作成: 2つの地点と3つのアイテム
+        val place1Id = TestDataHelper.createPlace("スーパーA", 35.0, 139.0)
+        val place2Id = TestDataHelper.createPlace("スーパーB", 35.1, 139.1)
+        
+        val item1Id = TestDataHelper.insertItem("牛乳")
+        val item2Id = TestDataHelper.insertItem("パン")
+        val item3Id = TestDataHelper.insertItem("卵")
+        
+        // 地点とアイテムを紐付け
+        TestDataHelper.linkItemToPlace(item1Id, place1Id)
+        TestDataHelper.linkItemToPlace(item2Id, place1Id)
+        TestDataHelper.linkItemToPlace(item3Id, place2Id)
+
+        composeRule.waitForIdle()
+
+        // 買う場所タブに切り替え
+        composeRule.onNodeWithTag(ShoppingListTestTags.TAB_PLACE_GROUP).performClick()
+        composeRule.waitForIdle()
+
+        // 地点グループヘッダーが表示されることを確認
+        composeRule.waitUntilTagDisplayed(ShoppingListTestTags.PLACE_GROUP_HEADER_PREFIX + place1Id)
+        composeRule.onNodeWithTag(ShoppingListTestTags.PLACE_GROUP_HEADER_PREFIX + place1Id).assertIsDisplayed()
+        composeRule.onNodeWithTag(ShoppingListTestTags.PLACE_GROUP_HEADER_PREFIX + place2Id).assertIsDisplayed()
+
+        // 地点名が表示されることを確認
+        composeRule.onNodeWithText("📍 スーパーA").assertIsDisplayed()
+        composeRule.onNodeWithText("📍 スーパーB").assertIsDisplayed()
+
+        // アイテム数が表示されることを確認
+        composeRule.onNodeWithText("(2)").assertIsDisplayed()  // スーパーAに2件
+        composeRule.onNodeWithText("(1)").assertIsDisplayed()  // スーパーBに1件
+
+        // 各地点のアイテムが表示されることを確認
+        composeRule.onNodeWithText("牛乳").assertIsDisplayed()
+        composeRule.onNodeWithText("パン").assertIsDisplayed()
+        composeRule.onNodeWithText("卵").assertIsDisplayed()
+    }
+
+    @Test
+    fun placeGroupTabShowsUnsetGroupForItemsWithoutPlace() {
+        // 地点未設定のアイテムを作成
+        TestDataHelper.insertItem("ノート")
+        TestDataHelper.insertItem("ペン")
+
+        composeRule.waitForIdle()
+
+        // 買う場所タブに切り替え
+        composeRule.onNodeWithTag(ShoppingListTestTags.TAB_PLACE_GROUP).performClick()
+        composeRule.waitForIdle()
+
+        // 「未設定」グループヘッダーが表示されることを確認
+        composeRule.waitUntilTagDisplayed(ShoppingListTestTags.PLACE_GROUP_HEADER_PREFIX + "unset")
+        composeRule.onNodeWithTag(ShoppingListTestTags.PLACE_GROUP_HEADER_PREFIX + "unset").assertIsDisplayed()
+
+        // 地点名が「未設定」であることを確認
+        composeRule.onNodeWithText("📍 未設定").assertIsDisplayed()
+
+        // アイテム数が表示されることを確認
+        composeRule.onNodeWithText("(2)").assertIsDisplayed()
+
+        // アイテムが表示されることを確認
+        composeRule.onNodeWithText("ノート").assertIsDisplayed()
+        composeRule.onNodeWithText("ペン").assertIsDisplayed()
+    }
+
+    @Test
+    fun placeGroupTabShowsMixedGroupsWithPlaceAndUnset() {
+        // 地点ありのアイテム
+        val placeId = TestDataHelper.createPlace("コンビニ", 35.0, 139.0)
+        val item1Id = TestDataHelper.insertItem("おにぎり")
+        TestDataHelper.linkItemToPlace(item1Id, placeId)
+
+        // 地点なしのアイテム
+        TestDataHelper.insertItem("ノート")
+
+        composeRule.waitForIdle()
+
+        // 買う場所タブに切り替え
+        composeRule.onNodeWithTag(ShoppingListTestTags.TAB_PLACE_GROUP).performClick()
+        composeRule.waitForIdle()
+
+        // 両方のグループヘッダーが表示されることを確認
+        composeRule.waitUntilTagDisplayed(ShoppingListTestTags.PLACE_GROUP_HEADER_PREFIX + placeId)
+        composeRule.onNodeWithTag(ShoppingListTestTags.PLACE_GROUP_HEADER_PREFIX + placeId).assertIsDisplayed()
+        composeRule.onNodeWithTag(ShoppingListTestTags.PLACE_GROUP_HEADER_PREFIX + "unset").assertIsDisplayed()
+
+        // 地点名が表示されることを確認
+        composeRule.onNodeWithText("📍 コンビニ").assertIsDisplayed()
+        composeRule.onNodeWithText("📍 未設定").assertIsDisplayed()
+
+        // 各グループのアイテムが表示されることを確認
+        composeRule.onNodeWithText("おにぎり").assertIsDisplayed()
+        composeRule.onNodeWithText("ノート").assertIsDisplayed()
+    }
+
+    @Test
+    fun placeGroupTabShowsEmptyStateWhenNoItems() {
+        // アイテムなしの状態で買う場所タブに切り替え
+        composeRule.onNodeWithTag(ShoppingListTestTags.TAB_PLACE_GROUP).performClick()
+        composeRule.waitForIdle()
+
+        // 空状態が表示されることを確認
+        composeRule.onNodeWithTag(ShoppingListTestTags.EMPTY_STATE).assertIsDisplayed()
+    }
+
+    @Test
+    fun canTogglePurchasedInPlaceGroupTab() {
+        // テストデータ作成
+        val placeId = TestDataHelper.createPlace("スーパー", 35.0, 139.0)
+        val itemId = TestDataHelper.insertItem("りんご")
+        TestDataHelper.linkItemToPlace(itemId, placeId)
+
+        composeRule.waitForIdle()
+
+        // 買う場所タブに切り替え
+        composeRule.onNodeWithTag(ShoppingListTestTags.TAB_PLACE_GROUP).performClick()
+        composeRule.waitForIdle()
+
+        // アイテムが表示されるまで待機
+        composeRule.waitUntilTextDisplayed("りんご")
+
+        // チェックボックスで購入状態を変更
+        val checkboxTag = ShoppingListTestTags.ITEM_CHECKBOX_PREFIX + itemId
+        composeRule.waitUntilTagDisplayed(checkboxTag)
+        composeRule.onNodeWithTag(checkboxTag).performClick()
+
+        composeRule.waitForIdle()
+
+        // 購入状況タブに切り替えて確認
+        composeRule.onNodeWithTag(ShoppingListTestTags.TAB_PURCHASE_STATUS).performClick()
+        composeRule.waitForIdle()
+
+        // 購入済みセクションに移動していることを確認
+        composeRule.waitUntilNodeExists(ShoppingListTestTags.ITEM_PURCHASED_PREFIX + itemId)
+        composeRule.onNodeWithTag(ShoppingListTestTags.ITEM_PURCHASED_PREFIX + itemId).assertIsDisplayed()
     }
 
     private fun MainActivityRule.getString(resId: Int): String {

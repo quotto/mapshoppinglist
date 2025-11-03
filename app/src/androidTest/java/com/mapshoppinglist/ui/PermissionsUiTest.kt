@@ -52,7 +52,8 @@ class PermissionsUiTest {
                     onItemClick = {},
                     onManagePlaces = {},
                     onShowPrivacyPolicy = {},
-                    onShowOssLicenses = {}
+                    onShowOssLicenses = {},
+                    onTabSelected = {}
                 )
             }
         }

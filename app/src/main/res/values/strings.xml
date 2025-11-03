@@ -90,5 +90,7 @@
     <string name="place_management_validation_required">名称は必須です</string>
     <string name="place_management_snackbar_updated">名称を更新しました</string>
     <string name="place_management_snackbar_deleted">お店を削除しました</string>
+    <string name="tab_purchase_status">購入状況</string>
+    <string name="tab_place_group">買う場所</string>
 
 </resources>

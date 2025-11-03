@@ -1,6 +1,7 @@
 package com.mapshoppinglist.domain.repository
 
 import com.mapshoppinglist.domain.model.ItemDetail
+import com.mapshoppinglist.domain.model.PlaceGroup
 import com.mapshoppinglist.domain.model.ShoppingItem
 import kotlinx.coroutines.flow.Flow
 
@@ -44,4 +45,9 @@ interface ShoppingListRepository {
     fun observeItemDetail(itemId: Long): Flow<ItemDetail?>
 
     suspend fun updateItem(itemId: Long, title: String, note: String?)
+
+    /**
+     * 地点ごとにグルーピングされたアイテムリストを監視する（購入場所タブ用）
+     */
+    fun observePlaceGroups(): Flow<List<PlaceGroup>>
 }
