@@ -3,6 +3,7 @@ package com.mapshoppinglist.ui.itemdetail
 import android.content.Context
 import android.content.ContextWrapper
 import com.mapshoppinglist.domain.model.ItemDetail
+import com.mapshoppinglist.domain.model.PlaceGroup
 import com.mapshoppinglist.domain.model.PlaceSummary
 import com.mapshoppinglist.domain.repository.PlacesRepository
 import com.mapshoppinglist.domain.repository.ShoppingListRepository
@@ -63,6 +64,8 @@ private class FakeShoppingListRepository : ShoppingListRepository {
             detailFlow.value = current.copy(title = title, note = note)
         }
     }
+
+    override fun observePlaceGroups(): Flow<List<PlaceGroup>> = emptyFlow()
 }
 
 private class FakePlacesRepository : PlacesRepository {

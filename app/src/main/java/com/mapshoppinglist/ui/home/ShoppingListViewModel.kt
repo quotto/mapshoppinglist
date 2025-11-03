@@ -3,8 +3,10 @@ package com.mapshoppinglist.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mapshoppinglist.domain.exception.DuplicateItemException
+import com.mapshoppinglist.domain.model.PlaceGroup
 import com.mapshoppinglist.domain.model.ShoppingItem
 import com.mapshoppinglist.domain.repository.PlacesRepository
+import com.mapshoppinglist.domain.repository.ShoppingListRepository
 import com.mapshoppinglist.domain.usecase.AddShoppingItemUseCase
 import com.mapshoppinglist.domain.usecase.DeleteShoppingItemUseCase
 import com.mapshoppinglist.domain.usecase.GetRecentPlacesUseCase
@@ -27,14 +29,15 @@ class ShoppingListViewModel(
     private val updatePurchasedState: UpdatePurchasedStateUseCase,
     private val linkItemToPlaceUseCase: LinkItemToPlaceUseCase,
     private val placesRepository: PlacesRepository,
-    private val getRecentPlacesUseCase: GetRecentPlacesUseCase
+    private val getRecentPlacesUseCase: GetRecentPlacesUseCase,
+    private val shoppingListRepository: ShoppingListRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ShoppingListUiState())
     val uiState: StateFlow<ShoppingListUiState> = _uiState.asStateFlow()
 
     init {
-        // データベースの変更を監視してUI状態へ反映する
+        // 購入状況タブのデータを監視
         viewModelScope.launch {
             observeShoppingItems().collect { items ->
                 _uiState.update { current ->
@@ -42,6 +45,15 @@ class ShoppingListViewModel(
                         notPurchased = items.filterNot { it.isPurchased }.map { it.toUiModel() },
                         purchased = items.filter { it.isPurchased }.map { it.toUiModel() }
                     )
+                }
+            }
+        }
+
+        // 購入場所タブのデータを監視
+        viewModelScope.launch {
+            shoppingListRepository.observePlaceGroups().collect { placeGroups ->
+                _uiState.update { current ->
+                    current.copy(placeGroups = placeGroups.map { it.toUiModel() })
                 }
             }
         }
@@ -146,6 +158,18 @@ class ShoppingListViewModel(
         onPlaceRegistered(placeId)
     }
 
+    fun onTabSelected(tab: ListTab) {
+        _uiState.update { it.copy(selectedTab = tab) }
+    }
+
+    private fun PlaceGroup.toUiModel(): PlaceGroupUiModel {
+        return PlaceGroupUiModel(
+            placeId = place?.id,
+            placeName = place?.name ?: "未設定",
+            items = items.map { it.toUiModel() }
+        )
+    }
+
     private fun loadRecentPlaces(limit: Int = RECENT_LIMIT) {
         viewModelScope.launch {
             val places = getRecentPlacesUseCase(limit)
@@ -186,8 +210,10 @@ class ShoppingListViewModel(
  * 画面全体の状態を表すデータクラス。
  */
 data class ShoppingListUiState(
+    val selectedTab: ListTab = ListTab.PurchaseStatus,
     val notPurchased: List<ShoppingItemUiModel> = emptyList(),
     val purchased: List<ShoppingItemUiModel> = emptyList(),
+    val placeGroups: List<PlaceGroupUiModel> = emptyList(),
     val isLoading: Boolean = false,
     val isAddDialogVisible: Boolean = false,
     val inputTitle: String = "",
@@ -199,6 +225,14 @@ data class ShoppingListUiState(
 )
 
 /**
+ * タブの種類
+ */
+enum class ListTab {
+    PurchaseStatus,  // 購入状況
+    PlaceGroup       // 購入場所
+}
+
+/**
  * 一覧に表示するアイテムのUIモデル。
  */
 data class ShoppingItemUiModel(
@@ -207,6 +241,15 @@ data class ShoppingItemUiModel(
     val note: String?,
     val linkedPlaceCount: Int,
     val isPurchased: Boolean
+)
+
+/**
+ * 地点グループのUIモデル
+ */
+data class PlaceGroupUiModel(
+    val placeId: Long?,
+    val placeName: String,
+    val items: List<ShoppingItemUiModel>
 )
 
 data class PendingPlaceUiModel(

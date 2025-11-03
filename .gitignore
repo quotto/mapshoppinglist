@@ -62,4 +62,4 @@ fastlane/test_output/
 .annotation-processors/
 
 requirements/tasks.md
-requirements/reports
+work/
