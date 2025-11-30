@@ -84,6 +84,7 @@ class PermissionsUiTest {
                     hasLocationPermission = false,
                     onMapLongClick = {},
                     onPoiClick = {},
+                    onCameraMoved = {},
                     onRequestLocationPermission = { requested = true }
                 )
             }

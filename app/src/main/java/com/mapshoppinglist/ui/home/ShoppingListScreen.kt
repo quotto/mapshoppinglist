@@ -244,7 +244,8 @@ fun ShoppingListScreen(
                 modifier = Modifier.testTag(ShoppingListTestTags.ADD_FAB),
                 onClick = onAddItemClick,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onTertiary
+                contentColor = MaterialTheme.colorScheme.onTertiary,
+                shape = CircleShape
             ) {
                 Icon(
                     imageVector = Icons.Filled.Add,

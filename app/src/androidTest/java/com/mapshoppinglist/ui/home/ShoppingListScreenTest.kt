@@ -5,6 +5,7 @@ package com.mapshoppinglist.ui.home
 import android.os.SystemClock
 import androidx.activity.compose.setContent
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
@@ -50,6 +51,13 @@ class ShoppingListScreenTest {
     @Test
     fun displayEmptyListWhenLaunchApps() {
         composeRule.onNodeWithTag(ShoppingListTestTags.EMPTY_STATE).assertIsDisplayed()
+    }
+
+    @Test
+    fun addFabIsInteractive() {
+        composeRule.onNodeWithTag(ShoppingListTestTags.ADD_FAB)
+            .assertHasClickAction()
+            .assertIsDisplayed()
     }
 
     @Test

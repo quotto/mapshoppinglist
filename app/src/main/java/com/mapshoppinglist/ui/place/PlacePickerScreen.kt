@@ -42,6 +42,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -70,7 +71,10 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.mapshoppinglist.MapShoppingListApplication
 import com.mapshoppinglist.R
 import com.mapshoppinglist.testtag.PlacePickerTestTags
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -135,6 +139,7 @@ fun PlacePickerRoute(
         hasLocationPermission = hasLocationPermission,
         onMapLongClick = viewModel::onMapLongClick,
         onPoiClick = viewModel::onPoiClick,
+        onCameraMoved = viewModel::onCameraMoved,
         onRequestLocationPermission = {
             permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
@@ -162,6 +167,7 @@ fun PlacePickerScreen(
     hasLocationPermission: Boolean,
     onMapLongClick: (LatLng) -> Unit,
     onPoiClick: (PointOfInterest) -> Unit,
+    onCameraMoved: (LatLng) -> Unit,
     onRequestLocationPermission: () -> Unit
 ) {
     val cameraPositionState = rememberCameraPositionState {
@@ -178,6 +184,13 @@ fun PlacePickerScreen(
         uiState.selectedPlace?.latLng?.let { latLng ->
             cameraPositionState.animate(CameraUpdateFactory.newCameraPosition(CameraPosition.fromLatLngZoom(latLng, 15f)))
         }
+    }
+
+    LaunchedEffect(cameraPositionState) {
+        snapshotFlow { cameraPositionState.position.target }
+            .distinctUntilChanged()
+            .debounce(200)
+            .collect { onCameraMoved(it) }
     }
 
     Scaffold(

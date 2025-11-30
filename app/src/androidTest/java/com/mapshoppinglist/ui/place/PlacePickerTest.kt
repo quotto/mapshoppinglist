@@ -62,6 +62,36 @@ class PlacePickerTest {
     }
 
     @Test
+    fun 地図中心座標をコールバックへ伝搬する() {
+        val expected = LatLng(34.5, 135.5)
+        val received = mutableListOf<LatLng>()
+
+        composeRule.setContent {
+            PlacePickerScreen(
+                uiState = PlacePickerUiState(cameraLocation = expected),
+                onQueryChange = {},
+                onPredictionSelected = {},
+                onConfirm = {},
+                onClearSelection = {},
+                onClose = {},
+                snackbarHostState = SnackbarHostState(),
+                hasLocationPermission = true,
+                onMapLongClick = {},
+                onPoiClick = {},
+                onCameraMoved = { received.add(it) },
+                onRequestLocationPermission = {}
+            )
+        }
+
+        composeRule.waitUntilMapRendered()
+        composeRule.waitUntilWithClock(10_000) { received.isNotEmpty() }
+
+        val latest = received.last()
+        assertTrue(abs(latest.latitude - expected.latitude) < 5e-4 &&
+            abs(latest.longitude - expected.longitude) < 5e-4)
+    }
+
+    @Test
     fun 位置情報権限が無い場合はプレースホルダーが表示される() {
         var requested = false
         val buttonLabel = composeRule.activity.getString(R.string.permission_location_request_button)
@@ -78,6 +108,7 @@ class PlacePickerTest {
                 hasLocationPermission = false,
                 onMapLongClick = {},
                 onPoiClick = {},
+                onCameraMoved = {},
                 onRequestLocationPermission = { requested = true }
             )
         }

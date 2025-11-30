@@ -6,10 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.PointOfInterest
 import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.CircularBounds
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.api.net.FetchPlaceRequest
-import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
 import com.google.android.libraries.places.api.net.PlacesClient
+import com.google.android.libraries.places.api.net.SearchByTextRequest
 import com.mapshoppinglist.domain.usecase.CreatePlaceUseCase
 import java.util.Locale
 import android.location.Geocoder
@@ -52,16 +53,24 @@ class PlacePickerViewModel(
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            val origin = _uiState.value.searchOrigin
             try {
-                val request = FindAutocompletePredictionsRequest.builder()
-                    .setQuery(query)
-                    .build()
-                val response = placesClient.findAutocompletePredictions(request).await()
-                val predictions = response.autocompletePredictions.map { prediction ->
+                val requestBuilder = SearchByTextRequest.builder(
+                    query,
+                    SEARCH_TEXT_FIELDS
+                )
+                    .setMaxResultCount(SEARCH_RESULT_LIMIT)
+                    .setRankPreference(SearchByTextRequest.RankPreference.DISTANCE)
+
+                requestBuilder.setLocationBias(CircularBounds.newInstance(origin, SEARCH_RADIUS_METERS))
+
+                val response = placesClient.searchByText(requestBuilder.build()).await()
+                val predictions = response.places.map { place ->
+                    val primary = place.name ?: place.address ?: query
                     PlacePredictionUiModel(
-                        placeId = prediction.placeId,
-                        primaryText = prediction.getPrimaryText(null).toString(),
-                        secondaryText = prediction.getSecondaryText(null).toString()
+                        placeId = place.id ?: primary,
+                        primaryText = primary,
+                        secondaryText = place.address
                     )
                 }
                 _uiState.update {
@@ -104,6 +113,7 @@ class PlacePickerViewModel(
                             latLng = latLng
                         ),
                         cameraLocation = latLng,
+                        searchOrigin = latLng,
                         isLoading = false,
                         errorMessage = null
                     )
@@ -133,7 +143,10 @@ class PlacePickerViewModel(
                     )
                 )
                 _events.emit(PlacePickerEvent.PlaceRegistered(placeId))
-                _uiState.value = PlacePickerUiState(cameraLocation = selected.latLng)
+                _uiState.value = PlacePickerUiState(
+                    cameraLocation = selected.latLng,
+                    searchOrigin = selected.latLng
+                )
             } catch (error: Exception) {
                 _uiState.update {
                     it.copy(isCreating = false, errorMessage = error.message)
@@ -161,7 +174,8 @@ class PlacePickerViewModel(
                     query = inferred ?: "",
                     predictions = emptyList(),
                     isLoading = false,
-                    cameraLocation = latLng
+                    cameraLocation = latLng,
+                    searchOrigin = latLng
                 )
             }
         }
@@ -181,6 +195,7 @@ class PlacePickerViewModel(
                     latLng = latLng
                 ),
                 cameraLocation = latLng,
+                searchOrigin = latLng,
                 isLoading = false,
                 errorMessage = null
             )
@@ -188,7 +203,13 @@ class PlacePickerViewModel(
     }
 
     fun updateCameraLocation(latLng: LatLng) {
-        _uiState.update { it.copy(cameraLocation = latLng) }
+        _uiState.update { it.copy(cameraLocation = latLng, searchOrigin = latLng) }
+    }
+
+    fun onCameraMoved(latLng: LatLng) {
+        val current = _uiState.value.searchOrigin
+        if (current == latLng) return
+        _uiState.update { it.copy(searchOrigin = latLng) }
     }
 
     private suspend fun reverseGeocode(latLng: LatLng): String? = withContext(Dispatchers.IO) {
@@ -214,7 +235,8 @@ data class PlacePickerUiState(
     val selectedPlace: SelectedPlaceUiModel? = null,
     val isCreating: Boolean = false,
     val errorMessage: String? = null,
-    val cameraLocation: LatLng = DEFAULT_LOCATION
+    val cameraLocation: LatLng = DEFAULT_LOCATION,
+    val searchOrigin: LatLng = DEFAULT_LOCATION
 )
 
 data class PlacePredictionUiModel(
@@ -231,3 +253,12 @@ data class SelectedPlaceUiModel(
 )
 
 val DEFAULT_LOCATION: LatLng = LatLng(35.681236, 139.767125)
+
+private const val SEARCH_RESULT_LIMIT = 8
+private const val SEARCH_RADIUS_METERS = 3_000.0
+private val SEARCH_TEXT_FIELDS = listOf(
+    Place.Field.ID,
+    Place.Field.NAME,
+    Place.Field.ADDRESS,
+    Place.Field.LAT_LNG
+)

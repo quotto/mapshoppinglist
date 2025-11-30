@@ -6,6 +6,8 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.PointOfInterest
 import com.google.android.gms.tasks.Task
 import com.google.android.gms.tasks.Tasks
+import com.google.android.libraries.places.api.model.CircularBounds
+import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.api.net.FetchPhotoRequest
 import com.google.android.libraries.places.api.net.FetchPhotoResponse
 import com.google.android.libraries.places.api.net.FetchPlaceRequest
@@ -31,6 +33,7 @@ import com.mapshoppinglist.geofence.GeofenceSyncScheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -76,13 +79,36 @@ class PlacePickerViewModelTest {
         assertEquals("テストPOI", state.query)
     }
 
-    private fun createViewModel(): PlacePickerViewModel {
+    @Test
+    fun `onQueryChange uses camera center as origin`() = runTest(dispatcher) {
+        val fakeClient = FakePlacesClient()
+        val viewModel = createViewModel(fakeClient)
+        val origin = LatLng(34.123, 135.987)
+        val place = Place.builder()
+            .setId("place-id")
+            .setName("テストスーパー")
+            .setAddress("東京都千代田区")
+            .setLatLng(LatLng(35.0, 139.0))
+            .build()
+        fakeClient.searchByTextResponse = SearchByTextResponse.newInstance(listOf(place))
+
+        viewModel.onCameraMoved(origin)
+        viewModel.onQueryChange("スーパー")
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(1, state.predictions.size)
+        val bias = fakeClient.lastSearchByTextRequest?.locationBias as? CircularBounds
+        assertEquals(origin, bias?.center)
+    }
+
+    private fun createViewModel(placesClient: PlacesClient = FakePlacesClient()): PlacePickerViewModel {
         val validate = ValidatePlaceRegistrationUseCase(placesRepository, maxPlaces = 100)
         val create = CreatePlaceUseCase(validate, placesRepository, TestGeofenceSyncScheduler(application))
         return PlacePickerViewModel(
             application = application,
             createPlaceUseCase = create,
-            placesClient = FakePlacesClient()
+            placesClient = placesClient
         )
     }
 }
@@ -118,6 +144,9 @@ private class TestGeofenceSyncScheduler(context: Application) : GeofenceSyncSche
 private class TestApplication : Application()
 
 private class FakePlacesClient : PlacesClient {
+    var lastSearchByTextRequest: SearchByTextRequest? = null
+    var searchByTextResponse: SearchByTextResponse = SearchByTextResponse.newInstance(emptyList())
+
     override fun fetchPhoto(request: FetchPhotoRequest): Task<FetchPhotoResponse> = unsupported()
 
     override fun fetchPlace(request: FetchPlaceRequest): Task<FetchPlaceResponse> = unsupported()
@@ -130,7 +159,10 @@ private class FakePlacesClient : PlacesClient {
 
     override fun isOpen(request: IsOpenRequest): Task<IsOpenResponse> = unsupported()
 
-    override fun searchByText(request: SearchByTextRequest): Task<SearchByTextResponse> = unsupported()
+    override fun searchByText(request: SearchByTextRequest): Task<SearchByTextResponse> {
+        lastSearchByTextRequest = request
+        return Tasks.forResult(searchByTextResponse)
+    }
 
     override fun searchNearby(request: SearchNearbyRequest): Task<SearchNearbyResponse> = unsupported()
 
