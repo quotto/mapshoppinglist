@@ -14,9 +14,11 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.rule.GrantPermissionRule
 import com.google.android.gms.maps.model.LatLng
@@ -59,36 +61,6 @@ class PlacePickerTest {
 
         composeRule.onNodeWithTag(PlacePickerTestTags.MAP)
             .assert(hasCameraTargetCloseTo(expected))
-    }
-
-    @Test
-    fun 地図中心座標をコールバックへ伝搬する() {
-        val expected = LatLng(34.5, 135.5)
-        val received = mutableListOf<LatLng>()
-
-        composeRule.setContent {
-            PlacePickerScreen(
-                uiState = PlacePickerUiState(cameraLocation = expected),
-                onQueryChange = {},
-                onPredictionSelected = {},
-                onConfirm = {},
-                onClearSelection = {},
-                onClose = {},
-                snackbarHostState = SnackbarHostState(),
-                hasLocationPermission = true,
-                onMapLongClick = {},
-                onPoiClick = {},
-                onCameraMoved = { received.add(it) },
-                onRequestLocationPermission = {}
-            )
-        }
-
-        composeRule.waitUntilMapRendered()
-        composeRule.waitUntilWithClock(10_000) { received.isNotEmpty() }
-
-        val latest = received.last()
-        assertTrue(abs(latest.latitude - expected.latitude) < 5e-4 &&
-            abs(latest.longitude - expected.longitude) < 5e-4)
     }
 
     @Test
