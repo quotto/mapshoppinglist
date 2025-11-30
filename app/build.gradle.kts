@@ -1,8 +1,10 @@
 import com.github.triplet.gradle.androidpublisher.ReleaseStatus
 import java.util.Properties
+import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
 plugins {
     id("org.jetbrains.kotlinx.kover") version "0.9.3"
+    alias(libs.plugins.ktlint)
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
@@ -223,4 +225,10 @@ dependencies {
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+    kotlinScriptAdditionalPaths {
+        include(fileTree("src/main"))
+    }
 }
