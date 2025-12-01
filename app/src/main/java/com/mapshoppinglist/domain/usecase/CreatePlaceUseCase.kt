@@ -24,12 +24,7 @@ class CreatePlaceUseCase(
         return placeId
     }
 
-    data class Params(
-        val name: String,
-        val latitude: Double,
-        val longitude: Double,
-        val note: String?
-    )
+    data class Params(val name: String, val latitude: Double, val longitude: Double, val note: String?)
 
     companion object {
         private const val SCALE = 1_000_000.0

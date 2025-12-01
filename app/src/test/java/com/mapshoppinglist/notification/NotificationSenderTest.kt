@@ -2,10 +2,10 @@ package com.mapshoppinglist.notification
 
 import android.app.NotificationManager
 import android.content.Context
+import android.os.Build
 import androidx.test.core.app.ApplicationProvider
 import com.mapshoppinglist.R
 import com.mapshoppinglist.domain.usecase.NotificationMessage
-import android.os.Build
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith

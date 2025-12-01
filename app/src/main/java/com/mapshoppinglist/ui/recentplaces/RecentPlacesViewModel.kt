@@ -9,9 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class RecentPlacesViewModel(
-    private val getRecentPlacesUseCase: GetRecentPlacesUseCase
-) : ViewModel() {
+class RecentPlacesViewModel(private val getRecentPlacesUseCase: GetRecentPlacesUseCase) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RecentPlacesUiState())
     val uiState: StateFlow<RecentPlacesUiState> = _uiState.asStateFlow()
@@ -32,12 +30,10 @@ class RecentPlacesViewModel(
         }
     }
 
-    private fun Place.toUiModel(): RecentPlaceUiModel {
-        return RecentPlaceUiModel(
-            id = id,
-            name = name
-        )
-    }
+    private fun Place.toUiModel(): RecentPlaceUiModel = RecentPlaceUiModel(
+        id = id,
+        name = name
+    )
 }
 
 data class RecentPlacesUiState(
@@ -46,7 +42,4 @@ data class RecentPlacesUiState(
     val errorMessage: String? = null
 )
 
-data class RecentPlaceUiModel(
-    val id: Long,
-    val name: String
-)
+data class RecentPlaceUiModel(val id: Long, val name: String)

@@ -30,12 +30,9 @@ class DefaultNotificationStateRepository(
         notifyStateDao.deleteByPlaceId(placeId)
     }
 
-    private fun NotifyStateEntity.toDomain(): NotificationState {
-        return NotificationState(
-            placeId = placeId,
-            lastNotifiedAt = lastNotifiedAt,
-            snoozeUntil = snoozeUntil
-        )
-    }
+    private fun NotifyStateEntity.toDomain(): NotificationState = NotificationState(
+        placeId = placeId,
+        lastNotifiedAt = lastNotifiedAt,
+        snoozeUntil = snoozeUntil
+    )
 }
-

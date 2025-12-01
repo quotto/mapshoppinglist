@@ -4,7 +4,6 @@ import android.os.SystemClock
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
-import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -12,8 +11,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.ext.junit.rules.ActivityScenarioRule
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mapshoppinglist.MainActivity
 import com.mapshoppinglist.R
 import com.mapshoppinglist.testtag.ItemDetailTestTags
@@ -196,10 +195,7 @@ class ItemDetailScreenTest {
         }
     }
 
-    private fun ComposeTestRule.waitUntilTextDisplayed(
-        text: String,
-        timeoutMillis: Long = 5_000
-    ) {
+    private fun ComposeTestRule.waitUntilTextDisplayed(text: String, timeoutMillis: Long = 5_000) {
         waitUntilWithClock(timeoutMillis) {
             runCatching {
                 onNodeWithText(text).assertIsDisplayed()
@@ -208,10 +204,7 @@ class ItemDetailScreenTest {
         }
     }
 
-    private fun ComposeTestRule.waitUntilWithClock(
-        timeoutMillis: Long = 5_000,
-        condition: () -> Boolean
-    ) {
+    private fun ComposeTestRule.waitUntilWithClock(timeoutMillis: Long = 5_000, condition: () -> Boolean) {
         val deadline = SystemClock.elapsedRealtime() + timeoutMillis
         while (!condition()) {
             if (SystemClock.elapsedRealtime() > deadline) {
@@ -222,13 +215,9 @@ class ItemDetailScreenTest {
         }
     }
 
-    private fun MainActivityRule.getString(resId: Int): String {
-        return activity.getString(resId)
-    }
+    private fun MainActivityRule.getString(resId: Int): String = activity.getString(resId)
 
-    private fun MainActivityRule.getString(resId: Int, vararg args: Any): String {
-        return activity.getString(resId, *args)
-    }
+    private fun MainActivityRule.getString(resId: Int, vararg args: Any): String = activity.getString(resId, *args)
 }
 
 private typealias MainActivityRule = AndroidComposeTestRule<ActivityScenarioRule<MainActivity>, MainActivity>

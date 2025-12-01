@@ -1,18 +1,12 @@
 package com.mapshoppinglist.data.local.dao
 
-import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Delete
-import androidx.room.Embedded
 import androidx.room.Insert
-import androidx.room.Junction
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Relation
 import androidx.room.Transaction
 import androidx.room.Update
-import com.mapshoppinglist.data.local.entity.ItemEntity
-import com.mapshoppinglist.data.local.entity.ItemPlaceCrossRef
 import com.mapshoppinglist.data.local.entity.PlaceEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -52,7 +46,7 @@ interface PlacesDao {
             " SELECT 1 FROM item_place ip " +
             " JOIN items i ON i.id = ip.item_id " +
             " WHERE ip.place_id = p.id AND i.is_purchased = 0" +
-        ")"
+            ")"
     )
     suspend fun loadActivePlaces(): List<PlaceEntity>
 

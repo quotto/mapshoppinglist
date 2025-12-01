@@ -1,25 +1,22 @@
 package com.mapshoppinglist.geofence
 
-import android.content.Context
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
 import com.mapshoppinglist.MapShoppingListApplication
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class GeofenceNotificationWorker(
-    appContext: Context,
-    params: WorkerParameters
-) : CoroutineWorker(appContext, params) {
+class GeofenceNotificationWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val app = applicationContext as MapShoppingListApplication

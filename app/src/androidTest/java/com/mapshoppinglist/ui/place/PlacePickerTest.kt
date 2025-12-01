@@ -7,26 +7,36 @@ import android.location.Location
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.rule.GrantPermissionRule
+import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.CameraPositionState
+import com.google.maps.android.compose.rememberCameraPositionState
 import com.mapshoppinglist.R
 import com.mapshoppinglist.testtag.PlacePickerTestTags
+import kotlin.math.abs
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.junit.Assert.assertTrue
-import kotlin.math.abs
 
 @RunWith(AndroidJUnit4::class)
 class PlacePickerTest {
@@ -78,6 +88,7 @@ class PlacePickerTest {
                 hasLocationPermission = false,
                 onMapLongClick = {},
                 onPoiClick = {},
+                onCameraMoved = {},
                 onRequestLocationPermission = { requested = true }
             )
         }
@@ -90,10 +101,13 @@ class PlacePickerTest {
     private fun hasCameraTargetCloseTo(expected: LatLng, tolerance: Double = 5e-4): SemanticsMatcher {
         return SemanticsMatcher("camera target ≈ $expected") { node ->
             val actual = node.config.getOrNull(PlacePickerCameraTargetKey) ?: return@SemanticsMatcher false
-            abs(actual.latitude - expected.latitude) < tolerance &&
-                abs(actual.longitude - expected.longitude) < tolerance
+            isCloseTo(actual, expected, tolerance)
         }
     }
+
+    private fun isCloseTo(actual: LatLng, expected: LatLng, tolerance: Double = 5e-4): Boolean =
+        abs(actual.latitude - expected.latitude) < tolerance &&
+            abs(actual.longitude - expected.longitude) < tolerance
 
     private fun ComposeTestRule.waitUntilMapRendered(timeoutMillis: Long = 5_000) {
         waitUntilWithClock(timeoutMillis) {
@@ -104,11 +118,7 @@ class PlacePickerTest {
         }
     }
 
-    private fun ComposeTestRule.waitUntilCameraTarget(
-        expected: LatLng,
-        tolerance: Double = 5e-4,
-        timeoutMillis: Long = 10_000
-    ) {
+    private fun ComposeTestRule.waitUntilCameraTarget(expected: LatLng, tolerance: Double = 5e-4, timeoutMillis: Long = 10_000) {
         waitUntilWithClock(timeoutMillis) {
             runCatching {
                 onNodeWithTag(PlacePickerTestTags.MAP).assert(hasCameraTargetCloseTo(expected, tolerance))
@@ -117,10 +127,7 @@ class PlacePickerTest {
         }
     }
 
-    private fun ComposeTestRule.waitUntilWithClock(
-        timeoutMillis: Long = 5_000,
-        condition: () -> Boolean
-    ) {
+    private fun ComposeTestRule.waitUntilWithClock(timeoutMillis: Long = 5_000, condition: () -> Boolean) {
         val deadline = SystemClock.elapsedRealtime() + timeoutMillis
         while (!condition()) {
             if (SystemClock.elapsedRealtime() > deadline) {

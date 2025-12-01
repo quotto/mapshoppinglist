@@ -10,8 +10,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.ext.junit.rules.ActivityScenarioRule
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mapshoppinglist.MainActivity
 import com.mapshoppinglist.R
 import com.mapshoppinglist.testtag.ItemDetailTestTags
@@ -133,10 +133,7 @@ class PlaceManagementScreenTest {
         }
     }
 
-    private fun ComposeTestRule.waitUntilWithClock(
-        timeoutMillis: Long = 5_000,
-        condition: () -> Boolean
-    ) {
+    private fun ComposeTestRule.waitUntilWithClock(timeoutMillis: Long = 5_000, condition: () -> Boolean) {
         val deadline = SystemClock.elapsedRealtime() + timeoutMillis
         while (!condition()) {
             if (SystemClock.elapsedRealtime() > deadline) {
@@ -147,9 +144,7 @@ class PlaceManagementScreenTest {
         }
     }
 
-    private fun MainActivityRule.getString(resId: Int): String {
-        return activity.getString(resId)
-    }
+    private fun MainActivityRule.getString(resId: Int): String = activity.getString(resId)
 }
 
 private typealias MainActivityRule = AndroidComposeTestRule<ActivityScenarioRule<MainActivity>, MainActivity>

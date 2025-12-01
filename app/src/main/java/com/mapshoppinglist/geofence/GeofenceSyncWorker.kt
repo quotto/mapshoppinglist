@@ -11,10 +11,7 @@ import androidx.work.WorkerParameters
 import com.mapshoppinglist.MapShoppingListApplication
 import java.util.concurrent.TimeUnit
 
-class GeofenceSyncWorker(
-    appContext: Context,
-    params: WorkerParameters
-) : CoroutineWorker(appContext, params) {
+class GeofenceSyncWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
         val app = applicationContext as MapShoppingListApplication

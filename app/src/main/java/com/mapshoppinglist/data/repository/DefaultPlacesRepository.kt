@@ -97,13 +97,11 @@ class DefaultPlacesRepository(
         placesDao.update(updated)
     }
 
-    private fun entityToDomain(entity: PlaceEntity): Place {
-        return Place(
-            id = entity.id,
-            name = entity.name,
-            latitudeE6 = entity.latitudeE6,
-            longitudeE6 = entity.longitudeE6,
-            isActive = entity.isActive
-        )
-    }
+    private fun entityToDomain(entity: PlaceEntity): Place = Place(
+        id = entity.id,
+        name = entity.name,
+        latitudeE6 = entity.latitudeE6,
+        longitudeE6 = entity.longitudeE6,
+        isActive = entity.isActive
+    )
 }

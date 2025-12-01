@@ -16,8 +16,7 @@ private class GeofenceTestPlacesRepository : PlacesRepository {
 
     override suspend fun getTotalCount(): Int = places.size
 
-    override suspend fun existsLocation(latE6: Int, lngE6: Int): Boolean =
-        places.any { it.latitudeE6 == latE6 && it.longitudeE6 == lngE6 }
+    override suspend fun existsLocation(latE6: Int, lngE6: Int): Boolean = places.any { it.latitudeE6 == latE6 && it.longitudeE6 == lngE6 }
 
     override suspend fun loadActivePlaces(): List<Place> = places.filter { it.isActive }
 
@@ -25,25 +24,15 @@ private class GeofenceTestPlacesRepository : PlacesRepository {
 
     override suspend fun loadAll(): List<Place> = places
 
-    override suspend fun addPlace(name: String, latE6: Int, lngE6: Int, note: String?): Long {
-        throw NotImplementedError()
-    }
+    override suspend fun addPlace(name: String, latE6: Int, lngE6: Int, note: String?): Long = throw NotImplementedError()
 
-    override suspend fun deletePlace(placeId: Long) {
-        throw NotImplementedError()
-    }
+    override suspend fun deletePlace(placeId: Long): Unit = throw NotImplementedError()
 
-    override suspend fun updateName(placeId: Long, newName: String) {
-        throw NotImplementedError()
-    }
+    override suspend fun updateName(placeId: Long, newName: String): Unit = throw NotImplementedError()
 
-    override suspend fun linkItemToPlace(placeId: Long, itemId: Long) {
-        throw NotImplementedError()
-    }
+    override suspend fun linkItemToPlace(placeId: Long, itemId: Long): Unit = throw NotImplementedError()
 
-    override suspend fun unlinkItemFromPlace(placeId: Long, itemId: Long) {
-        throw NotImplementedError()
-    }
+    override suspend fun unlinkItemFromPlace(placeId: Long, itemId: Long): Unit = throw NotImplementedError()
 
     override suspend fun loadRecentPlaces(limit: Int): List<Place> = places.take(limit)
 }

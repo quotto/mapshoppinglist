@@ -146,34 +146,22 @@ class PlaceManagementViewModel(
         }
     }
 
-    private fun findPlace(placeId: Long): ManagedPlaceUiModel? {
-        return _uiState.value.places.find { it.id == placeId }
-    }
+    private fun findPlace(placeId: Long): ManagedPlaceUiModel? = _uiState.value.places.find { it.id == placeId }
 
-    private fun Place.toUiModel(isSubscribed: Boolean): ManagedPlaceUiModel {
-        return ManagedPlaceUiModel(
-            id = id,
-            name = name,
-            latitude = latitudeE6 / 1_000_000.0,
-            longitude = longitudeE6 / 1_000_000.0,
-            isActive = isActive,
-            isSubscribed = isSubscribed
-        )
-    }
+    private fun Place.toUiModel(isSubscribed: Boolean): ManagedPlaceUiModel = ManagedPlaceUiModel(
+        id = id,
+        name = name,
+        latitude = latitudeE6 / 1_000_000.0,
+        longitude = longitudeE6 / 1_000_000.0,
+        isActive = isActive,
+        isSubscribed = isSubscribed
+    )
 }
 
 sealed interface PlaceDialogState {
-    data class Edit(
-        val place: ManagedPlaceUiModel,
-        val nameInput: String,
-        val isSaving: Boolean,
-        val errorMessage: Int?
-    ) : PlaceDialogState
+    data class Edit(val place: ManagedPlaceUiModel, val nameInput: String, val isSaving: Boolean, val errorMessage: Int?) : PlaceDialogState
 
-    data class DeleteConfirm(
-        val place: ManagedPlaceUiModel,
-        val isProcessing: Boolean
-    ) : PlaceDialogState
+    data class DeleteConfirm(val place: ManagedPlaceUiModel, val isProcessing: Boolean) : PlaceDialogState
 }
 
 data class PlaceManagementUiState(

@@ -12,11 +12,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
@@ -24,6 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -33,8 +38,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,9 +46,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -204,7 +204,6 @@ private fun ItemDetailScreen(
             }
         )
     }
-
 }
 
 @Composable
@@ -343,10 +342,7 @@ private fun ItemDetailContent(
 }
 
 @Composable
-private fun LinkedPlaceRow(
-    place: LinkedPlaceUiModel,
-    onRemove: () -> Unit
-) {
+private fun LinkedPlaceRow(place: LinkedPlaceUiModel, onRemove: () -> Unit) {
     val rowTag = "${ItemDetailTestTags.LINKED_PLACE_PREFIX}${place.placeId}"
     val removeTag = "${ItemDetailTestTags.LINKED_PLACE_REMOVE_PREFIX}${place.placeId}"
     Card(
@@ -393,17 +389,13 @@ private fun LinkedPlaceRow(
 }
 
 @Composable
-private fun AddPlaceOptionDialog(
-    onDismiss: () -> Unit,
-    onSearchSelected: () -> Unit,
-    onRecentSelected: () -> Unit
-) {
+private fun AddPlaceOptionDialog(onDismiss: () -> Unit, onSearchSelected: () -> Unit, onRecentSelected: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = stringResource(R.string.item_detail_add_place_dialog_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton (
+                OutlinedButton(
                     onClick = onSearchSelected,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -411,7 +403,7 @@ private fun AddPlaceOptionDialog(
                     shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.onPrimary,
-                        contentColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
                     Text(text = stringResource(R.string.item_detail_add_place_search))

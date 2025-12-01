@@ -7,9 +7,7 @@ import com.mapshoppinglist.MapShoppingListApplication
 /**
  * ShoppingListViewModelの生成を担当するFactory。
  */
-class ShoppingListViewModelFactory(
-    private val application: MapShoppingListApplication
-) : ViewModelProvider.Factory {
+class ShoppingListViewModelFactory(private val application: MapShoppingListApplication) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ShoppingListViewModel::class.java)) {
             val viewModel = ShoppingListViewModel(

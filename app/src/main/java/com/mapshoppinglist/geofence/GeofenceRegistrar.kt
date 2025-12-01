@@ -41,12 +41,10 @@ class GeofenceRegistrar(
         return builder.build()
     }
 
-    private fun toGeofence(spec: GeofenceSpec): Geofence {
-        return Geofence.Builder()
-            .setRequestId(spec.requestId)
-            .setCircularRegion(spec.latitude, spec.longitude, spec.radiusMeters)
-            .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT)
-            .setExpirationDuration(Geofence.NEVER_EXPIRE)
-            .build()
-    }
+    private fun toGeofence(spec: GeofenceSpec): Geofence = Geofence.Builder()
+        .setRequestId(spec.requestId)
+        .setCircularRegion(spec.latitude, spec.longitude, spec.radiusMeters)
+        .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT)
+        .setExpirationDuration(Geofence.NEVER_EXPIRE)
+        .build()
 }

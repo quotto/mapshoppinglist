@@ -7,8 +7,6 @@ import kotlinx.coroutines.flow.Flow
 /**
  * アイテム一覧を監視するユースケース。
  */
-class ObserveShoppingItemsUseCase(
-    private val repository: ShoppingListRepository
-) {
+class ObserveShoppingItemsUseCase(private val repository: ShoppingListRepository) {
     operator fun invoke(): Flow<List<ShoppingItem>> = repository.observeAllItems()
 }

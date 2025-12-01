@@ -8,15 +8,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
-private class CountingPlacesRepository(
-    var count: Int = 0,
-    var duplicates: Set<Pair<Int, Int>> = emptySet()
-) : PlacesRepository {
+private class CountingPlacesRepository(var count: Int = 0, var duplicates: Set<Pair<Int, Int>> = emptySet()) : PlacesRepository {
     override suspend fun getTotalCount(): Int = count
 
-    override suspend fun existsLocation(latE6: Int, lngE6: Int): Boolean {
-        return duplicates.contains(latE6 to lngE6)
-    }
+    override suspend fun existsLocation(latE6: Int, lngE6: Int): Boolean = duplicates.contains(latE6 to lngE6)
 
     override suspend fun loadActivePlaces(): List<Place> = emptyList()
 
@@ -24,25 +19,15 @@ private class CountingPlacesRepository(
 
     override suspend fun loadAll(): List<Place> = emptyList()
 
-    override suspend fun addPlace(name: String, latE6: Int, lngE6: Int, note: String?): Long {
-        throw NotImplementedError()
-    }
+    override suspend fun addPlace(name: String, latE6: Int, lngE6: Int, note: String?): Long = throw NotImplementedError()
 
-    override suspend fun deletePlace(placeId: Long) {
-        throw NotImplementedError()
-    }
+    override suspend fun deletePlace(placeId: Long): Unit = throw NotImplementedError()
 
-    override suspend fun updateName(placeId: Long, newName: String) {
-        throw NotImplementedError()
-    }
+    override suspend fun updateName(placeId: Long, newName: String): Unit = throw NotImplementedError()
 
-    override suspend fun linkItemToPlace(placeId: Long, itemId: Long) {
-        throw NotImplementedError()
-    }
+    override suspend fun linkItemToPlace(placeId: Long, itemId: Long): Unit = throw NotImplementedError()
 
-    override suspend fun unlinkItemFromPlace(placeId: Long, itemId: Long) {
-        throw NotImplementedError()
-    }
+    override suspend fun unlinkItemFromPlace(placeId: Long, itemId: Long): Unit = throw NotImplementedError()
 
     override suspend fun loadRecentPlaces(limit: Int): List<Place> = emptyList()
 }
