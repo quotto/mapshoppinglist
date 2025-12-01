@@ -169,7 +169,8 @@ private class FakePlacesClient : PlacesClient {
 
     override fun fetchResolvedPhotoUri(request: FetchResolvedPhotoUriRequest): Task<FetchResolvedPhotoUriResponse> = unsupported()
 
-    override fun findAutocompletePredictions(request: FindAutocompletePredictionsRequest): Task<FindAutocompletePredictionsResponse> = unsupported()
+    override fun findAutocompletePredictions(request: FindAutocompletePredictionsRequest): Task<FindAutocompletePredictionsResponse> =
+        unsupported()
 
     override fun findCurrentPlace(request: FindCurrentPlaceRequest): Task<FindCurrentPlaceResponse> = unsupported()
 
@@ -186,7 +187,5 @@ private class FakePlacesClient : PlacesClient {
 
     override fun zzd(request: FindAutocompletePredictionsRequest, i: Int): Task<FindAutocompletePredictionsResponse> = unsupported()
 
-    private fun <T> unsupported(): Task<T> {
-        return Tasks.forException(UnsupportedOperationException("Not implemented in tests"))
-    }
+    private fun <T> unsupported(): Task<T> = Tasks.forException(UnsupportedOperationException("Not implemented in tests"))
 }

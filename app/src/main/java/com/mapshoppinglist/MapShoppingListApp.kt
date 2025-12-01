@@ -2,19 +2,19 @@ package com.mapshoppinglist
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.mapshoppinglist.ui.home.ShoppingListRoute
-import com.mapshoppinglist.ui.place.PlacePickerRoute
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
-import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import com.mapshoppinglist.ui.home.ShoppingListRoute
 import com.mapshoppinglist.ui.itemdetail.ItemDetailRoute
-import com.mapshoppinglist.ui.recentplaces.RecentPlacesRoute
+import com.mapshoppinglist.ui.place.PlacePickerRoute
 import com.mapshoppinglist.ui.placemanage.PlaceManagementRoute
+import com.mapshoppinglist.ui.recentplaces.RecentPlacesRoute
 import com.mapshoppinglist.ui.settings.OssLicensesRoute
 import com.mapshoppinglist.ui.settings.PrivacyPolicyRoute
 

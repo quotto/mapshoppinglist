@@ -1,6 +1,5 @@
 import com.github.triplet.gradle.androidpublisher.ReleaseStatus
 import java.util.Properties
-import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
 plugins {
     id("org.jetbrains.kotlinx.kover") version "0.9.3"
@@ -41,7 +40,7 @@ val computedVersionCode = versionMajor * 1_000_000 + versionMinor * 10_000 + ver
 val computedVersionName = listOf(versionMajor, versionMinor, versionPatch).joinToString(separator = ".")
 
 val keystoreFile = rootProject.file("gradle/keystore.jks")
-val androidKeyStorePassword:String? = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+val androidKeyStorePassword: String? = System.getenv("ANDROID_KEYSTORE_PASSWORD")
 val androidKeyAlias: String? = System.getenv("ANDROID_KEY_ALIAS")
 val androidKeyPassword: String? = System.getenv("ANDROID_KEY_ALIAS_PASSWORD")
 
@@ -71,8 +70,8 @@ android {
         }
     }
 
-    testBuildType = (findProperty("testBuildType") as
-            String?) ?: "debug"
+    testBuildType =
+        (findProperty("testBuildType") as String?) ?: "debug"
 
     buildTypes {
         release {

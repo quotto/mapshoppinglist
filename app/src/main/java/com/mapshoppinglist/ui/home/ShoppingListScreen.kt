@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -28,9 +30,10 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,30 +47,27 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.testTag
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mapshoppinglist.MapShoppingListApplication
 import com.mapshoppinglist.R
 import com.mapshoppinglist.testtag.ShoppingListTestTags
 import com.mapshoppinglist.ui.theme.MapShoppingListTheme
-import androidx.core.content.ContextCompat
 
 @Composable
 fun ShoppingListRoute(
@@ -209,7 +209,9 @@ fun ShoppingListScreen(
                     }
                     DropdownMenu(
                         modifier = Modifier.background(MaterialTheme.colorScheme.surface),
-                        expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false }
+                    ) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.menu_manage_places)) },
                             onClick = {
@@ -620,7 +622,10 @@ private fun AddItemDialog(
                 }
                 if (pendingPlaces.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(text = stringResource(R.string.shopping_list_linked_places_header), style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            text = stringResource(R.string.shopping_list_linked_places_header),
+                            style = MaterialTheme.typography.titleSmall
+                        )
                         pendingPlaces.forEach { place ->
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -632,11 +637,11 @@ private fun AddItemDialog(
                                     colors = IconButtonDefaults.filledIconButtonColors(
                                         containerColor = Color.Transparent,
                                         contentColor = MaterialTheme.colorScheme.tertiary
-                                    ),
+                                    )
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.Delete,
-                                        contentDescription = stringResource(R.string.shopping_list_remove_place),
+                                        contentDescription = stringResource(R.string.shopping_list_remove_place)
                                     )
                                 }
                             }
@@ -757,8 +762,8 @@ private fun PlaceGroupContent(
                         onDeleteItem = { onDeleteItem(item.id) },
                         onClick = { onItemClick(item.id) },
                         modifier = Modifier.testTag(
-                            ShoppingListTestTags.PLACE_GROUP_ITEM_PREFIX + 
-                            "${group.placeId ?: "unset"}_${item.id}"
+                            ShoppingListTestTags.PLACE_GROUP_ITEM_PREFIX +
+                                "${group.placeId ?: "unset"}_${item.id}"
                         )
                     )
                 }
@@ -768,12 +773,7 @@ private fun PlaceGroupContent(
 }
 
 @Composable
-private fun PlaceGroupHeader(
-    placeName: String,
-    itemCount: Int,
-    placeId: Long?,
-    modifier: Modifier = Modifier
-) {
+private fun PlaceGroupHeader(placeName: String, itemCount: Int, placeId: Long?, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -794,4 +794,3 @@ private fun PlaceGroupHeader(
         )
     }
 }
-

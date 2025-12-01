@@ -171,26 +171,22 @@ class ItemDetailViewModel(
         }
     }
 
-    private fun ItemDetail.toUiState(): ItemDetailUiState {
-        return ItemDetailUiState(
-            isLoading = false,
-            title = title,
-            note = note,
-            isPurchased = isPurchased,
-            linkedPlaces = places.map { it.toUiModel() },
-            isNotFound = false,
-            titleInput = title,
-            noteInput = note.orEmpty()
-        )
-    }
+    private fun ItemDetail.toUiState(): ItemDetailUiState = ItemDetailUiState(
+        isLoading = false,
+        title = title,
+        note = note,
+        isPurchased = isPurchased,
+        linkedPlaces = places.map { it.toUiModel() },
+        isNotFound = false,
+        titleInput = title,
+        noteInput = note.orEmpty()
+    )
 
-    private fun PlaceSummary.toUiModel(): LinkedPlaceUiModel {
-        return LinkedPlaceUiModel(
-            placeId = id,
-            name = name,
-            address = address
-        )
-    }
+    private fun PlaceSummary.toUiModel(): LinkedPlaceUiModel = LinkedPlaceUiModel(
+        placeId = id,
+        name = name,
+        address = address
+    )
 }
 
 data class ItemDetailUiState(
@@ -208,11 +204,7 @@ data class ItemDetailUiState(
     val hasPendingInput: Boolean = false
 )
 
-data class LinkedPlaceUiModel(
-    val placeId: Long,
-    val name: String,
-    val address: String?
-)
+data class LinkedPlaceUiModel(val placeId: Long, val name: String, val address: String?)
 
 sealed interface ItemDetailEvent {
     data class PlaceLinked(val placeId: Long) : ItemDetailEvent

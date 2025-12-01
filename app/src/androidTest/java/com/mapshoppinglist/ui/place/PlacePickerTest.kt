@@ -26,11 +26,11 @@ import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.mapshoppinglist.R
 import com.mapshoppinglist.testtag.PlacePickerTestTags
+import kotlin.math.abs
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.junit.Assert.assertTrue
-import kotlin.math.abs
 
 @RunWith(AndroidJUnit4::class)
 class PlacePickerTest {
@@ -139,10 +139,9 @@ class PlacePickerTest {
         }
     }
 
-    private fun isCloseTo(actual: LatLng, expected: LatLng, tolerance: Double = 5e-4): Boolean {
-        return abs(actual.latitude - expected.latitude) < tolerance &&
+    private fun isCloseTo(actual: LatLng, expected: LatLng, tolerance: Double = 5e-4): Boolean =
+        abs(actual.latitude - expected.latitude) < tolerance &&
             abs(actual.longitude - expected.longitude) < tolerance
-    }
 
     private fun ComposeTestRule.waitUntilMapRendered(timeoutMillis: Long = 5_000) {
         waitUntilWithClock(timeoutMillis) {
@@ -153,11 +152,7 @@ class PlacePickerTest {
         }
     }
 
-    private fun ComposeTestRule.waitUntilCameraTarget(
-        expected: LatLng,
-        tolerance: Double = 5e-4,
-        timeoutMillis: Long = 10_000
-    ) {
+    private fun ComposeTestRule.waitUntilCameraTarget(expected: LatLng, tolerance: Double = 5e-4, timeoutMillis: Long = 10_000) {
         waitUntilWithClock(timeoutMillis) {
             runCatching {
                 onNodeWithTag(PlacePickerTestTags.MAP).assert(hasCameraTargetCloseTo(expected, tolerance))
@@ -166,10 +161,7 @@ class PlacePickerTest {
         }
     }
 
-    private fun ComposeTestRule.waitUntilWithClock(
-        timeoutMillis: Long = 5_000,
-        condition: () -> Boolean
-    ) {
+    private fun ComposeTestRule.waitUntilWithClock(timeoutMillis: Long = 5_000, condition: () -> Boolean) {
         val deadline = SystemClock.elapsedRealtime() + timeoutMillis
         while (!condition()) {
             if (SystemClock.elapsedRealtime() > deadline) {

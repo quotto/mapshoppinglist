@@ -4,17 +4,15 @@ import android.content.Context
 import android.os.Build
 import androidx.test.core.app.ApplicationProvider
 import com.mapshoppinglist.data.local.AppDatabase
+import com.mapshoppinglist.domain.exception.DuplicateItemException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.runBlocking
-import com.mapshoppinglist.domain.exception.DuplicateItemException
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -102,9 +100,9 @@ class DefaultShoppingListRepositoryTest {
     @Test
     fun observePlaceGroupsReturnsItemsWithoutPlace() = runTest {
         repository.addItem(title = "牛乳", note = null)
-        
+
         val groups = repository.observePlaceGroups().first { it.isNotEmpty() }
-        
+
         assertEquals(1, groups.size)
         assertEquals(null, groups.first().place)
         assertEquals("未設定", groups.first().place?.name ?: "未設定")

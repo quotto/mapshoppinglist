@@ -1,6 +1,8 @@
 package com.mapshoppinglist.ui.place
 
 import android.app.Application
+import android.location.Geocoder
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.maps.model.LatLng
@@ -13,8 +15,6 @@ import com.google.android.libraries.places.api.net.PlacesClient
 import com.google.android.libraries.places.api.net.SearchByTextRequest
 import com.mapshoppinglist.domain.usecase.CreatePlaceUseCase
 import java.util.Locale
-import android.location.Geocoder
-import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -253,22 +253,14 @@ data class PlacePickerUiState(
     val searchOrigin: LatLng = DEFAULT_LOCATION
 )
 
-data class PlacePredictionUiModel(
-    val placeId: String,
-    val primaryText: String,
-    val secondaryText: String?
-)
+data class PlacePredictionUiModel(val placeId: String, val primaryText: String, val secondaryText: String?)
 
-data class SelectedPlaceUiModel(
-    val placeId: String,
-    val name: String,
-    val address: String?,
-    val latLng: LatLng
-)
+data class SelectedPlaceUiModel(val placeId: String, val name: String, val address: String?, val latLng: LatLng)
 
 val DEFAULT_LOCATION: LatLng = LatLng(35.681236, 139.767125)
 
 private const val SEARCH_RESULT_LIMIT = 8
+
 /**
  * SearchText API に与えるバイアスの半径 (m)。
  * 3km 程度に抑えることで現在地周辺の候補に集中させつつ、ユーザー移動時の再検索回数も抑制する。

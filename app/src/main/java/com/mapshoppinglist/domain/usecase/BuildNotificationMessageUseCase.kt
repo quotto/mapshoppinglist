@@ -28,8 +28,4 @@ class BuildNotificationMessageUseCase {
 /**
  * 通知文言をまとめたモデル。
  */
-data class NotificationMessage(
-    val title: String,
-    val lines: List<String>,
-    val summary: String?
-)
+data class NotificationMessage(val title: String, val lines: List<String>, val summary: String?)

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -15,9 +16,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.ext.junit.rules.ActivityScenarioRule
-import androidx.compose.ui.test.hasTestTag
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mapshoppinglist.MainActivity
 import com.mapshoppinglist.R
 import com.mapshoppinglist.testtag.ItemDetailTestTags
@@ -67,7 +67,9 @@ class ShoppingListScreenTest {
         composeRule.onNodeWithTag(ShoppingListTestTags.ADD_FAB).performClick()
 
         composeRule.onNode(
-            hasSetTextAction() and hasTestTag(ShoppingListTestTags.ADD_ITEM_TITLE_INPUT), //hasText(composeRule.getString(R.string.shopping_list_add_dialog_title_hint)),
+            hasSetTextAction() and hasTestTag(
+                ShoppingListTestTags.ADD_ITEM_TITLE_INPUT
+            ),
             useUnmergedTree = true
         ).performTextInput(title)
 
@@ -146,7 +148,6 @@ class ShoppingListScreenTest {
         composeRule.onNodeWithTag(ShoppingListTestTags.ITEM_PURCHASED_PREFIX + itemId).assertDoesNotExist()
     }
 
-
     @Test
     fun canRegisterRecentlyPlace() {
         val placeName = "テストスーパー"
@@ -155,7 +156,9 @@ class ShoppingListScreenTest {
         composeRule.onNodeWithTag(ShoppingListTestTags.ADD_FAB).performClick()
 
         composeRule.onNode(
-            hasSetTextAction() and hasTestTag(ShoppingListTestTags.ADD_ITEM_TITLE_INPUT),  //hasText(composeRule.getString(R.string.shopping_list_add_dialog_title_hint)),
+            hasSetTextAction() and hasTestTag(
+                ShoppingListTestTags.ADD_ITEM_TITLE_INPUT
+            ),
             useUnmergedTree = true
         ).performTextInput("お米")
 
@@ -253,11 +256,11 @@ class ShoppingListScreenTest {
         // テストデータ作成: 2つの地点と3つのアイテム
         val place1Id = TestDataHelper.createPlace("スーパーA", 35.0, 139.0)
         val place2Id = TestDataHelper.createPlace("スーパーB", 35.1, 139.1)
-        
+
         val item1Id = TestDataHelper.insertItem("牛乳")
         val item2Id = TestDataHelper.insertItem("パン")
         val item3Id = TestDataHelper.insertItem("卵")
-        
+
         // 地点とアイテムを紐付け
         TestDataHelper.linkItemToPlace(item1Id, place1Id)
         TestDataHelper.linkItemToPlace(item2Id, place1Id)
@@ -279,8 +282,8 @@ class ShoppingListScreenTest {
         composeRule.onNodeWithText("📍 スーパーB").assertIsDisplayed()
 
         // アイテム数が表示されることを確認
-        composeRule.onNodeWithText("(2)").assertIsDisplayed()  // スーパーAに2件
-        composeRule.onNodeWithText("(1)").assertIsDisplayed()  // スーパーBに1件
+        composeRule.onNodeWithText("(2)").assertIsDisplayed() // スーパーAに2件
+        composeRule.onNodeWithText("(1)").assertIsDisplayed() // スーパーBに1件
 
         // 各地点のアイテムが表示されることを確認
         composeRule.onNodeWithText("牛乳").assertIsDisplayed()
@@ -387,13 +390,9 @@ class ShoppingListScreenTest {
         composeRule.onNodeWithTag(ShoppingListTestTags.ITEM_PURCHASED_PREFIX + itemId).assertIsDisplayed()
     }
 
-    private fun MainActivityRule.getString(resId: Int): String {
-        return activity.getString(resId)
-    }
+    private fun MainActivityRule.getString(resId: Int): String = activity.getString(resId)
 
-    private fun MainActivityRule.getString(resId: Int, vararg args: Any): String {
-        return activity.getString(resId, *args)
-    }
+    private fun MainActivityRule.getString(resId: Int, vararg args: Any): String = activity.getString(resId, *args)
 
     private fun ComposeTestRule.waitUntilNodeExists(tag: String, timeoutMillis: Long = 5_000) {
         waitUntilWithClock(timeoutMillis) {
@@ -404,11 +403,7 @@ class ShoppingListScreenTest {
         }
     }
 
-    private fun ComposeTestRule.waitUntilTextDisplayed(
-        text: String,
-        useUnmergedTree: Boolean = false,
-        timeoutMillis: Long = 5_000
-    ) {
+    private fun ComposeTestRule.waitUntilTextDisplayed(text: String, useUnmergedTree: Boolean = false, timeoutMillis: Long = 5_000) {
         waitUntilWithClock(timeoutMillis) {
             runCatching {
                 onNodeWithText(text, useUnmergedTree).assertIsDisplayed()
@@ -426,10 +421,7 @@ class ShoppingListScreenTest {
         }
     }
 
-    private fun ComposeTestRule.waitUntilTagDisplayed(
-        tag: String,
-        useUnmergedTree: Boolean = false
-    ) {
+    private fun ComposeTestRule.waitUntilTagDisplayed(tag: String, useUnmergedTree: Boolean = false) {
         waitUntilWithClock {
             runCatching {
                 onNodeWithTag(tag, useUnmergedTree).assertIsDisplayed()
@@ -438,10 +430,7 @@ class ShoppingListScreenTest {
         }
     }
 
-    private fun ComposeTestRule.waitUntilWithClock(
-        timeoutMillis: Long = 5_000,
-        condition: () -> Boolean
-    ) {
+    private fun ComposeTestRule.waitUntilWithClock(timeoutMillis: Long = 5_000, condition: () -> Boolean) {
         val deadline = SystemClock.elapsedRealtime() + timeoutMillis
         while (!condition()) {
             if (SystemClock.elapsedRealtime() > deadline) {

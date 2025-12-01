@@ -7,8 +7,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import com.mapshoppinglist.ui.theme.MapShoppingListTheme
 import com.mapshoppinglist.notification.NotificationActions
+import com.mapshoppinglist.ui.theme.MapShoppingListTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 
 class MainActivity : ComponentActivity() {
