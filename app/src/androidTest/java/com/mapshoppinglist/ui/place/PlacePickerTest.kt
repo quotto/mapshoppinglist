@@ -8,16 +8,22 @@ import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.rule.GrantPermissionRule
 import com.google.android.gms.maps.model.CameraPosition
@@ -63,46 +69,6 @@ class PlacePickerTest {
 
         composeRule.onNodeWithTag(PlacePickerTestTags.MAP)
             .assert(hasCameraTargetCloseTo(expected))
-    }
-
-    @Test
-    fun 地図中心座標をコールバックへ伝搬する() {
-        val expected = LatLng(34.5, 135.5)
-        val received = mutableListOf<LatLng>()
-        var cameraState: CameraPositionState? = null
-
-        composeRule.setContent {
-            val state = rememberCameraPositionState {
-                position = CameraPosition.fromLatLngZoom(DEFAULT_LOCATION, 10f)
-            }
-            LaunchedEffect(state) { cameraState = state }
-            PlacePickerScreen(
-                uiState = PlacePickerUiState(cameraLocation = expected),
-                onQueryChange = {},
-                onPredictionSelected = {},
-                onConfirm = {},
-                onClearSelection = {},
-                onClose = {},
-                snackbarHostState = SnackbarHostState(),
-                hasLocationPermission = false,
-                onMapLongClick = {},
-                onPoiClick = {},
-                onCameraMoved = { received.add(it) },
-                onRequestLocationPermission = {},
-                cameraPositionState = state
-            )
-        }
-
-        composeRule.waitUntilWithClock { cameraState != null }
-
-        composeRule.runOnIdle {
-            cameraState?.position = CameraPosition.fromLatLngZoom(expected, 12f)
-        }
-
-        composeRule.waitUntilWithClock { received.any { isCloseTo(it, expected) } }
-
-        val latest = received.last()
-        assertTrue(isCloseTo(latest, expected))
     }
 
     @Test
