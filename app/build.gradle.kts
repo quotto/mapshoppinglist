@@ -3,6 +3,7 @@ import java.util.Properties
 
 plugins {
     id("org.jetbrains.kotlinx.kover") version "0.9.3"
+    alias(libs.plugins.ktlint)
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
@@ -39,7 +40,7 @@ val computedVersionCode = versionMajor * 1_000_000 + versionMinor * 10_000 + ver
 val computedVersionName = listOf(versionMajor, versionMinor, versionPatch).joinToString(separator = ".")
 
 val keystoreFile = rootProject.file("gradle/keystore.jks")
-val androidKeyStorePassword:String? = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+val androidKeyStorePassword: String? = System.getenv("ANDROID_KEYSTORE_PASSWORD")
 val androidKeyAlias: String? = System.getenv("ANDROID_KEY_ALIAS")
 val androidKeyPassword: String? = System.getenv("ANDROID_KEY_ALIAS_PASSWORD")
 
@@ -69,8 +70,8 @@ android {
         }
     }
 
-    testBuildType = (findProperty("testBuildType") as
-            String?) ?: "debug"
+    testBuildType =
+        (findProperty("testBuildType") as String?) ?: "debug"
 
     buildTypes {
         release {
@@ -223,4 +224,10 @@ dependencies {
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+    kotlinScriptAdditionalPaths {
+        include(fileTree("src/main"))
+    }
 }

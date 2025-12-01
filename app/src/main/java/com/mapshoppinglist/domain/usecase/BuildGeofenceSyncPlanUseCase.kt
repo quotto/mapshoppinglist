@@ -1,6 +1,5 @@
 package com.mapshoppinglist.domain.usecase
 
-import android.util.Log
 import com.mapshoppinglist.domain.model.GeofenceRegistration
 import com.mapshoppinglist.domain.model.GeofenceSpec
 import com.mapshoppinglist.domain.repository.GeofenceRegistryRepository

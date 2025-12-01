@@ -4,8 +4,8 @@ import android.content.Context
 import android.os.Build
 import androidx.test.core.app.ApplicationProvider
 import com.mapshoppinglist.R
-import com.mapshoppinglist.domain.model.Place
 import com.mapshoppinglist.domain.model.GeofenceRegistration
+import com.mapshoppinglist.domain.model.Place
 import com.mapshoppinglist.domain.repository.GeofenceRegistryRepository
 import com.mapshoppinglist.domain.repository.PlacesRepository
 import com.mapshoppinglist.domain.usecase.DeletePlaceUseCase
@@ -144,9 +144,7 @@ private class FakePlacesRepository : PlacesRepository {
 
     override suspend fun getTotalCount(): Int = places.size
 
-    override suspend fun existsLocation(latE6: Int, lngE6: Int): Boolean {
-        return places.any { it.latitudeE6 == latE6 && it.longitudeE6 == lngE6 }
-    }
+    override suspend fun existsLocation(latE6: Int, lngE6: Int): Boolean = places.any { it.latitudeE6 == latE6 && it.longitudeE6 == lngE6 }
 
     override suspend fun loadActivePlaces(): List<Place> = places.filter { it.isActive }
 

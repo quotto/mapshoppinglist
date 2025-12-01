@@ -1,19 +1,20 @@
 package com.mapshoppinglist.ui.place
 
 import android.app.Application
+import android.location.Geocoder
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.PointOfInterest
 import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.CircularBounds
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.api.net.FetchPlaceRequest
-import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
 import com.google.android.libraries.places.api.net.PlacesClient
+import com.google.android.libraries.places.api.net.SearchByTextRequest
 import com.mapshoppinglist.domain.usecase.CreatePlaceUseCase
 import java.util.Locale
-import android.location.Geocoder
-import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -51,17 +52,29 @@ class PlacePickerViewModel(
         }
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            var origin = DEFAULT_LOCATION
+            _uiState.update { state ->
+                origin = state.searchOrigin
+                state.copy(isLoading = true, errorMessage = null)
+            }
             try {
-                val request = FindAutocompletePredictionsRequest.builder()
-                    .setQuery(query)
-                    .build()
-                val response = placesClient.findAutocompletePredictions(request).await()
-                val predictions = response.autocompletePredictions.map { prediction ->
+                val requestBuilder = SearchByTextRequest.builder(
+                    query,
+                    PLACE_FIELDS_FOR_SEARCH
+                )
+                    .setMaxResultCount(SEARCH_RESULT_LIMIT)
+                    .setRankPreference(SearchByTextRequest.RankPreference.DISTANCE)
+
+                requestBuilder.setLocationBias(CircularBounds.newInstance(origin, SEARCH_RADIUS_METERS))
+
+                val response = placesClient.searchByText(requestBuilder.build()).await()
+                val predictions = response.places.mapNotNull { place ->
+                    val id = place.id ?: return@mapNotNull null
+                    val primary = place.name ?: place.address ?: return@mapNotNull null
                     PlacePredictionUiModel(
-                        placeId = prediction.placeId,
-                        primaryText = prediction.getPrimaryText(null).toString(),
-                        secondaryText = prediction.getSecondaryText(null).toString()
+                        placeId = id,
+                        primaryText = primary,
+                        secondaryText = place.address
                     )
                 }
                 _uiState.update {
@@ -104,6 +117,7 @@ class PlacePickerViewModel(
                             latLng = latLng
                         ),
                         cameraLocation = latLng,
+                        searchOrigin = latLng,
                         isLoading = false,
                         errorMessage = null
                     )
@@ -133,7 +147,10 @@ class PlacePickerViewModel(
                     )
                 )
                 _events.emit(PlacePickerEvent.PlaceRegistered(placeId))
-                _uiState.value = PlacePickerUiState(cameraLocation = selected.latLng)
+                _uiState.value = PlacePickerUiState(
+                    cameraLocation = selected.latLng,
+                    searchOrigin = selected.latLng
+                )
             } catch (error: Exception) {
                 _uiState.update {
                     it.copy(isCreating = false, errorMessage = error.message)
@@ -161,7 +178,8 @@ class PlacePickerViewModel(
                     query = inferred ?: "",
                     predictions = emptyList(),
                     isLoading = false,
-                    cameraLocation = latLng
+                    cameraLocation = latLng,
+                    searchOrigin = latLng
                 )
             }
         }
@@ -181,14 +199,31 @@ class PlacePickerViewModel(
                     latLng = latLng
                 ),
                 cameraLocation = latLng,
+                searchOrigin = latLng,
                 isLoading = false,
                 errorMessage = null
             )
         }
     }
 
+    /**
+     * Maps SDK 側でカメラ位置を決定した際に UI 状態へ反映するヘルパー。
+     * 現在地ボタンなどアプリ主導の移動では、検索の基準点も同じ地点に揃えたいので
+     * cameraLocation/searchOrigin の双方を同時に更新する。
+     */
     fun updateCameraLocation(latLng: LatLng) {
-        _uiState.update { it.copy(cameraLocation = latLng) }
+        _uiState.update { it.copy(cameraLocation = latLng, searchOrigin = latLng) }
+    }
+
+    /**
+     * ユーザーのドラッグ/ピンチなど UI 操作でカメラが移動した際に呼び出し、
+     * 検索 origin のみを最新カメラ位置へ更新する。
+     * cameraLocation はアプリが最後に指示した座標を維持するため変更しない。
+     */
+    fun onCameraMoved(latLng: LatLng) {
+        val current = _uiState.value.searchOrigin
+        if (current == latLng) return
+        _uiState.update { it.copy(searchOrigin = latLng) }
     }
 
     private suspend fun reverseGeocode(latLng: LatLng): String? = withContext(Dispatchers.IO) {
@@ -214,20 +249,26 @@ data class PlacePickerUiState(
     val selectedPlace: SelectedPlaceUiModel? = null,
     val isCreating: Boolean = false,
     val errorMessage: String? = null,
-    val cameraLocation: LatLng = DEFAULT_LOCATION
+    val cameraLocation: LatLng = DEFAULT_LOCATION,
+    val searchOrigin: LatLng = DEFAULT_LOCATION
 )
 
-data class PlacePredictionUiModel(
-    val placeId: String,
-    val primaryText: String,
-    val secondaryText: String?
-)
+data class PlacePredictionUiModel(val placeId: String, val primaryText: String, val secondaryText: String?)
 
-data class SelectedPlaceUiModel(
-    val placeId: String,
-    val name: String,
-    val address: String?,
-    val latLng: LatLng
-)
+data class SelectedPlaceUiModel(val placeId: String, val name: String, val address: String?, val latLng: LatLng)
 
 val DEFAULT_LOCATION: LatLng = LatLng(35.681236, 139.767125)
+
+private const val SEARCH_RESULT_LIMIT = 8
+
+/**
+ * SearchText API に与えるバイアスの半径 (m)。
+ * 3km 程度に抑えることで現在地周辺の候補に集中させつつ、ユーザー移動時の再検索回数も抑制する。
+ */
+private const val SEARCH_RADIUS_METERS = 3_000.0
+private val PLACE_FIELDS_FOR_SEARCH = listOf(
+    Place.Field.ID,
+    Place.Field.NAME,
+    Place.Field.ADDRESS,
+    Place.Field.LAT_LNG
+)

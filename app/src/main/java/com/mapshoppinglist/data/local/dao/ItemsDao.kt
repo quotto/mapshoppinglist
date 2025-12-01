@@ -88,10 +88,7 @@ interface ItemsDao {
     fun observeItemsWithoutPlace(): Flow<List<ItemEntity>>
 }
 
-data class ItemWithPlaceCount(
-    @Embedded val item: ItemEntity,
-    @ColumnInfo(name = "linked_place_count") val linkedPlaceCount: Int
-)
+data class ItemWithPlaceCount(@Embedded val item: ItemEntity, @ColumnInfo(name = "linked_place_count") val linkedPlaceCount: Int)
 
 data class ItemWithPlaces(
     @Embedded val item: ItemEntity,

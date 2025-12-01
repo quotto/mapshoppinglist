@@ -1,18 +1,13 @@
 package com.mapshoppinglist
 
 import android.app.Application
-import com.google.android.libraries.places.api.Places
 import com.google.android.gms.maps.MapsInitializer
+import com.google.android.libraries.places.api.Places
 import com.mapshoppinglist.data.local.AppDatabase
 import com.mapshoppinglist.data.repository.DefaultGeofenceRegistryRepository
 import com.mapshoppinglist.data.repository.DefaultNotificationStateRepository
 import com.mapshoppinglist.data.repository.DefaultPlacesRepository
 import com.mapshoppinglist.data.repository.DefaultShoppingListRepository
-import com.mapshoppinglist.geofence.GeofencePendingIntentProvider
-import com.mapshoppinglist.geofence.GeofenceRegistrar
-import com.mapshoppinglist.geofence.GeofenceSyncCoordinator
-import com.mapshoppinglist.geofence.GeofenceSyncScheduler
-import com.mapshoppinglist.notification.NotificationSender
 import com.mapshoppinglist.domain.repository.GeofenceRegistryRepository
 import com.mapshoppinglist.domain.repository.NotificationStateRepository
 import com.mapshoppinglist.domain.repository.PlacesRepository
@@ -23,20 +18,25 @@ import com.mapshoppinglist.domain.usecase.BuildNotificationMessageUseCase
 import com.mapshoppinglist.domain.usecase.CreatePlaceUseCase
 import com.mapshoppinglist.domain.usecase.DeletePlaceUseCase
 import com.mapshoppinglist.domain.usecase.DeleteShoppingItemUseCase
+import com.mapshoppinglist.domain.usecase.GetRecentPlacesUseCase
 import com.mapshoppinglist.domain.usecase.LinkItemToPlaceUseCase
 import com.mapshoppinglist.domain.usecase.LoadAllPlacesUseCase
 import com.mapshoppinglist.domain.usecase.LoadRegisteredGeofencesUseCase
 import com.mapshoppinglist.domain.usecase.MarkPlaceItemsPurchasedUseCase
-import com.mapshoppinglist.domain.usecase.ObserveShoppingItemsUseCase
 import com.mapshoppinglist.domain.usecase.ObserveItemDetailUseCase
+import com.mapshoppinglist.domain.usecase.ObserveShoppingItemsUseCase
 import com.mapshoppinglist.domain.usecase.RecordPlaceNotificationUseCase
 import com.mapshoppinglist.domain.usecase.ShouldSendNotificationUseCase
 import com.mapshoppinglist.domain.usecase.UnlinkItemFromPlaceUseCase
-import com.mapshoppinglist.domain.usecase.UpdatePurchasedStateUseCase
 import com.mapshoppinglist.domain.usecase.UpdateItemUseCase
 import com.mapshoppinglist.domain.usecase.UpdatePlaceNameUseCase
+import com.mapshoppinglist.domain.usecase.UpdatePurchasedStateUseCase
 import com.mapshoppinglist.domain.usecase.ValidatePlaceRegistrationUseCase
-import com.mapshoppinglist.domain.usecase.GetRecentPlacesUseCase
+import com.mapshoppinglist.geofence.GeofencePendingIntentProvider
+import com.mapshoppinglist.geofence.GeofenceRegistrar
+import com.mapshoppinglist.geofence.GeofenceSyncCoordinator
+import com.mapshoppinglist.geofence.GeofenceSyncScheduler
+import com.mapshoppinglist.notification.NotificationSender
 
 /**
  * アプリケーション全体の初期化を担当するクラス。
@@ -50,6 +50,7 @@ class MapShoppingListApplication : Application() {
         }
         MapsInitializer.initialize(applicationContext, MapsInitializer.Renderer.LATEST) {}
     }
+
     /**
      * Roomデータベースをアプリ共通の依存として遅延初期化する。
      */

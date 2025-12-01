@@ -1,9 +1,7 @@
 package com.mapshoppinglist.data.repository
 
-import com.mapshoppinglist.data.local.dao.ItemsDao
-import com.mapshoppinglist.data.local.dao.ItemWithPlaceCount
 import com.mapshoppinglist.data.local.dao.ItemWithPlaces
-import com.mapshoppinglist.data.local.dao.PlaceWithItems
+import com.mapshoppinglist.data.local.dao.ItemsDao
 import com.mapshoppinglist.data.local.dao.PlacesDao
 import com.mapshoppinglist.data.local.entity.ItemEntity
 import com.mapshoppinglist.data.local.entity.PlaceEntity
@@ -30,11 +28,9 @@ class DefaultShoppingListRepository(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ShoppingListRepository {
 
-    override fun observeAllItems(): Flow<List<ShoppingItem>> {
-        return itemsDao.observeAllWithPlaceCount().map { records ->
-            records.map { record ->
-                record.item.toDomain(linkedPlaceCount = record.linkedPlaceCount)
-            }
+    override fun observeAllItems(): Flow<List<ShoppingItem>> = itemsDao.observeAllWithPlaceCount().map { records ->
+        records.map { record ->
+            record.item.toDomain(linkedPlaceCount = record.linkedPlaceCount)
         }
     }
 
@@ -89,10 +85,8 @@ class DefaultShoppingListRepository(
         }
     }
 
-    override fun observeItemDetail(itemId: Long): Flow<ItemDetail?> {
-        return itemsDao.observeItemWithPlaces(itemId).map { record ->
-            record?.toDomain()
-        }
+    override fun observeItemDetail(itemId: Long): Flow<ItemDetail?> = itemsDao.observeItemWithPlaces(itemId).map { record ->
+        record?.toDomain()
     }
 
     override suspend fun updateItem(itemId: Long, title: String, note: String?) {
@@ -107,90 +101,80 @@ class DefaultShoppingListRepository(
         }
     }
 
-    override fun observePlaceGroups(): Flow<List<PlaceGroup>> {
-        return combine(
-            placesDao.observePlacesWithItems(),
-            itemsDao.observeItemsWithoutPlace()
-        ) { placesWithItems, itemsWithoutPlace ->
-            val groups = mutableListOf<PlaceGroup>()
+    override fun observePlaceGroups(): Flow<List<PlaceGroup>> = combine(
+        placesDao.observePlacesWithItems(),
+        itemsDao.observeItemsWithoutPlace()
+    ) { placesWithItems, itemsWithoutPlace ->
+        val groups = mutableListOf<PlaceGroup>()
 
-            // 地点に紐づくアイテムをグルーピング
-            placesWithItems
-                .filter { it.items.isNotEmpty() }
-                .forEach { placeWithItems ->
-                    groups.add(
-                        PlaceGroup(
-                            place = placeWithItems.place.toPlace(),
-                            items = placeWithItems.items.map { it.toShoppingItem() }
-                        )
-                    )
-                }
-
-            // 地点未設定のアイテムグループを追加
-            if (itemsWithoutPlace.isNotEmpty()) {
+        // 地点に紐づくアイテムをグルーピング
+        placesWithItems
+            .filter { it.items.isNotEmpty() }
+            .forEach { placeWithItems ->
                 groups.add(
                     PlaceGroup(
-                        place = null,
-                        items = itemsWithoutPlace.map { it.toShoppingItem() }
+                        place = placeWithItems.place.toPlace(),
+                        items = placeWithItems.items.map { it.toShoppingItem() }
                     )
                 )
             }
 
-            groups
-        }
-    }
-
-    private fun PlaceEntity.toPlace(): Place {
-        return Place(
-            id = id,
-            name = name,
-            latitudeE6 = latitudeE6,
-            longitudeE6 = longitudeE6,
-            isActive = isActive
-        )
-    }
-
-    private fun ItemEntity.toShoppingItem(): ShoppingItem {
-        return ShoppingItem(
-            id = id,
-            title = title,
-            note = note,
-            isPurchased = isPurchased,
-            createdAt = createdAt,
-            updatedAt = updatedAt,
-            linkedPlaceCount = 0 // グループ表示では不要
-        )
-    }
-
-    private fun ItemEntity.toDomain(linkedPlaceCount: Int): ShoppingItem {
-        return ShoppingItem(
-            id = id,
-            title = title,
-            note = note,
-            isPurchased = isPurchased,
-            createdAt = createdAt,
-            updatedAt = updatedAt,
-            linkedPlaceCount = linkedPlaceCount
-        )
-    }
-
-    private fun ItemWithPlaces.toDomain(): ItemDetail {
-        return ItemDetail(
-            id = item.id,
-            title = item.title,
-            note = item.note,
-            isPurchased = item.isPurchased,
-            createdAt = item.createdAt,
-            updatedAt = item.updatedAt,
-            places = places.map { place ->
-                PlaceSummary(
-                    id = place.id,
-                    name = place.name,
-                    address = place.note,
-                    latitude = place.latitudeE6 / 1_000_000.0,
-                    longitude = place.longitudeE6 / 1_000_000.0
+        // 地点未設定のアイテムグループを追加
+        if (itemsWithoutPlace.isNotEmpty()) {
+            groups.add(
+                PlaceGroup(
+                    place = null,
+                    items = itemsWithoutPlace.map { it.toShoppingItem() }
                 )
-            }
-        )
+            )
+        }
+
+        groups
     }
+
+    private fun PlaceEntity.toPlace(): Place = Place(
+        id = id,
+        name = name,
+        latitudeE6 = latitudeE6,
+        longitudeE6 = longitudeE6,
+        isActive = isActive
+    )
+
+    private fun ItemEntity.toShoppingItem(): ShoppingItem = ShoppingItem(
+        id = id,
+        title = title,
+        note = note,
+        isPurchased = isPurchased,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        linkedPlaceCount = 0 // グループ表示では不要
+    )
+
+    private fun ItemEntity.toDomain(linkedPlaceCount: Int): ShoppingItem = ShoppingItem(
+        id = id,
+        title = title,
+        note = note,
+        isPurchased = isPurchased,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        linkedPlaceCount = linkedPlaceCount
+    )
+
+    private fun ItemWithPlaces.toDomain(): ItemDetail = ItemDetail(
+        id = item.id,
+        title = item.title,
+        note = item.note,
+        isPurchased = item.isPurchased,
+        createdAt = item.createdAt,
+        updatedAt = item.updatedAt,
+        places = places.map { place ->
+            PlaceSummary(
+                id = place.id,
+                name = place.name,
+                address = place.note,
+                latitude = place.latitudeE6 / 1_000_000.0,
+                longitude = place.longitudeE6 / 1_000_000.0
+            )
+        }
+    )
 }

@@ -138,10 +138,13 @@ class ShoppingListViewModel(
         viewModelScope.launch {
             val place = placesRepository.findById(placeId) ?: return@launch
             _uiState.update { state ->
-                if (state.pendingPlaces.any { it.placeId == placeId }) state
-                else state.copy(
-                    pendingPlaces = state.pendingPlaces + PendingPlaceUiModel(placeId, place.name)
-                )
+                if (state.pendingPlaces.any { it.placeId == placeId }) {
+                    state
+                } else {
+                    state.copy(
+                        pendingPlaces = state.pendingPlaces + PendingPlaceUiModel(placeId, place.name)
+                    )
+                }
             }
             loadRecentPlaces()
         }
@@ -162,13 +165,11 @@ class ShoppingListViewModel(
         _uiState.update { it.copy(selectedTab = tab) }
     }
 
-    private fun PlaceGroup.toUiModel(): PlaceGroupUiModel {
-        return PlaceGroupUiModel(
-            placeId = place?.id,
-            placeName = place?.name ?: "未設定",
-            items = items.map { it.toUiModel() }
-        )
-    }
+    private fun PlaceGroup.toUiModel(): PlaceGroupUiModel = PlaceGroupUiModel(
+        placeId = place?.id,
+        placeName = place?.name ?: "未設定",
+        items = items.map { it.toUiModel() }
+    )
 
     private fun loadRecentPlaces(limit: Int = RECENT_LIMIT) {
         viewModelScope.launch {
@@ -184,26 +185,22 @@ class ShoppingListViewModel(
         }
     }
 
-    private fun ShoppingItem.toUiModel(): ShoppingItemUiModel {
-        return ShoppingItemUiModel(
-            id = id,
-            title = title,
-            note = note,
-            linkedPlaceCount = linkedPlaceCount,
-            isPurchased = isPurchased
-        )
-    }
+    private fun ShoppingItem.toUiModel(): ShoppingItemUiModel = ShoppingItemUiModel(
+        id = id,
+        title = title,
+        note = note,
+        linkedPlaceCount = linkedPlaceCount,
+        isPurchased = isPurchased
+    )
 
-    private fun ShoppingListUiState.resetInput(): ShoppingListUiState {
-        return copy(
-            isAddDialogVisible = false,
-            inputTitle = "",
-            inputNote = "",
-            showTitleValidationError = false,
-            addDialogErrorMessage = null,
-            pendingPlaces = emptyList()
-        )
-    }
+    private fun ShoppingListUiState.resetInput(): ShoppingListUiState = copy(
+        isAddDialogVisible = false,
+        inputTitle = "",
+        inputNote = "",
+        showTitleValidationError = false,
+        addDialogErrorMessage = null,
+        pendingPlaces = emptyList()
+    )
 }
 
 /**
@@ -228,38 +225,22 @@ data class ShoppingListUiState(
  * タブの種類
  */
 enum class ListTab {
-    PurchaseStatus,  // 購入状況
-    PlaceGroup       // 購入場所
+    PurchaseStatus, // 購入状況
+    PlaceGroup // 購入場所
 }
 
 /**
  * 一覧に表示するアイテムのUIモデル。
  */
-data class ShoppingItemUiModel(
-    val id: Long,
-    val title: String,
-    val note: String?,
-    val linkedPlaceCount: Int,
-    val isPurchased: Boolean
-)
+data class ShoppingItemUiModel(val id: Long, val title: String, val note: String?, val linkedPlaceCount: Int, val isPurchased: Boolean)
 
 /**
  * 地点グループのUIモデル
  */
-data class PlaceGroupUiModel(
-    val placeId: Long?,
-    val placeName: String,
-    val items: List<ShoppingItemUiModel>
-)
+data class PlaceGroupUiModel(val placeId: Long?, val placeName: String, val items: List<ShoppingItemUiModel>)
 
-data class PendingPlaceUiModel(
-    val placeId: Long,
-    val name: String
-)
+data class PendingPlaceUiModel(val placeId: Long, val name: String)
 
-data class RecentPlaceUiModel(
-    val placeId: Long,
-    val name: String
-)
+data class RecentPlaceUiModel(val placeId: Long, val name: String)
 
 private const val RECENT_LIMIT = 5

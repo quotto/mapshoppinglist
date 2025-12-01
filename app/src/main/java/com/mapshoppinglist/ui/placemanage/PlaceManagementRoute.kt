@@ -54,10 +54,7 @@ import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlaceManagementRoute(
-    onBack: () -> Unit,
-    viewModel: PlaceManagementViewModel = defaultPlaceManagementViewModel()
-) {
+fun PlaceManagementRoute(onBack: () -> Unit, viewModel: PlaceManagementViewModel = defaultPlaceManagementViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -205,12 +202,7 @@ private fun PlaceManagementScreen(
 }
 
 @Composable
-private fun PlaceList(
-    places: List<ManagedPlaceUiModel>,
-    contentPadding: PaddingValues,
-    onEdit: (Long) -> Unit,
-    onDelete: (Long) -> Unit
-) {
+private fun PlaceList(places: List<ManagedPlaceUiModel>, contentPadding: PaddingValues, onEdit: (Long) -> Unit, onDelete: (Long) -> Unit) {
     LazyColumn(
         modifier = Modifier
             .padding(contentPadding)
@@ -230,11 +222,7 @@ private fun PlaceList(
 }
 
 @Composable
-private fun ManagedPlaceRow(
-    place: ManagedPlaceUiModel,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit
-) {
+private fun ManagedPlaceRow(place: ManagedPlaceUiModel, onEdit: () -> Unit, onDelete: () -> Unit) {
     val rowTag = "${PlaceManagementTestTags.PLACE_ROW_PREFIX}${place.id}"
     val deleteTag = "${PlaceManagementTestTags.PLACE_DELETE_PREFIX}${place.id}"
     Card(
@@ -253,12 +241,12 @@ private fun ManagedPlaceRow(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = place.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = place.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                     Text(
                         text = stringResource(
                             R.string.place_management_coordinate,
@@ -318,12 +306,7 @@ private fun ManagedPlaceRow(
 }
 
 @Composable
-private fun EditPlaceDialog(
-    state: PlaceDialogState.Edit,
-    onDismiss: () -> Unit,
-    onNameChange: (String) -> Unit,
-    onConfirm: () -> Unit
-) {
+private fun EditPlaceDialog(state: PlaceDialogState.Edit, onDismiss: () -> Unit, onNameChange: (String) -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = stringResource(R.string.place_management_edit_dialog_title)) },
@@ -371,11 +354,7 @@ private fun EditPlaceDialog(
 }
 
 @Composable
-private fun DeletePlaceDialog(
-    state: PlaceDialogState.DeleteConfirm,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit
-) {
+private fun DeletePlaceDialog(state: PlaceDialogState.DeleteConfirm, onDismiss: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = stringResource(R.string.place_management_delete_dialog_title)) },

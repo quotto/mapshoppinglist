@@ -9,7 +9,6 @@ import com.mapshoppinglist.geofence.GeofenceSyncScheduler
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -29,8 +28,7 @@ private class RecordingPlacesRepository : PlacesRepository {
 
     override suspend fun getTotalCount(): Int = totalCount
 
-    override suspend fun existsLocation(latE6: Int, lngE6: Int): Boolean =
-        duplicateLocations.contains(latE6 to lngE6)
+    override suspend fun existsLocation(latE6: Int, lngE6: Int): Boolean = duplicateLocations.contains(latE6 to lngE6)
 
     override suspend fun loadActivePlaces(): List<Place> = emptyList()
 
