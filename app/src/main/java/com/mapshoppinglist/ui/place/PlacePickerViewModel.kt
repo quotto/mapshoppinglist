@@ -52,12 +52,15 @@ class PlacePickerViewModel(
         }
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            val origin = _uiState.value.searchOrigin
+            var origin = DEFAULT_LOCATION
+            _uiState.update { state ->
+                origin = state.searchOrigin
+                state.copy(isLoading = true, errorMessage = null)
+            }
             try {
                 val requestBuilder = SearchByTextRequest.builder(
                     query,
-                    SEARCH_TEXT_FIELDS
+                    PLACE_FIELDS_FOR_SEARCH
                 )
                     .setMaxResultCount(SEARCH_RESULT_LIMIT)
                     .setRankPreference(SearchByTextRequest.RankPreference.DISTANCE)
@@ -65,10 +68,11 @@ class PlacePickerViewModel(
                 requestBuilder.setLocationBias(CircularBounds.newInstance(origin, SEARCH_RADIUS_METERS))
 
                 val response = placesClient.searchByText(requestBuilder.build()).await()
-                val predictions = response.places.map { place ->
-                    val primary = place.name ?: place.address ?: query
+                val predictions = response.places.mapNotNull { place ->
+                    val id = place.id ?: return@mapNotNull null
+                    val primary = place.name ?: place.address ?: return@mapNotNull null
                     PlacePredictionUiModel(
-                        placeId = place.id ?: primary,
+                        placeId = id,
                         primaryText = primary,
                         secondaryText = place.address
                     )
@@ -202,10 +206,20 @@ class PlacePickerViewModel(
         }
     }
 
+    /**
+     * Maps SDK 側でカメラ位置を決定した際に UI 状態へ反映するヘルパー。
+     * 現在地ボタンなどアプリ主導の移動では、検索の基準点も同じ地点に揃えたいので
+     * cameraLocation/searchOrigin の双方を同時に更新する。
+     */
     fun updateCameraLocation(latLng: LatLng) {
         _uiState.update { it.copy(cameraLocation = latLng, searchOrigin = latLng) }
     }
 
+    /**
+     * ユーザーのドラッグ/ピンチなど UI 操作でカメラが移動した際に呼び出し、
+     * 検索 origin のみを最新カメラ位置へ更新する。
+     * cameraLocation はアプリが最後に指示した座標を維持するため変更しない。
+     */
     fun onCameraMoved(latLng: LatLng) {
         val current = _uiState.value.searchOrigin
         if (current == latLng) return
@@ -255,8 +269,12 @@ data class SelectedPlaceUiModel(
 val DEFAULT_LOCATION: LatLng = LatLng(35.681236, 139.767125)
 
 private const val SEARCH_RESULT_LIMIT = 8
+/**
+ * SearchText API に与えるバイアスの半径 (m)。
+ * 3km 程度に抑えることで現在地周辺の候補に集中させつつ、ユーザー移動時の再検索回数も抑制する。
+ */
 private const val SEARCH_RADIUS_METERS = 3_000.0
-private val SEARCH_TEXT_FIELDS = listOf(
+private val PLACE_FIELDS_FOR_SEARCH = listOf(
     Place.Field.ID,
     Place.Field.NAME,
     Place.Field.ADDRESS,

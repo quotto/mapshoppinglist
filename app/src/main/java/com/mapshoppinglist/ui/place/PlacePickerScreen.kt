@@ -62,6 +62,7 @@ import com.google.android.gms.maps.MapsInitializer
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.PointOfInterest
+import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
@@ -71,7 +72,7 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.mapshoppinglist.MapShoppingListApplication
 import com.mapshoppinglist.R
 import com.mapshoppinglist.testtag.PlacePickerTestTags
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -154,7 +155,7 @@ private fun defaultPlacePickerViewModel(): PlacePickerViewModel {
     return viewModel(factory = factory)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
 fun PlacePickerScreen(
     uiState: PlacePickerUiState,
@@ -168,11 +169,11 @@ fun PlacePickerScreen(
     onMapLongClick: (LatLng) -> Unit,
     onPoiClick: (PointOfInterest) -> Unit,
     onCameraMoved: (LatLng) -> Unit,
-    onRequestLocationPermission: () -> Unit
-) {
-    val cameraPositionState = rememberCameraPositionState {
+    onRequestLocationPermission: () -> Unit,
+    cameraPositionState: CameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(DEFAULT_LOCATION, 10f)
     }
+) {
 
     LaunchedEffect(uiState.cameraLocation) {
         if (uiState.selectedPlace == null) {
@@ -189,7 +190,7 @@ fun PlacePickerScreen(
     LaunchedEffect(cameraPositionState) {
         snapshotFlow { cameraPositionState.position.target }
             .distinctUntilChanged()
-            .debounce(200)
+            .debounce(400)
             .collect { onCameraMoved(it) }
     }
 

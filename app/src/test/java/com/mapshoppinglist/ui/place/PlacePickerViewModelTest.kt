@@ -98,8 +98,24 @@ class PlacePickerViewModelTest {
 
         val state = viewModel.uiState.value
         assertEquals(1, state.predictions.size)
+        val prediction = state.predictions.single()
+        assertEquals("place-id", prediction.placeId)
+        assertEquals("テストスーパー", prediction.primaryText)
+        assertEquals("東京都千代田区", prediction.secondaryText)
         val bias = fakeClient.lastSearchByTextRequest?.locationBias as? CircularBounds
         assertEquals(origin, bias?.center)
+    }
+
+    @Test
+    fun `updateCameraLocation syncs camera and origin`() = runTest(dispatcher) {
+        val viewModel = createViewModel()
+        val target = LatLng(33.0, 131.0)
+
+        viewModel.updateCameraLocation(target)
+
+        val state = viewModel.uiState.value
+        assertEquals(target, state.cameraLocation)
+        assertEquals(target, state.searchOrigin)
     }
 
     private fun createViewModel(placesClient: PlacesClient = FakePlacesClient()): PlacePickerViewModel {
