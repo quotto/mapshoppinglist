@@ -32,7 +32,7 @@ private data class PolicySection(val title: String, val lines: List<String>, val
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PrivacyPolicyRoute(onBack: () -> Unit) {
-    val updatedLabel = stringResource(R.string.privacy_policy_updated, "2025年10月4日")
+    val updatedLabel = stringResource(R.string.privacy_policy_updated, "2026年3月22日")
     val sections = listOf(
         PolicySection(
             title = stringResource(R.string.privacy_policy_section1_title),

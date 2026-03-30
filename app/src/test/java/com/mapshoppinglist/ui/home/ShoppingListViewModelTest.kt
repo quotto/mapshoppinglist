@@ -143,6 +143,8 @@ private class FakeShoppingListRepository : ShoppingListRepository {
 
     override suspend fun getItemsForPlace(placeId: Long): List<ShoppingItem> = emptyList()
 
+    override suspend fun getUnlinkedItems(limit: Int): List<ShoppingItem> = emptyList()
+
     override suspend fun markPlaceItemsPurchased(placeId: Long) {}
 
     override fun observeItemDetail(itemId: Long): Flow<ItemDetail?> = emptyFlow()

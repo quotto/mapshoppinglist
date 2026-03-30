@@ -86,6 +86,38 @@ class NotificationSender(private val context: Context) {
         notificationManager.notify(placeId.hashCode(), builder.build())
     }
 
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
+    fun showNearbySuggestion(itemId: Long, itemTitle: String, placeName: String, distanceMeters: Int) {
+        ensureChannel()
+        val contentIntent = PendingIntent.getActivity(
+            context,
+            itemId.toInt(),
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra(NotificationActions.EXTRA_ITEM_ID, itemId)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        )
+
+        val summary = context.getString(
+            R.string.notification_nearby_suggestion_summary,
+            itemTitle,
+            placeName,
+            distanceMeters
+        )
+
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(context.getString(R.string.notification_nearby_suggestion_title))
+            .setContentText(summary)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(summary))
+            .setContentIntent(contentIntent)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+
+        notificationManager.notify((itemId.toInt() * 37) + distanceMeters.coerceAtMost(999), builder.build())
+    }
+
     private fun ensureChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID,

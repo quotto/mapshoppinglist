@@ -89,6 +89,9 @@ fun ShoppingListRoute(
     var showBackgroundPrompt by remember {
         mutableStateOf(shouldRequestBackgroundLocation(context))
     }
+    var showActivityRecognitionPrompt by remember {
+        mutableStateOf(shouldRequestActivityRecognitionPermission(context))
+    }
     var showNotificationPrompt by remember {
         mutableStateOf(shouldRequestNotificationPermission(context))
     }
@@ -105,7 +108,18 @@ fun ShoppingListRoute(
         showNotificationPrompt = !granted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
     }
 
-    val permissionPrompts = remember(showBackgroundPrompt, showNotificationPrompt, context) {
+    val activityRecognitionPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        showActivityRecognitionPrompt = !granted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+    }
+
+    val permissionPrompts = remember(
+        showBackgroundPrompt,
+        showActivityRecognitionPrompt,
+        showNotificationPrompt,
+        context
+    ) {
         buildList {
             if (showBackgroundPrompt) {
                 add(
@@ -116,6 +130,21 @@ fun ShoppingListRoute(
                         actionLabel = context.getString(R.string.permission_background_button),
                         onClick = {
                             backgroundPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                        }
+                    )
+                )
+            }
+            if (showActivityRecognitionPrompt) {
+                add(
+                    PermissionPromptUiModel(
+                        key = "activity_recognition",
+                        title = context.getString(R.string.permission_activity_recognition_title),
+                        message = context.getString(R.string.permission_activity_recognition_message),
+                        actionLabel = context.getString(R.string.permission_activity_recognition_button),
+                        onClick = {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                activityRecognitionPermissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+                            }
                         }
                     )
                 )
@@ -716,6 +745,15 @@ private fun shouldRequestNotificationPermission(context: android.content.Context
     val granted = ContextCompat.checkSelfPermission(
         context,
         Manifest.permission.POST_NOTIFICATIONS
+    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    return !granted
+}
+
+private fun shouldRequestActivityRecognitionPermission(context: android.content.Context): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
+    val granted = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.ACTIVITY_RECOGNITION
     ) == android.content.pm.PackageManager.PERMISSION_GRANTED
     return !granted
 }

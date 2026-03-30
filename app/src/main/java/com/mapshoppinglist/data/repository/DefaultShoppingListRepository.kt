@@ -78,6 +78,12 @@ class DefaultShoppingListRepository(
         }
     }
 
+    override suspend fun getUnlinkedItems(limit: Int): List<ShoppingItem> = withContext(ioDispatcher) {
+        itemsDao.loadNotPurchasedWithoutPlace(limit).map { entity ->
+            entity.toDomain(linkedPlaceCount = 0)
+        }
+    }
+
     override suspend fun markPlaceItemsPurchased(placeId: Long) {
         val now = System.currentTimeMillis()
         withContext(ioDispatcher) {
