@@ -46,25 +46,19 @@ class NotificationSenderTest {
     }
 
     @Test
-    fun showNearbySuggestion_displaysMultipleLinesInSingleNotification() {
+    fun showNearbySuggestion_displaysItemNotificationWithActions() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val sender = NotificationSender(context)
 
         @Suppress("MissingPermission")
         sender.showNearbySuggestion(
-            entries = listOf(
-                NotificationSender.NearbySuggestionNotificationEntry(
-                    itemId = 1L,
-                    itemTitle = "牛乳",
-                    placeName = "近所スーパー",
-                    distanceMeters = 120
-                ),
-                NotificationSender.NearbySuggestionNotificationEntry(
-                    itemId = 2L,
-                    itemTitle = "洗剤",
-                    placeName = "駅前ドラッグ",
-                    distanceMeters = 180
-                )
+            entry = NotificationSender.NearbySuggestionNotificationEntry(
+                itemId = 1L,
+                itemTitle = "牛乳",
+                placeName = "近所スーパー",
+                distanceMeters = 120,
+                placeLatitude = 35.0,
+                placeLongitude = 139.0
             )
         )
 
@@ -72,11 +66,13 @@ class NotificationSenderTest {
         val notification = Shadows.shadowOf(notificationManager).allNotifications.single()
 
         assertEquals(R.drawable.ic_launcher_foreground, notification.smallIcon.resId)
-        assertTrue(notification.extras.getString("android.title").orEmpty().contains("近く"))
-        assertTrue(notification.extras.getCharSequence("android.text").toString().contains("2件"))
-        val lines = notification.extras.getCharSequenceArray("android.textLines")?.map { it.toString() }.orEmpty()
-        assertEquals(2, lines.size)
-        assertTrue(lines[0].contains("牛乳"))
-        assertTrue(lines[1].contains("洗剤"))
+        assertTrue(notification.extras.getString("android.title").orEmpty().contains("牛乳"))
+        assertTrue(notification.extras.getCharSequence("android.text").toString().contains("近所スーパー"))
+        assertEquals(4, notification.actions.size)
+        val actionTitles = notification.actions.map { it.title.toString() }
+        assertTrue(actionTitles.contains("購入済みにする"))
+        assertTrue(actionTitles.contains("削除"))
+        assertTrue(actionTitles.contains("詳細"))
+        assertTrue(actionTitles.contains("地図"))
     }
 }

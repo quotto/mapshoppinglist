@@ -93,17 +93,17 @@ class NearbySuggestionTriggerWorker(
         }
 
         Log.d(TAG, "Found nearby suggestion opportunities: reason=$reason count=${opportunities.size}")
-        app.notificationSender.showNearbySuggestion(
-            entries = opportunities.map { opportunity ->
-                NearbySuggestionNotificationEntry(
+        opportunities.forEach { opportunity ->
+            app.notificationSender.showNearbySuggestion(
+                entry = NearbySuggestionNotificationEntry(
                     itemId = opportunity.item.id,
                     itemTitle = opportunity.item.title,
                     placeName = opportunity.candidate.name,
-                    distanceMeters = opportunity.candidate.distanceMeters
+                    distanceMeters = opportunity.candidate.distanceMeters,
+                    placeLatitude = opportunity.candidate.latitude,
+                    placeLongitude = opportunity.candidate.longitude
                 )
-            }
-        )
-        opportunities.forEach { opportunity ->
+            )
             app.recordNearbySuggestionUseCase(
                 itemId = opportunity.item.id,
                 candidatePlaceId = opportunity.candidate.placeId,
