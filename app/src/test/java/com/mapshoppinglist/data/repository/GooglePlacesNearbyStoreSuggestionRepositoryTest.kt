@@ -62,15 +62,66 @@ class GooglePlacesNearbyStoreSuggestionRepositoryTest {
         assertEquals(LatLng(35.0, 139.0), bias?.center)
         assertTrue(results.first().distanceMeters >= 0)
     }
+
+    @Test
+    fun `search uses provided search queries and deduplicates places`() = runTest {
+        val fakeClient = FakeNearbyPlacesClient()
+        fakeClient.searchResponsesByQuery["supermarket"] = SearchByTextResponse.newInstance(
+            listOf(
+                Place.builder()
+                    .setId("store-1")
+                    .setName("近所スーパー")
+                    .setAddress("東京都")
+                    .setLatLng(LatLng(35.0005, 139.0005))
+                    .setPrimaryType("supermarket")
+                    .build()
+            )
+        )
+        fakeClient.searchResponsesByQuery["drugstore"] = SearchByTextResponse.newInstance(
+            listOf(
+                Place.builder()
+                    .setId("store-1")
+                    .setName("近所スーパー")
+                    .setAddress("東京都")
+                    .setLatLng(LatLng(35.0005, 139.0005))
+                    .setPrimaryType("supermarket")
+                    .build(),
+                Place.builder()
+                    .setId("store-2")
+                    .setName("駅前ドラッグ")
+                    .setAddress("東京都")
+                    .setLatLng(LatLng(35.0008, 139.0008))
+                    .setPrimaryType("drugstore")
+                    .build()
+            )
+        )
+
+        val repository = GooglePlacesNearbyStoreSuggestionRepository(fakeClient)
+        val results = repository.search(
+            itemTitle = "牛乳",
+            latitude = 35.0,
+            longitude = 139.0,
+            limit = 5,
+            searchQueries = listOf("supermarket", "drugstore")
+        )
+
+        assertEquals(listOf("supermarket", "drugstore"), fakeClient.requestedQueries)
+        assertEquals(2, results.size)
+        assertEquals(listOf("store-1", "store-2"), results.map { it.placeId })
+    }
 }
 
 private class FakeNearbyPlacesClient : PlacesClient {
     var lastSearchByTextRequest: SearchByTextRequest? = null
     var searchByTextResponse: SearchByTextResponse = SearchByTextResponse.newInstance(emptyList())
+    val searchResponsesByQuery = linkedMapOf<String, SearchByTextResponse>()
+    val requestedQueries = mutableListOf<String>()
 
     override fun searchByText(request: SearchByTextRequest): Task<SearchByTextResponse> {
         lastSearchByTextRequest = request
-        return Tasks.forResult(searchByTextResponse)
+        val query = request.textQuery ?: ""
+        requestedQueries += query
+        return Tasks.forResult(searchResponsesByQuery[query] ?: searchByTextResponse)
     }
 
     override fun fetchPhoto(request: FetchPhotoRequest): Task<FetchPhotoResponse> = unsupported()

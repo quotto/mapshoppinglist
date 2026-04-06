@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.mapshoppinglist.R
 import com.mapshoppinglist.domain.usecase.NotificationMessage
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -14,7 +15,10 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [Build.VERSION_CODES.TIRAMISU])
+@Config(
+    sdk = [Build.VERSION_CODES.TIRAMISU],
+    application = android.app.Application::class
+)
 class NotificationSenderTest {
 
     @Test
@@ -39,5 +43,40 @@ class NotificationSenderTest {
         val notification = shadowManager.allNotifications.single()
 
         assertEquals(R.drawable.ic_launcher_foreground, notification.smallIcon.resId)
+    }
+
+    @Test
+    fun showNearbySuggestion_displaysMultipleLinesInSingleNotification() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val sender = NotificationSender(context)
+
+        @Suppress("MissingPermission")
+        sender.showNearbySuggestion(
+            entries = listOf(
+                NotificationSender.NearbySuggestionNotificationEntry(
+                    itemId = 1L,
+                    itemTitle = "牛乳",
+                    placeName = "近所スーパー",
+                    distanceMeters = 120
+                ),
+                NotificationSender.NearbySuggestionNotificationEntry(
+                    itemId = 2L,
+                    itemTitle = "洗剤",
+                    placeName = "駅前ドラッグ",
+                    distanceMeters = 180
+                )
+            )
+        )
+
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notification = Shadows.shadowOf(notificationManager).allNotifications.single()
+
+        assertEquals(R.drawable.ic_launcher_foreground, notification.smallIcon.resId)
+        assertTrue(notification.extras.getString("android.title").orEmpty().contains("近く"))
+        assertTrue(notification.extras.getCharSequence("android.text").toString().contains("2件"))
+        val lines = notification.extras.getCharSequenceArray("android.textLines")?.map { it.toString() }.orEmpty()
+        assertEquals(2, lines.size)
+        assertTrue(lines[0].contains("牛乳"))
+        assertTrue(lines[1].contains("洗剤"))
     }
 }

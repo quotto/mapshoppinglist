@@ -18,10 +18,36 @@ class GooglePlacesNearbyStoreSuggestionRepository(
         itemTitle: String,
         latitude: Double,
         longitude: Double,
-        limit: Int
+        limit: Int,
+        searchQueries: List<String>
     ): List<NearbyStoreCandidate> = withContext(Dispatchers.IO) {
+        val queries = searchQueries.map { it.trim() }.filter { it.isNotBlank() }
+            .ifEmpty { listOf(itemTitle.trim()) }
+            .distinct()
+            .take(MAX_QUERY_COUNT)
+
+        queries.flatMap { query ->
+            searchByTextQuery(
+                query = query,
+                latitude = latitude,
+                longitude = longitude,
+                limit = limit
+            )
+        }
+            .filter { candidate -> candidate.primaryType in ALLOWED_PRIMARY_TYPES || candidate.primaryType == null }
+            .distinctBy { it.placeId }
+            .sortedBy { it.distanceMeters }
+            .take(limit.coerceIn(1, 10))
+    }
+
+    private suspend fun searchByTextQuery(
+        query: String,
+        latitude: Double,
+        longitude: Double,
+        limit: Int
+    ): List<NearbyStoreCandidate> {
         val request = SearchByTextRequest.builder(
-            itemTitle.trim(),
+            query,
             PLACE_FIELDS
         )
             .setMaxResultCount(limit.coerceIn(1, 10))
@@ -35,7 +61,7 @@ class GooglePlacesNearbyStoreSuggestionRepository(
             .build()
 
         val response = placesClient.searchByText(request).await()
-        response.places.mapNotNull { place ->
+        return response.places.mapNotNull { place ->
             val placeId = place.id ?: return@mapNotNull null
             val name = place.name ?: return@mapNotNull null
             val latLng = place.latLng ?: return@mapNotNull null
@@ -55,8 +81,6 @@ class GooglePlacesNearbyStoreSuggestionRepository(
                 primaryType = place.primaryType
             )
         }
-            .filter { candidate -> candidate.primaryType in ALLOWED_PRIMARY_TYPES || candidate.primaryType == null }
-            .sortedBy { it.distanceMeters }
     }
 
     private fun calculateDistanceMeters(
@@ -79,6 +103,7 @@ class GooglePlacesNearbyStoreSuggestionRepository(
 
     companion object {
         private const val SEARCH_RADIUS_METERS = 3_000.0
+        private const val MAX_QUERY_COUNT = 3
 
         private val PLACE_FIELDS = listOf(
             Place.Field.ID,

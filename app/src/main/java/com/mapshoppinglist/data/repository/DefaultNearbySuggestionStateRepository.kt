@@ -17,6 +17,10 @@ class DefaultNearbySuggestionStateRepository(
         dao.find(itemId, candidatePlaceId)?.toDomain()
     }
 
+    override suspend fun getLatestByItemId(itemId: Long): NearbySuggestionState? = withContext(ioDispatcher) {
+        dao.findLatestByItemId(itemId)?.toDomain()
+    }
+
     override suspend fun upsert(state: NearbySuggestionState) = withContext(ioDispatcher) {
         dao.upsert(
             NearbySuggestionStateEntity(

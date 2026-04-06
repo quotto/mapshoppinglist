@@ -21,6 +21,9 @@
     <string name="notification_default_summary">未購入のアイテムが近くにあります</string>
     <string name="notification_nearby_suggestion_title">近くで買えそうです</string>
     <string name="notification_nearby_suggestion_summary">%1$s は %2$s で買えそうです（約%3$dm）</string>
+    <plurals name="notification_nearby_suggestion_summary_count">
+        <item quantity="other">%1$d件のアイテムが近くで買えそうです</item>
+    </plurals>
     <string name="notification_action_mark_purchased">購入済みにする</string>
     <string name="notification_action_delete">削除</string>
     <string name="notification_action_detail">詳細</string>

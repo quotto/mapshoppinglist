@@ -5,9 +5,25 @@ import kotlin.math.abs
 
 class ShouldSendNearbySuggestionUseCase(
     private val repository: NearbySuggestionStateRepository,
-    private val cooldownMillis: Long = DEFAULT_NEARBY_COOLDOWN_MILLIS,
+    private val revisitCooldownMillis: Long = DEFAULT_NEARBY_REVISIT_COOLDOWN_MILLIS,
+    private val hardCooldownMillis: Long = DEFAULT_NEARBY_HARD_COOLDOWN_MILLIS,
     private val minDistanceMeters: Int = DEFAULT_MIN_DISTANCE_METERS
 ) {
+
+    suspend fun canEvaluateItem(
+        itemId: Long,
+        now: Long = System.currentTimeMillis(),
+        currentLatE6: Int? = null,
+        currentLngE6: Int? = null
+    ): Boolean {
+        val state = repository.getLatestByItemId(itemId) ?: return true
+        return canSendFromState(
+            state = state,
+            now = now,
+            currentLatE6 = currentLatE6,
+            currentLngE6 = currentLngE6
+        )
+    }
 
     suspend operator fun invoke(
         itemId: Long,
@@ -16,19 +32,35 @@ class ShouldSendNearbySuggestionUseCase(
         currentLatE6: Int? = null,
         currentLngE6: Int? = null
     ): Boolean {
-        val state = repository.get(itemId, candidatePlaceId) ?: return true
+        return canEvaluateItem(
+            itemId = itemId,
+            now = now,
+            currentLatE6 = currentLatE6,
+            currentLngE6 = currentLngE6
+        )
+    }
+
+    private fun canSendFromState(
+        state: com.mapshoppinglist.domain.model.NearbySuggestionState,
+        now: Long,
+        currentLatE6: Int?,
+        currentLngE6: Int?
+    ): Boolean {
         val lastNotifiedAt = state.lastNotifiedAt
-        if (lastNotifiedAt != null && lastNotifiedAt + cooldownMillis > now) return false
+        if (lastNotifiedAt == null) return true
+
+        val elapsedMillis = now - lastNotifiedAt
+        if (elapsedMillis >= hardCooldownMillis) return true
+        if (elapsedMillis < revisitCooldownMillis) return false
 
         val lat = currentLatE6
         val lng = currentLngE6
         val lastLat = state.lastNotifiedLatE6
         val lastLng = state.lastNotifiedLngE6
-        if (lat != null && lng != null && lastLat != null && lastLng != null) {
-            val meters = approximateDistanceMeters(lat, lng, lastLat, lastLng)
-            if (meters < minDistanceMeters) return false
-        }
-        return true
+        if (lat == null || lng == null || lastLat == null || lastLng == null) return false
+
+        val meters = approximateDistanceMeters(lat, lng, lastLat, lastLng)
+        return meters >= minDistanceMeters
     }
 
     private fun approximateDistanceMeters(
@@ -43,7 +75,8 @@ class ShouldSendNearbySuggestionUseCase(
     }
 }
 
-internal const val DEFAULT_NEARBY_COOLDOWN_MILLIS = 24 * 60 * 60 * 1000L
-internal const val DEFAULT_MIN_DISTANCE_METERS = 150
+internal const val DEFAULT_NEARBY_REVISIT_COOLDOWN_MILLIS = 60 * 60 * 1000L
+internal const val DEFAULT_NEARBY_HARD_COOLDOWN_MILLIS = 24 * 60 * 60 * 1000L
+internal const val DEFAULT_MIN_DISTANCE_METERS = 300
 private const val METERS_PER_E6_LAT = 0.11132
 private const val METERS_PER_E6_LNG = 0.09100

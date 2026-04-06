@@ -21,6 +21,29 @@ val mapsApiKey: String = (findProperty("MAPS_API_KEY") as String?) ?: run {
     localProps.getProperty("MAPS_API_KEY", "")
 }
 
+val nearbyCategoryApiEndpoint: String = (findProperty("NEARBY_CATEGORY_API_ENDPOINT") as String?) ?: run {
+    val localProps = Properties()
+    val file = rootProject.file("local.properties")
+    if (file.exists()) {
+        file.inputStream().use(localProps::load)
+    }
+    localProps.getProperty("NEARBY_CATEGORY_API_ENDPOINT", "")
+}
+
+val nearbyCategoryApiKey: String = (findProperty("NEARBY_CATEGORY_API_KEY") as String?) ?: run {
+    val localProps = Properties()
+    val file = rootProject.file("local.properties")
+    if (file.exists()) {
+        file.inputStream().use(localProps::load)
+    }
+    localProps.getProperty("NEARBY_CATEGORY_API_KEY", "")
+}
+
+fun buildConfigString(value: String): String {
+    val escaped = value.replace("\\", "\\\\").replace("\"", "\\\"")
+    return "\"$escaped\""
+}
+
 val versionProps = Properties()
 val versionPropsFile = rootProject.file("gradle/version.properties")
 if (versionPropsFile.exists()) {
@@ -59,6 +82,8 @@ android {
 
         manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
         resValue("string", "google_maps_key", mapsApiKey)
+        buildConfigField("String", "NEARBY_CATEGORY_API_ENDPOINT", buildConfigString(nearbyCategoryApiEndpoint))
+        buildConfigField("String", "NEARBY_CATEGORY_API_KEY", buildConfigString(nearbyCategoryApiKey))
     }
 
     signingConfigs {
@@ -96,6 +121,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = libs.versions.composeCompiler.get()

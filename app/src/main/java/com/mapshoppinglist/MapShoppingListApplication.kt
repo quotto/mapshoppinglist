@@ -1,9 +1,11 @@
 package com.mapshoppinglist
 
 import android.app.Application
+import android.util.Log
 import com.google.android.gms.maps.MapsInitializer
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.net.PlacesClient
+import com.mapshoppinglist.data.repository.CategoryApiNearbyStoreCategoryRepository
 import com.mapshoppinglist.data.local.AppDatabase
 import com.mapshoppinglist.data.repository.DefaultGeofenceRegistryRepository
 import com.mapshoppinglist.data.repository.GooglePlacesNearbyStoreSuggestionRepository
@@ -13,6 +15,7 @@ import com.mapshoppinglist.data.repository.DefaultPlacesRepository
 import com.mapshoppinglist.data.repository.DefaultShoppingListRepository
 import com.mapshoppinglist.domain.repository.GeofenceRegistryRepository
 import com.mapshoppinglist.domain.repository.NearbyStoreSuggestionRepository
+import com.mapshoppinglist.domain.repository.NearbyStoreCategoryRepository
 import com.mapshoppinglist.domain.repository.NearbySuggestionStateRepository
 import com.mapshoppinglist.domain.repository.NotificationStateRepository
 import com.mapshoppinglist.domain.repository.PlacesRepository
@@ -115,6 +118,13 @@ class MapShoppingListApplication : Application() {
 
     val nearbyStoreSuggestionRepository: NearbyStoreSuggestionRepository by lazy {
         GooglePlacesNearbyStoreSuggestionRepository(placesClient)
+    }
+
+    val nearbyStoreCategoryRepository: NearbyStoreCategoryRepository by lazy {
+        CategoryApiNearbyStoreCategoryRepository(
+            endpoint = BuildConfig.NEARBY_CATEGORY_API_ENDPOINT,
+            apiKey = BuildConfig.NEARBY_CATEGORY_API_KEY
+        )
     }
 
     /**

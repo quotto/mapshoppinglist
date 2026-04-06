@@ -87,35 +87,51 @@ class NotificationSender(private val context: Context) {
     }
 
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
-    fun showNearbySuggestion(itemId: Long, itemTitle: String, placeName: String, distanceMeters: Int) {
+    fun showNearbySuggestion(entries: List<NearbySuggestionNotificationEntry>) {
+        if (entries.isEmpty()) return
         ensureChannel()
+        val firstItemId = entries.first().itemId
         val contentIntent = PendingIntent.getActivity(
             context,
-            itemId.toInt(),
+            firstItemId.toInt(),
             Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                putExtra(NotificationActions.EXTRA_ITEM_ID, itemId)
+                if (entries.size == 1) {
+                    putExtra(NotificationActions.EXTRA_ITEM_ID, firstItemId)
+                }
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         )
 
-        val summary = context.getString(
-            R.string.notification_nearby_suggestion_summary,
-            itemTitle,
-            placeName,
-            distanceMeters
+        val lines = entries.take(MAX_NEARBY_SUGGESTION_LINES).map { entry ->
+            context.getString(
+                R.string.notification_nearby_suggestion_summary,
+                entry.itemTitle,
+                entry.placeName,
+                entry.distanceMeters
+            )
+        }
+        val summary = context.resources.getQuantityString(
+            R.plurals.notification_nearby_suggestion_summary_count,
+            lines.size,
+            lines.size
         )
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(context.getString(R.string.notification_nearby_suggestion_title))
             .setContentText(summary)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(summary))
+            .setStyle(
+                NotificationCompat.InboxStyle().also { style ->
+                    lines.forEach(style::addLine)
+                    style.setSummaryText(summary)
+                }
+            )
             .setContentIntent(contentIntent)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
 
-        notificationManager.notify((itemId.toInt() * 37) + distanceMeters.coerceAtMost(999), builder.build())
+        notificationManager.notify(NEARBY_SUGGESTION_NOTIFICATION_ID, builder.build())
     }
 
     private fun ensureChannel() {
@@ -130,5 +146,14 @@ class NotificationSender(private val context: Context) {
 
     companion object {
         const val CHANNEL_ID = "shopping_reminders"
+        private const val NEARBY_SUGGESTION_NOTIFICATION_ID = 7_301
+        private const val MAX_NEARBY_SUGGESTION_LINES = 5
     }
+
+    data class NearbySuggestionNotificationEntry(
+        val itemId: Long,
+        val itemTitle: String,
+        val placeName: String,
+        val distanceMeters: Int
+    )
 }

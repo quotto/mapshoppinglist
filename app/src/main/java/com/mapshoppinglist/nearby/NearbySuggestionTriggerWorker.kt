@@ -18,6 +18,7 @@ import androidx.work.WorkerParameters
 import com.mapshoppinglist.MapShoppingListApplication
 import com.mapshoppinglist.domain.model.NearbyStoreCandidate
 import com.mapshoppinglist.domain.model.ShoppingItem
+import com.mapshoppinglist.notification.NotificationSender.NearbySuggestionNotificationEntry
 import java.util.concurrent.TimeUnit
 
 class NearbySuggestionTriggerWorker(
@@ -77,7 +78,7 @@ class NearbySuggestionTriggerWorker(
         val now = System.currentTimeMillis()
         val latE6 = (currentLocation.latitude * 1_000_000).toInt()
         val lngE6 = (currentLocation.longitude * 1_000_000).toInt()
-        val bestOpportunity = findBestOpportunity(
+        val opportunities = findNotificationOpportunities(
             app = app,
             items = items,
             location = currentLocation,
@@ -85,80 +86,117 @@ class NearbySuggestionTriggerWorker(
             latE6 = latE6,
             lngE6 = lngE6
         )
-        if (bestOpportunity == null) {
+        Log.d(TAG, "Found nearby suggestion opportunities: reason=$reason count=${opportunities.size}")
+        if (opportunities.isEmpty()) {
             eventLogWriter.appendDiagnostic(null, "suggestion_no_opportunity reason=$reason")
-            Log.d(TAG, "No nearby suggestion opportunity found: reason=$reason")
             return Result.success()
         }
 
+        Log.d(TAG, "Found nearby suggestion opportunities: reason=$reason count=${opportunities.size}")
         app.notificationSender.showNearbySuggestion(
-            itemId = bestOpportunity.item.id,
-            itemTitle = bestOpportunity.item.title,
-            placeName = bestOpportunity.candidate.name,
-            distanceMeters = bestOpportunity.candidate.distanceMeters
+            entries = opportunities.map { opportunity ->
+                NearbySuggestionNotificationEntry(
+                    itemId = opportunity.item.id,
+                    itemTitle = opportunity.item.title,
+                    placeName = opportunity.candidate.name,
+                    distanceMeters = opportunity.candidate.distanceMeters
+                )
+            }
         )
-        app.recordNearbySuggestionUseCase(
-            itemId = bestOpportunity.item.id,
-            candidatePlaceId = bestOpportunity.candidate.placeId,
-            candidatePlaceName = bestOpportunity.candidate.name,
-            now = now,
-            latE6 = latE6,
-            lngE6 = lngE6
-        )
+        opportunities.forEach { opportunity ->
+            app.recordNearbySuggestionUseCase(
+                itemId = opportunity.item.id,
+                candidatePlaceId = opportunity.candidate.placeId,
+                candidatePlaceName = opportunity.candidate.name,
+                now = now,
+                latE6 = latE6,
+                lngE6 = lngE6
+            )
+        }
         eventLogWriter.appendDiagnostic(
             null,
-            "suggestion_notified reason=$reason itemId=${bestOpportunity.item.id} placeId=${bestOpportunity.candidate.placeId} distance=${bestOpportunity.candidate.distanceMeters}"
+            "suggestion_notified reason=$reason count=${opportunities.size} itemIds=${opportunities.joinToString(",") { it.item.id.toString() }}"
         )
         Log.d(
             TAG,
-            "Notified nearby suggestion: item=${bestOpportunity.item.id} place=${bestOpportunity.candidate.placeId} distance=${bestOpportunity.candidate.distanceMeters}"
+            "Notified nearby suggestion count=${opportunities.size} items=${opportunities.joinToString(",") { it.item.id.toString() }}"
         )
         return Result.success()
     }
 
-    private suspend fun findBestOpportunity(
+    private suspend fun findNotificationOpportunities(
         app: MapShoppingListApplication,
         items: List<ShoppingItem>,
         location: Location,
         now: Long,
         latE6: Int,
         lngE6: Int
-    ): NearbySuggestionOpportunity? {
+    ): List<NearbySuggestionOpportunity> {
         val opportunities = mutableListOf<NearbySuggestionOpportunity>()
         items.take(MAX_ITEM_EVALUATION_COUNT).forEach { item ->
-            val searchQuery = item.title.trim()
-            eventLogWriter.appendSuggestionSearchQuery(
-                reason = inputData.getString(KEY_REASON) ?: REASON_UNSPECIFIED,
-                itemTitle = item.title,
-                searchQuery = searchQuery
+            val canEvaluateItem = app.shouldSendNearbySuggestionUseCase.canEvaluateItem(
+                itemId = item.id,
+                now = now,
+                currentLatE6 = latE6,
+                currentLngE6 = lngE6
             )
+            if (!canEvaluateItem) {
+                val latestState = app.nearbySuggestionStateRepository.getLatestByItemId(item.id)
+                val distanceMeters = latestState?.let { state ->
+                    calculateDistanceMeters(
+                        latE6 = latE6,
+                        lngE6 = lngE6,
+                        otherLatE6 = state.lastNotifiedLatE6,
+                        otherLngE6 = state.lastNotifiedLngE6
+                    )
+                }
+                eventLogWriter.appendDiagnostic(
+                    null,
+                    "suggestion_skipped_item_gate itemId=${item.id} itemTitle=${item.title} lastNotifiedAt=${latestState?.lastNotifiedAt ?: "none"} distanceMeters=${distanceMeters ?: "unknown"}"
+                )
+                return@forEach
+            }
+            val fallbackQuery = item.title.trim()
+            val categoryQueries = app.nearbyStoreCategoryRepository.classify(item.title)
+                .map { it.placeType.trim() }
+                .filter { it.isNotBlank() }
+                .distinct()
+                .take(MAX_CATEGORY_QUERY_COUNT)
+            val searchQueries = categoryQueries.ifEmpty { listOf(fallbackQuery) }
+            searchQueries.forEach { searchQuery ->
+                eventLogWriter.appendSuggestionSearchQuery(
+                    reason = inputData.getString(KEY_REASON) ?: REASON_UNSPECIFIED,
+                    itemTitle = item.title,
+                    searchQuery = searchQuery
+                )
+            }
             val candidates = app.nearbyStoreSuggestionRepository.search(
-                itemTitle = searchQuery,
+                itemTitle = item.title,
                 latitude = location.latitude,
                 longitude = location.longitude,
-                limit = MAX_PLACE_CANDIDATE_COUNT
+                limit = MAX_PLACE_CANDIDATE_COUNT,
+                searchQueries = searchQueries
             )
-            val topCandidate = candidates.firstOrNull { candidate ->
-                candidate.distanceMeters <= MAX_NOTIFICATION_DISTANCE_METERS &&
-                    app.shouldSendNearbySuggestionUseCase(
-                        itemId = item.id,
-                        candidatePlaceId = candidate.placeId,
-                        now = now,
-                        currentLatE6 = latE6,
-                        currentLngE6 = lngE6
-                    )
+            val topCandidate = candidates.firstOrNull()
+            if (topCandidate != null && topCandidate.distanceMeters > MAX_NOTIFICATION_DISTANCE_METERS) {
+                eventLogWriter.appendDiagnostic(
+                    null,
+                    "suggestion_candidate_rejected itemId=${item.id} itemTitle=${item.title} placeId=${topCandidate.placeId} placeName=${topCandidate.name} candidateDistanceMeters=${topCandidate.distanceMeters} distanceGatePassed=false"
+                )
             }
             eventLogWriter.appendSuggestionSearchResult(
                 reason = inputData.getString(KEY_REASON) ?: REASON_UNSPECIFIED,
                 itemTitle = item.title,
                 candidates = candidates,
-                selectedCandidate = topCandidate
+                selectedCandidate = topCandidate?.takeIf { it.distanceMeters <= MAX_NOTIFICATION_DISTANCE_METERS }
             )
-            if (topCandidate != null) {
+            if (topCandidate != null && topCandidate.distanceMeters <= MAX_NOTIFICATION_DISTANCE_METERS) {
                 opportunities += NearbySuggestionOpportunity(item = item, candidate = topCandidate)
             }
         }
-        return opportunities.minByOrNull { it.candidate.distanceMeters }
+        return opportunities
+            .sortedBy { it.candidate.distanceMeters }
+            .take(MAX_NOTIFICATION_ITEM_COUNT)
     }
 
     companion object {
@@ -166,8 +204,10 @@ class NearbySuggestionTriggerWorker(
         private const val WORK_NAME = "nearby_suggestion_trigger"
         private const val KEY_REASON = "reason"
         private const val MAX_NOTIFICATION_DISTANCE_METERS = 300
-        private const val MAX_ITEM_EVALUATION_COUNT = 3
+        private const val MAX_ITEM_EVALUATION_COUNT = 5
         private const val MAX_PLACE_CANDIDATE_COUNT = 5
+        private const val MAX_CATEGORY_QUERY_COUNT = 3
+        private const val MAX_NOTIFICATION_ITEM_COUNT = 5
 
         const val REASON_ACTIVITY_STILL = "activity_still"
         const val REASON_APP_START = "app_start"
@@ -186,6 +226,18 @@ class NearbySuggestionTriggerWorker(
                 request
             )
         }
+    }
+
+    private fun calculateDistanceMeters(
+        latE6: Int,
+        lngE6: Int,
+        otherLatE6: Int?,
+        otherLngE6: Int?
+    ): Int? {
+        if (otherLatE6 == null || otherLngE6 == null) return null
+        val latMeters = kotlin.math.abs(latE6 - otherLatE6) * 0.11132
+        val lngMeters = kotlin.math.abs(lngE6 - otherLngE6) * 0.09100
+        return kotlin.math.sqrt((latMeters * latMeters + lngMeters * lngMeters).toDouble()).toInt()
     }
 }
 

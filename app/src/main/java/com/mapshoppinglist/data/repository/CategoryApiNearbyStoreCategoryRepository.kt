@@ -1,0 +1,106 @@
+package com.mapshoppinglist.data.repository
+
+import android.util.Log
+import com.mapshoppinglist.domain.model.NearbyStoreCategory
+import com.mapshoppinglist.domain.repository.NearbyStoreCategoryRepository
+import java.io.BufferedWriter
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
+
+class CategoryApiNearbyStoreCategoryRepository(
+    private val endpoint: String,
+    private val apiKey: String,
+    private val openConnection: (URL) -> HttpURLConnection = { url ->
+        url.openConnection() as HttpURLConnection
+    }
+) : NearbyStoreCategoryRepository {
+
+    override suspend fun classify(itemTitle: String, maxCategories: Int): List<NearbyStoreCategory> =
+        withContext(Dispatchers.IO) {
+            val normalizedItemTitle = itemTitle.trim()
+            if (endpoint.isBlank() || apiKey.isBlank() || normalizedItemTitle.isBlank()) {
+                Log.e(TAG, "Category API not configured")
+                return@withContext emptyList()
+            }
+
+            val connection = openConnection(URL(endpoint))
+            return@withContext runCatching {
+                connection.requestMethod = "POST"
+                connection.connectTimeout = CONNECT_TIMEOUT_MILLIS
+                connection.readTimeout = READ_TIMEOUT_MILLIS
+                connection.doInput = true
+                connection.doOutput = true
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.setRequestProperty("Accept", "application/json")
+                connection.setRequestProperty(HEADER_API_KEY, apiKey)
+
+                BufferedWriter(connection.outputStream.writer()).use { writer ->
+                    writer.write(
+                        JSONObject()
+                            .put("itemName", normalizedItemTitle)
+                            .put("locale", DEFAULT_LOCALE)
+                            .put("country", DEFAULT_COUNTRY)
+                            .put("maxCategories", maxCategories.coerceIn(1, MAX_CATEGORIES))
+                            .toString()
+                    )
+                }
+
+                val responseBody = (
+                    if (connection.responseCode in 200..299) connection.inputStream else connection.errorStream
+                    )?.bufferedReader()?.use { it.readText() }.orEmpty()
+
+                if (connection.responseCode !in 200..299) {
+                    Log.w(
+                        TAG,
+                        "Category API returned non-success status=${connection.responseCode} body=$responseBody"
+                    )
+                    emptyList()
+                } else {
+                    parseCategories(responseBody)
+                }
+            }.getOrElse { error ->
+                Log.w(TAG, "Category API classification failed", error)
+                emptyList()
+            }.also {
+                connection.disconnect()
+            }
+        }
+
+    private fun parseCategories(responseBody: String): List<NearbyStoreCategory> {
+        if (responseBody.isBlank()) return emptyList()
+        val json = JSONObject(responseBody)
+        val categories = json.optJSONArray("categories") ?: JSONArray()
+        return buildList {
+            for (index in 0 until categories.length()) {
+                val item = categories.optJSONObject(index) ?: continue
+                val placeType = item.optString("placeType").trim()
+                if (placeType.isBlank()) continue
+                add(
+                    NearbyStoreCategory(
+                        placeType = placeType,
+                        confidence = item.optDoubleOrNull("confidence"),
+                        reason = item.optString("reason").takeIf { it.isNotBlank() }
+                    )
+                )
+            }
+        }.distinctBy { it.placeType }
+    }
+
+    private fun JSONObject.optDoubleOrNull(name: String): Double? {
+        return if (has(name) && !isNull(name)) optDouble(name) else null
+    }
+
+    companion object {
+        private const val TAG = "CategoryApiStoreCatRepo"
+        private const val HEADER_API_KEY = "X-Api-Key"
+        private const val DEFAULT_LOCALE = "ja-JP"
+        private const val DEFAULT_COUNTRY = "JP"
+        private const val MAX_CATEGORIES = 5
+        private const val CONNECT_TIMEOUT_MILLIS = 10_000
+        private const val READ_TIMEOUT_MILLIS = 10_000
+    }
+}
