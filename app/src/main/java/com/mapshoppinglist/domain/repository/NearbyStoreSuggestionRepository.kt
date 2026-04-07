@@ -8,6 +8,7 @@ interface NearbyStoreSuggestionRepository {
         latitude: Double,
         longitude: Double,
         limit: Int = 5,
-        searchQueries: List<String> = emptyList()
+        typeQueries: List<String> = emptyList(),
+        textQueries: List<String> = emptyList()
     ): List<NearbyStoreCandidate>
 }

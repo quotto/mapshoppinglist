@@ -22,6 +22,7 @@ import com.mapshoppinglist.domain.repository.PlacesRepository
 import com.mapshoppinglist.domain.repository.ShoppingListRepository
 import com.mapshoppinglist.domain.usecase.AddShoppingItemUseCase
 import com.mapshoppinglist.domain.usecase.BuildGeofenceSyncPlanUseCase
+import com.mapshoppinglist.domain.usecase.BuildNearbyStoreSearchQueriesUseCase
 import com.mapshoppinglist.domain.usecase.BuildNotificationMessageUseCase
 import com.mapshoppinglist.domain.usecase.CreatePlaceUseCase
 import com.mapshoppinglist.domain.usecase.DeletePlaceUseCase
@@ -59,7 +60,10 @@ class MapShoppingListApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         if (!Places.isInitialized()) {
-            Places.initialize(applicationContext, getString(R.string.google_maps_key))
+            Places.initializeWithNewPlacesApiEnabled(
+                applicationContext,
+                getString(R.string.google_maps_key)
+            )
         }
         MapsInitializer.initialize(applicationContext, MapsInitializer.Renderer.LATEST) {}
         nearbyActivityTransitionScheduler.scheduleRegistration()
@@ -160,6 +164,10 @@ class MapShoppingListApplication : Application() {
 
     val buildNotificationMessageUseCase: BuildNotificationMessageUseCase by lazy {
         BuildNotificationMessageUseCase()
+    }
+
+    val buildNearbyStoreSearchQueriesUseCase: BuildNearbyStoreSearchQueriesUseCase by lazy {
+        BuildNearbyStoreSearchQueriesUseCase()
     }
 
     val buildGeofenceSyncPlanUseCase: BuildGeofenceSyncPlanUseCase by lazy {

@@ -46,27 +46,28 @@ class GooglePlacesNearbyStoreSuggestionRepositoryTest {
             .setLatLng(LatLng(35.0004, 139.0004))
             .setPrimaryType("restaurant")
             .build()
-        fakeClient.searchByTextResponse = SearchByTextResponse.newInstance(listOf(restaurant, supermarket))
+        fakeClient.searchNearbyResponse = SearchNearbyResponse.newInstance(listOf(restaurant, supermarket))
 
         val repository = GooglePlacesNearbyStoreSuggestionRepository(fakeClient)
         val results = repository.search(
             itemTitle = "牛乳",
             latitude = 35.0,
             longitude = 139.0,
-            limit = 5
+            limit = 5,
+            typeQueries = listOf("supermarket")
         )
 
         assertEquals(1, results.size)
         assertEquals("store-1", results.first().placeId)
-        val bias = fakeClient.lastSearchByTextRequest?.locationBias as? CircularBounds
+        val bias = fakeClient.lastSearchNearbyRequest?.locationRestriction as? CircularBounds
         assertEquals(LatLng(35.0, 139.0), bias?.center)
         assertTrue(results.first().distanceMeters >= 0)
     }
 
     @Test
-    fun `search uses provided search queries and deduplicates places`() = runTest {
+    fun `search uses nearby type queries before text queries and deduplicates places`() = runTest {
         val fakeClient = FakeNearbyPlacesClient()
-        fakeClient.searchResponsesByQuery["supermarket"] = SearchByTextResponse.newInstance(
+        fakeClient.searchResponsesByType["supermarket"] = SearchNearbyResponse.newInstance(
             listOf(
                 Place.builder()
                     .setId("store-1")
@@ -77,7 +78,7 @@ class GooglePlacesNearbyStoreSuggestionRepositoryTest {
                     .build()
             )
         )
-        fakeClient.searchResponsesByQuery["drugstore"] = SearchByTextResponse.newInstance(
+        fakeClient.searchResponsesByType["drugstore"] = SearchNearbyResponse.newInstance(
             listOf(
                 Place.builder()
                     .setId("store-1")
@@ -95,6 +96,17 @@ class GooglePlacesNearbyStoreSuggestionRepositoryTest {
                     .build()
             )
         )
+        fakeClient.searchResponsesByQuery["牛乳"] = SearchByTextResponse.newInstance(
+            listOf(
+                Place.builder()
+                    .setId("store-3")
+                    .setName("牛乳専門店")
+                    .setAddress("東京都")
+                    .setLatLng(LatLng(35.0010, 139.0010))
+                    .setPrimaryType("store")
+                    .build()
+            )
+        )
 
         val repository = GooglePlacesNearbyStoreSuggestionRepository(fakeClient)
         val results = repository.search(
@@ -102,26 +114,39 @@ class GooglePlacesNearbyStoreSuggestionRepositoryTest {
             latitude = 35.0,
             longitude = 139.0,
             limit = 5,
-            searchQueries = listOf("supermarket", "drugstore")
+            typeQueries = listOf("supermarket", "drugstore"),
+            textQueries = listOf("牛乳")
         )
 
-        assertEquals(listOf("supermarket", "drugstore"), fakeClient.requestedQueries)
-        assertEquals(2, results.size)
-        assertEquals(listOf("store-1", "store-2"), results.map { it.placeId })
+        assertEquals(listOf("supermarket", "drugstore"), fakeClient.requestedTypes)
+        assertEquals(listOf("牛乳"), fakeClient.requestedQueries)
+        assertEquals(3, results.size)
+        assertEquals(listOf("store-1", "store-2", "store-3"), results.map { it.placeId })
     }
 }
 
 private class FakeNearbyPlacesClient : PlacesClient {
     var lastSearchByTextRequest: SearchByTextRequest? = null
+    var lastSearchNearbyRequest: SearchNearbyRequest? = null
     var searchByTextResponse: SearchByTextResponse = SearchByTextResponse.newInstance(emptyList())
+    var searchNearbyResponse: SearchNearbyResponse = SearchNearbyResponse.newInstance(emptyList())
     val searchResponsesByQuery = linkedMapOf<String, SearchByTextResponse>()
+    val searchResponsesByType = linkedMapOf<String, SearchNearbyResponse>()
     val requestedQueries = mutableListOf<String>()
+    val requestedTypes = mutableListOf<String>()
 
     override fun searchByText(request: SearchByTextRequest): Task<SearchByTextResponse> {
         lastSearchByTextRequest = request
         val query = request.textQuery ?: ""
         requestedQueries += query
         return Tasks.forResult(searchResponsesByQuery[query] ?: searchByTextResponse)
+    }
+
+    override fun searchNearby(request: SearchNearbyRequest): Task<SearchNearbyResponse> {
+        lastSearchNearbyRequest = request
+        val type = request.includedPrimaryTypes?.firstOrNull().orEmpty()
+        requestedTypes += type
+        return Tasks.forResult(searchResponsesByType[type] ?: searchNearbyResponse)
     }
 
     override fun fetchPhoto(request: FetchPhotoRequest): Task<FetchPhotoResponse> = unsupported()
@@ -136,8 +161,6 @@ private class FakeNearbyPlacesClient : PlacesClient {
     override fun findCurrentPlace(request: FindCurrentPlaceRequest): Task<FindCurrentPlaceResponse> = unsupported()
 
     override fun isOpen(request: IsOpenRequest): Task<IsOpenResponse> = unsupported()
-
-    override fun searchNearby(request: SearchNearbyRequest): Task<SearchNearbyResponse> = unsupported()
 
     override fun zzb(request: FetchPlaceRequest, i: Int): Task<FetchPlaceResponse> = unsupported()
 

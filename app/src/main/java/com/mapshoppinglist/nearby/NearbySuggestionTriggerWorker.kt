@@ -156,14 +156,16 @@ class NearbySuggestionTriggerWorker(
                 )
                 return@forEach
             }
-            val fallbackQuery = item.title.trim()
-            val categoryQueries = app.nearbyStoreCategoryRepository.classify(item.title)
-                .map { it.placeType.trim() }
-                .filter { it.isNotBlank() }
-                .distinct()
-                .take(MAX_CATEGORY_QUERY_COUNT)
-            val searchQueries = categoryQueries.ifEmpty { listOf(fallbackQuery) }
-            searchQueries.forEach { searchQuery ->
+            val categories = app.nearbyStoreCategoryRepository.classify(item.title)
+            val searchPlan = app.buildNearbyStoreSearchQueriesUseCase(
+                itemTitle = item.title,
+                categories = categories
+            )
+            eventLogWriter.appendDiagnostic(
+                null,
+                "suggestion_query_plan itemId=${item.id} itemTitle=${item.title} categories=${categories.joinToString("|") { "${it.placeType}:${it.confidence ?: "na"}" }} typeQueries=${searchPlan.typeQueries.joinToString("|")} textQueries=${searchPlan.textQueries.joinToString("|")}"
+            )
+            (searchPlan.typeQueries + searchPlan.textQueries).forEach { searchQuery ->
                 eventLogWriter.appendSuggestionSearchQuery(
                     reason = inputData.getString(KEY_REASON) ?: REASON_UNSPECIFIED,
                     itemTitle = item.title,
@@ -175,7 +177,8 @@ class NearbySuggestionTriggerWorker(
                 latitude = location.latitude,
                 longitude = location.longitude,
                 limit = MAX_PLACE_CANDIDATE_COUNT,
-                searchQueries = searchQueries
+                typeQueries = searchPlan.typeQueries,
+                textQueries = searchPlan.textQueries
             )
             val topCandidate = candidates.firstOrNull()
             if (topCandidate != null && topCandidate.distanceMeters > MAX_NOTIFICATION_DISTANCE_METERS) {
@@ -206,7 +209,6 @@ class NearbySuggestionTriggerWorker(
         private const val MAX_NOTIFICATION_DISTANCE_METERS = 300
         private const val MAX_ITEM_EVALUATION_COUNT = 5
         private const val MAX_PLACE_CANDIDATE_COUNT = 5
-        private const val MAX_CATEGORY_QUERY_COUNT = 3
         private const val MAX_NOTIFICATION_ITEM_COUNT = 5
 
         const val REASON_ACTIVITY_STILL = "activity_still"
