@@ -89,11 +89,21 @@ fun ShoppingListRoute(
     var showBackgroundPrompt by remember {
         mutableStateOf(shouldRequestBackgroundLocation(context))
     }
+    var showForegroundLocationPrompt by remember {
+        mutableStateOf(shouldRequestForegroundLocation(context))
+    }
     var showActivityRecognitionPrompt by remember {
         mutableStateOf(shouldRequestActivityRecognitionPermission(context))
     }
     var showNotificationPrompt by remember {
         mutableStateOf(shouldRequestNotificationPermission(context))
+    }
+
+    val foregroundLocationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        showForegroundLocationPrompt = !granted
+        showBackgroundPrompt = granted && shouldRequestBackgroundLocation(context)
     }
 
     val backgroundPermissionLauncher = rememberLauncherForActivityResult(
@@ -116,11 +126,25 @@ fun ShoppingListRoute(
 
     val permissionPrompts = remember(
         showBackgroundPrompt,
+        showForegroundLocationPrompt,
         showActivityRecognitionPrompt,
         showNotificationPrompt,
         context
     ) {
         buildList {
+            if (showForegroundLocationPrompt) {
+                add(
+                    PermissionPromptUiModel(
+                        key = "foreground_location",
+                        title = context.getString(R.string.permission_location_title),
+                        message = context.getString(R.string.permission_location_message),
+                        actionLabel = context.getString(R.string.permission_location_request_button),
+                        onClick = {
+                            foregroundLocationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                        }
+                    )
+                )
+            }
             if (showBackgroundPrompt) {
                 add(
                     PermissionPromptUiModel(
@@ -738,6 +762,14 @@ private fun shouldRequestBackgroundLocation(context: android.content.Context): B
         Manifest.permission.ACCESS_BACKGROUND_LOCATION
     ) == android.content.pm.PackageManager.PERMISSION_GRANTED
     return !backgroundGranted
+}
+
+private fun shouldRequestForegroundLocation(context: android.content.Context): Boolean {
+    val foregroundGranted = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.ACCESS_FINE_LOCATION
+    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    return !foregroundGranted
 }
 
 private fun shouldRequestNotificationPermission(context: android.content.Context): Boolean {
