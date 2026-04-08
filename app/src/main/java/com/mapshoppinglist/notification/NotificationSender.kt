@@ -145,7 +145,6 @@ class NotificationSender(private val context: Context) {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .addAction(0, context.getString(R.string.notification_action_mark_purchased), markPurchasedIntent)
             .addAction(0, context.getString(R.string.notification_action_delete), deleteIntent)
-            .addAction(0, context.getString(R.string.notification_action_detail), detailIntent)
             .addAction(0, context.getString(R.string.notification_action_map), mapIntent)
 
         notificationManager.notify(notificationId, builder.build())

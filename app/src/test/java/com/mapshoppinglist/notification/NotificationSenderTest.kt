@@ -68,11 +68,10 @@ class NotificationSenderTest {
         assertEquals(R.drawable.ic_launcher_foreground, notification.smallIcon.resId)
         assertTrue(notification.extras.getString("android.title").orEmpty().contains("牛乳"))
         assertTrue(notification.extras.getCharSequence("android.text").toString().contains("近所スーパー"))
-        assertEquals(4, notification.actions.size)
+        assertEquals(3, notification.actions.size)
         val actionTitles = notification.actions.map { it.title.toString() }
         assertTrue(actionTitles.contains("購入済みにする"))
         assertTrue(actionTitles.contains("削除"))
-        assertTrue(actionTitles.contains("詳細"))
         assertTrue(actionTitles.contains("地図"))
     }
 }
