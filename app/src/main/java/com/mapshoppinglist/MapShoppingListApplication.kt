@@ -1,6 +1,7 @@
 package com.mapshoppinglist
 
 import android.app.Application
+import android.os.Build
 import android.util.Log
 import com.google.android.gms.maps.MapsInitializer
 import com.google.android.libraries.places.api.Places
@@ -66,11 +67,19 @@ class MapShoppingListApplication : Application() {
             )
         }
         MapsInitializer.initialize(applicationContext, MapsInitializer.Renderer.LATEST) {}
+        if (isRunningUnderRobolectric()) {
+            return
+        }
         nearbyActivityTransitionScheduler.scheduleRegistration()
         NearbySuggestionTriggerWorker.enqueueNow(
             context = applicationContext,
             reason = NearbySuggestionTriggerWorker.REASON_APP_START
         )
+    }
+
+    private fun isRunningUnderRobolectric(): Boolean {
+        return Build.FINGERPRINT.equals("robolectric", ignoreCase = true) ||
+            runCatching { Class.forName("org.robolectric.RuntimeEnvironment") }.isSuccess
     }
 
     /**
