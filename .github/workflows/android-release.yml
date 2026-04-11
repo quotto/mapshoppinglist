@@ -9,6 +9,7 @@ jobs:
   firebase-test:
     name: Firebase Test Lab
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       id-token: write
       contents: read
@@ -24,12 +25,16 @@ jobs:
         with:
           gradle-args: bundleDebug
           maps-api-key: ${{ secrets.MAPS_API_KEY }}
+          nearby-category-api-endpoint: ${{ secrets.NEARBY_CATEGORY_API_ENDPOINT }}
+          nearby-category-api-key: ${{ secrets.NEARBY_CATEGORY_API_KEY }}
 
       - name: AndroidTest 作成
         uses: ./.github/actions/android-gradle
         with:
           gradle-args: assembleDebugAndroidTest
           maps-api-key: ${{ secrets.MAPS_API_KEY }}
+          nearby-category-api-endpoint: ${{ secrets.NEARBY_CATEGORY_API_ENDPOINT }}
+          nearby-category-api-key: ${{ secrets.NEARBY_CATEGORY_API_KEY }}
 
       - name: Google Cloud 認証
         uses: google-github-actions/auth@v3
@@ -52,6 +57,7 @@ jobs:
     name: 内部テストへアップロード
     needs: firebase-test
     runs-on: ubuntu-latest
+    environment: production
     env:
       CI_VERSION_MINOR: ${{ github.event.pull_request.number }}
       CI_VERSION_PATCH: ${{ github.run_number }}
@@ -64,6 +70,8 @@ jobs:
         with:
           gradle-args: bundleRelease publishReleaseBundle
           maps-api-key: ${{ secrets.MAPS_API_KEY }}
+          nearby-category-api-endpoint: ${{ secrets.NEARBY_CATEGORY_API_ENDPOINT }}
+          nearby-category-api-key: ${{ secrets.NEARBY_CATEGORY_API_KEY }}
           play-service-account-json: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           android-keystore-password: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}

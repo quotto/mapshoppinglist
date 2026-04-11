@@ -32,6 +32,14 @@ inputs:
     description: Google Maps API キー
     required: false
     default: ''
+  nearby-category-api-endpoint:
+    description: 近接候補カテゴリ判定 API のエンドポイント
+    required: false
+    default: ''
+  nearby-category-api-key:
+    description: 近接候補カテゴリ判定 API の API キー
+    required: false
+    default: ''
   play-service-account-json:
     description: Play Developer API 用サービスアカウント JSON
     required: false
@@ -90,6 +98,8 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         MAPS_API_KEY_INPUT: ${{ inputs.maps-api-key }}
+        NEARBY_CATEGORY_API_ENDPOINT_INPUT: ${{ inputs.nearby-category-api-endpoint }}
+        NEARBY_CATEGORY_API_KEY_INPUT: ${{ inputs.nearby-category-api-key }}
         PLAY_JSON_INPUT: ${{ inputs.play-service-account-json }}
         KEYSTORE_BASE64_INPUT: ${{ inputs.android-keystore-base64 }}
         KEYSTORE_PASSWORD_INPUT: ${{ inputs.android-keystore-password }}
@@ -97,8 +107,18 @@ runs:
         KEY_ALIAS_PASSWORD_INPUT: ${{ inputs.android-key-alias-password }}
       run: |
         set -euo pipefail
+        touch local.properties
+
         if [ -n "${MAPS_API_KEY_INPUT}" ]; then
-          printf 'MAPS_API_KEY=%s\n' "${MAPS_API_KEY_INPUT}" > local.properties
+          printf 'MAPS_API_KEY=%s\n' "${MAPS_API_KEY_INPUT}" >> local.properties
+        fi
+
+        if [ -n "${NEARBY_CATEGORY_API_ENDPOINT_INPUT}" ]; then
+          printf 'NEARBY_CATEGORY_API_ENDPOINT=%s\n' "${NEARBY_CATEGORY_API_ENDPOINT_INPUT}" >> local.properties
+        fi
+
+        if [ -n "${NEARBY_CATEGORY_API_KEY_INPUT}" ]; then
+          printf 'NEARBY_CATEGORY_API_KEY=%s\n' "${NEARBY_CATEGORY_API_KEY_INPUT}" >> local.properties
         fi
 
         mkdir -p gradle
