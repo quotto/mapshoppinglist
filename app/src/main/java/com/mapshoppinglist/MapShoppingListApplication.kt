@@ -58,19 +58,28 @@ import com.mapshoppinglist.notification.NotificationSender
  */
 class MapShoppingListApplication : Application() {
 
+    companion object {
+        private const val TAG = "MapShoppingListApp"
+    }
+
     override fun onCreate() {
         super.onCreate()
+        Log.i(TAG, "Application onCreate started")
         if (!Places.isInitialized()) {
             Places.initializeWithNewPlacesApiEnabled(
                 applicationContext,
                 getString(R.string.google_maps_key)
             )
+            Log.i(TAG, "Places SDK initialized with new API")
         }
         MapsInitializer.initialize(applicationContext, MapsInitializer.Renderer.LATEST) {}
         if (isRunningUnderRobolectric()) {
+            Log.i(TAG, "Skipping background initialization under Robolectric")
             return
         }
+        Log.i(TAG, "Scheduling nearby activity transition registration")
         nearbyActivityTransitionScheduler.scheduleRegistration()
+        Log.i(TAG, "Enqueuing nearby suggestion trigger for app start")
         NearbySuggestionTriggerWorker.enqueueNow(
             context = applicationContext,
             reason = NearbySuggestionTriggerWorker.REASON_APP_START

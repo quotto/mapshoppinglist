@@ -15,25 +15,26 @@ class NearbyActivityTransitionReceiver : BroadcastReceiver() {
         val eventLogWriter = NearbyActivityEventLogWriter.fromContext(context)
         if (intent?.action != NearbyActivityTransitionPendingIntentProvider.ACTION_ACTIVITY_TRANSITION) {
             eventLogWriter.appendDiagnostic(intent?.action, "ignored_unexpected_action")
-            Log.d(TAG, "Ignored broadcast action=${intent?.action}")
+            Log.i(TAG, "Ignored broadcast action=${intent?.action}")
             return
         }
         if (!ActivityTransitionResult.hasResult(intent)) {
             eventLogWriter.appendDiagnostic(intent.action, "missing_transition_result")
-            Log.d(TAG, "No ActivityTransitionResult found in intent")
+            Log.w(TAG, "No ActivityTransitionResult found in intent")
             return
         }
         val result = ActivityTransitionResult.extractResult(intent)
         val events = result?.transitionEvents.orEmpty()
+        Log.i(TAG, "Received activity transition broadcast eventCount=${events.size}")
         eventLogWriter.appendTransitionEvents(intent.action, events)
         if (!containsStillEnterTransition(events)) {
             eventLogWriter.appendDiagnostic(intent.action, "no_still_enter_transition")
-            Log.d(TAG, "No STILL enter transition found")
+            Log.i(TAG, "No STILL enter transition found")
             return
         }
 
         eventLogWriter.appendDiagnostic(intent.action, "still_enter_enqueued")
-        Log.d(TAG, "STILL enter transition received, enqueue nearby suggestion worker")
+        Log.i(TAG, "STILL enter transition received, enqueue nearby suggestion worker")
         NearbySuggestionTriggerWorker.enqueueNow(
             context = context,
             reason = NearbySuggestionTriggerWorker.REASON_ACTIVITY_STILL

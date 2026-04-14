@@ -30,9 +30,11 @@ class NearbySuggestionTriggerWorker(
     private val eventLogWriter = NearbyActivityEventLogWriter.fromContext(appContext)
 
     override suspend fun doWork(): Result {
+        val reason = inputData.getString(KEY_REASON) ?: REASON_UNSPECIFIED
+        Log.i(TAG, "Starting nearby suggestion evaluation: reason=$reason")
         if (!ActivityRecognitionPermission.isGranted(applicationContext)) {
             eventLogWriter.appendDiagnostic(null, "suggestion_skipped_missing_activity_recognition")
-            Log.d(TAG, "Skipping nearby suggestion evaluation: ACTIVITY_RECOGNITION not granted")
+            Log.w(TAG, "Skipping nearby suggestion evaluation: ACTIVITY_RECOGNITION not granted")
             return Result.success()
         }
 
@@ -42,7 +44,7 @@ class NearbySuggestionTriggerWorker(
         ) == PackageManager.PERMISSION_GRANTED
         if (!hasBackgroundLocation) {
             eventLogWriter.appendDiagnostic(null, "suggestion_skipped_missing_background_location")
-            Log.d(TAG, "Skipping nearby suggestion evaluation: background location not granted")
+            Log.w(TAG, "Skipping nearby suggestion evaluation: background location not granted")
             return Result.success()
         }
 
@@ -56,25 +58,29 @@ class NearbySuggestionTriggerWorker(
         }
         if (!canShowNotifications) {
             eventLogWriter.appendDiagnostic(null, "suggestion_skipped_notifications_disabled")
-            Log.d(TAG, "Skipping nearby suggestion evaluation: notifications disabled")
+            Log.w(TAG, "Skipping nearby suggestion evaluation: notifications disabled")
             return Result.success()
         }
 
-        val reason = inputData.getString(KEY_REASON) ?: REASON_UNSPECIFIED
         val app = applicationContext as MapShoppingListApplication
         val currentLocation = locationProvider.getCurrentLocation()
         if (currentLocation == null) {
             eventLogWriter.appendDiagnostic(null, "suggestion_skipped_location_unavailable reason=$reason")
-            Log.d(TAG, "Skipping nearby suggestion evaluation: current location unavailable")
+            Log.w(TAG, "Skipping nearby suggestion evaluation: current location unavailable")
             return Result.success()
         }
+        Log.i(
+            TAG,
+            "Current location acquired for nearby suggestion: reason=$reason lat=${currentLocation.latitude} lng=${currentLocation.longitude}"
+        )
 
         val items = app.getUnlinkedShoppingItemsUseCase()
         if (items.isEmpty()) {
             eventLogWriter.appendDiagnostic(null, "suggestion_skipped_no_unlinked_items reason=$reason")
-            Log.d(TAG, "No unlinked items available for nearby suggestion: reason=$reason")
+            Log.i(TAG, "No unlinked items available for nearby suggestion: reason=$reason")
             return Result.success()
         }
+        Log.i(TAG, "Evaluating nearby suggestions for ${items.size} unlinked items: reason=$reason")
         val now = System.currentTimeMillis()
         val latE6 = (currentLocation.latitude * 1_000_000).toInt()
         val lngE6 = (currentLocation.longitude * 1_000_000).toInt()
@@ -86,13 +92,12 @@ class NearbySuggestionTriggerWorker(
             latE6 = latE6,
             lngE6 = lngE6
         )
-        Log.d(TAG, "Found nearby suggestion opportunities: reason=$reason count=${opportunities.size}")
+        Log.i(TAG, "Found nearby suggestion opportunities: reason=$reason count=${opportunities.size}")
         if (opportunities.isEmpty()) {
             eventLogWriter.appendDiagnostic(null, "suggestion_no_opportunity reason=$reason")
             return Result.success()
         }
 
-        Log.d(TAG, "Found nearby suggestion opportunities: reason=$reason count=${opportunities.size}")
         opportunities.forEach { opportunity ->
             app.notificationSender.showNearbySuggestion(
                 entry = NearbySuggestionNotificationEntry(
@@ -154,9 +159,17 @@ class NearbySuggestionTriggerWorker(
                     null,
                     "suggestion_skipped_item_gate itemId=${item.id} itemTitle=${item.title} lastNotifiedAt=${latestState?.lastNotifiedAt ?: "none"} distanceMeters=${distanceMeters ?: "unknown"}"
                 )
+                Log.i(
+                    TAG,
+                    "Skipped item by notification gate: itemId=${item.id} itemTitle=${item.title} lastNotifiedAt=${latestState?.lastNotifiedAt ?: "none"} distanceMeters=${distanceMeters ?: "unknown"}"
+                )
                 return@forEach
             }
             val categories = app.nearbyStoreCategoryRepository.classify(item.title)
+            Log.i(
+                TAG,
+                "Category classification result: itemId=${item.id} itemTitle=${item.title} categories=${categories.joinToString("|") { "${it.placeType}:${it.confidence ?: "na"}" }}"
+            )
             val searchPlan = app.buildNearbyStoreSearchQueriesUseCase(
                 itemTitle = item.title,
                 categories = categories
@@ -181,10 +194,18 @@ class NearbySuggestionTriggerWorker(
                 textQueries = searchPlan.textQueries
             )
             val topCandidate = candidates.firstOrNull()
+            Log.i(
+                TAG,
+                "Nearby store search result: itemId=${item.id} itemTitle=${item.title} candidateCount=${candidates.size} topCandidate=${topCandidate?.placeId ?: "none"} topDistanceMeters=${topCandidate?.distanceMeters ?: "none"}"
+            )
             if (topCandidate != null && topCandidate.distanceMeters > MAX_NOTIFICATION_DISTANCE_METERS) {
                 eventLogWriter.appendDiagnostic(
                     null,
                     "suggestion_candidate_rejected itemId=${item.id} itemTitle=${item.title} placeId=${topCandidate.placeId} placeName=${topCandidate.name} candidateDistanceMeters=${topCandidate.distanceMeters} distanceGatePassed=false"
+                )
+                Log.i(
+                    TAG,
+                    "Rejected top candidate by distance gate: itemId=${item.id} placeId=${topCandidate.placeId} distanceMeters=${topCandidate.distanceMeters}"
                 )
             }
             eventLogWriter.appendSuggestionSearchResult(
@@ -217,7 +238,7 @@ class NearbySuggestionTriggerWorker(
         const val REASON_UNSPECIFIED = "unspecified"
 
         fun enqueueNow(context: Context, reason: String = REASON_UNSPECIFIED) {
-            Log.d(TAG, "Enqueuing nearby suggestion trigger: reason=$reason")
+            Log.i(TAG, "Enqueuing nearby suggestion trigger: reason=$reason")
             val request = OneTimeWorkRequestBuilder<NearbySuggestionTriggerWorker>()
                 .setInputData(Data.Builder().putString(KEY_REASON, reason).build())
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)

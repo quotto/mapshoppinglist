@@ -23,12 +23,16 @@ class CategoryApiNearbyStoreCategoryRepository(
         withContext(Dispatchers.IO) {
             val normalizedItemTitle = itemTitle.trim()
             if (endpoint.isBlank() || apiKey.isBlank() || normalizedItemTitle.isBlank()) {
-                Log.e(TAG, "Category API not configured")
+                Log.w(TAG, "Category API not configured: endpointOrKeyMissing=${endpoint.isBlank() || apiKey.isBlank()} itemTitleBlank=${normalizedItemTitle.isBlank()}")
                 return@withContext emptyList()
             }
 
             val connection = openConnection(URL(endpoint))
             return@withContext runCatching {
+                Log.i(
+                    TAG,
+                    "Calling category API: endpoint=$endpoint itemTitle=$normalizedItemTitle maxCategories=${maxCategories.coerceIn(1, MAX_CATEGORIES)}"
+                )
                 connection.requestMethod = "POST"
                 connection.connectTimeout = CONNECT_TIMEOUT_MILLIS
                 connection.readTimeout = READ_TIMEOUT_MILLIS
@@ -60,7 +64,12 @@ class CategoryApiNearbyStoreCategoryRepository(
                     )
                     emptyList()
                 } else {
-                    parseCategories(responseBody)
+                    parseCategories(responseBody).also { categories ->
+                        Log.i(
+                            TAG,
+                            "Category API returned ${categories.size} categories for itemTitle=$normalizedItemTitle values=${categories.joinToString("|") { "${it.placeType}:${it.confidence ?: "na"}" }}"
+                        )
+                    }
                 }
             }.getOrElse { error ->
                 Log.w(TAG, "Category API classification failed", error)
