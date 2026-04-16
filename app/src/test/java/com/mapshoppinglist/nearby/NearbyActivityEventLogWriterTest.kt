@@ -141,6 +141,22 @@ class NearbyActivityEventLogWriterTest {
         assertFalse(writer.logFile().exists())
     }
 
+    @Test
+    fun `clearLog removes existing content`() {
+        val filesDir = createTempDir(prefix = "nearby-activity-log")
+        val writer = NearbyActivityEventLogWriter(filesDir, { 1_743_208_523_456L }, enabled = true)
+
+        writer.appendDiagnostic(
+            action = "com.mapshoppinglist.ACTION_ACTIVITY_TRANSITION",
+            message = "test"
+        )
+        assertTrue(writer.readLogText().contains("message=test"))
+
+        writer.clearLog()
+
+        assertEquals("", writer.readLogText())
+    }
+
     private fun createTempDir(prefix: String): File {
         return kotlin.io.path.createTempDirectory(prefix).toFile().apply {
             deleteOnExit()

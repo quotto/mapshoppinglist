@@ -1,7 +1,6 @@
 package com.mapshoppinglist.nearby
 
 import android.content.Context
-import android.content.pm.ApplicationInfo
 import android.util.Log
 import com.google.android.gms.location.ActivityTransition
 import com.google.android.gms.location.ActivityTransitionEvent
@@ -84,6 +83,23 @@ class NearbyActivityEventLogWriter(
 
     internal fun logFile(): File = File(filesDir, LOG_RELATIVE_PATH)
 
+    fun readLogText(): String {
+        if (!enabled) return ""
+        val file = logFile()
+        if (!file.exists()) return ""
+        return runCatching { file.readText() }
+            .onFailure { error -> Log.w(TAG, "Failed to read nearby activity event log", error) }
+            .getOrDefault("")
+    }
+
+    fun clearLog() {
+        if (!enabled) return
+        val file = logFile()
+        if (!file.exists()) return
+        runCatching { file.writeText("") }
+            .onFailure { error -> Log.w(TAG, "Failed to clear nearby activity event log", error) }
+    }
+
     private fun appendLines(messages: List<String>) {
         if (!enabled) return
         if (messages.isEmpty()) return
@@ -102,9 +118,22 @@ class NearbyActivityEventLogWriter(
                     "[$timestamp] $message"
                 }
             )
+            trimIfNeeded(file)
         }.onFailure { error ->
             Log.w(TAG, "Failed to append nearby activity event log", error)
         }
+    }
+
+    private fun trimIfNeeded(file: File) {
+        if (file.length() <= MAX_LOG_FILE_SIZE_BYTES) return
+        val trimmed = runCatching {
+            file.readText().takeLast(MAX_LOG_FILE_SIZE_BYTES.toInt())
+        }.getOrElse { error ->
+            Log.w(TAG, "Failed to trim nearby activity event log", error)
+            return
+        }
+        runCatching { file.writeText(trimmed) }
+            .onFailure { error -> Log.w(TAG, "Failed to rewrite trimmed nearby activity event log", error) }
     }
 
     private fun timestamp(nowMillis: Long): String {
@@ -132,6 +161,7 @@ class NearbyActivityEventLogWriter(
     companion object {
         internal const val LOG_RELATIVE_PATH = "logs/nearby-activity-events.txt"
         private const val TAG = "NearbyActEventLog"
+        private const val MAX_LOG_FILE_SIZE_BYTES = 256 * 1024L
 
         private val DATE_FORMAT = object : ThreadLocal<SimpleDateFormat>() {
             override fun initialValue(): SimpleDateFormat {
@@ -162,11 +192,9 @@ class NearbyActivityEventLogWriter(
         }
 
         fun fromContext(context: Context): NearbyActivityEventLogWriter {
-            val isDebuggable =
-                (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
             return NearbyActivityEventLogWriter(
                 filesDir = context.applicationContext.filesDir,
-                enabled = isDebuggable
+                enabled = true
             )
         }
     }
