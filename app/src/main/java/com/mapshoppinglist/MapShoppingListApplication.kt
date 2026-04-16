@@ -84,7 +84,6 @@ class MapShoppingListApplication : Application() {
             context = applicationContext,
             reason = NearbySuggestionTriggerWorker.REASON_APP_START
         )
-        Log.i(TAG, "Category API Endpoint=${BuildConfig.NEARBY_CATEGORY_API_ENDPOINT}, API Key=${BuildConfig.NEARBY_CATEGORY_API_KEY}")
     }
 
     private fun isRunningUnderRobolectric(): Boolean {
