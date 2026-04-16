@@ -220,6 +220,7 @@ class ShoppingListScreenTest {
                         onManagePlaces = {},
                         onShowPrivacyPolicy = {},
                         onShowOssLicenses = {},
+                        onShowNearbyDiagnosticLog = {},
                         onTabSelected = {}
                     )
                 }
