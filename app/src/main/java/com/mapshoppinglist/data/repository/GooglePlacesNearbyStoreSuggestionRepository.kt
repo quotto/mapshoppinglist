@@ -36,7 +36,7 @@ class GooglePlacesNearbyStoreSuggestionRepository(
             .distinct()
             .take(MAX_TEXT_QUERY_COUNT)
 
-        Log.i(
+        logInfo(
             TAG,
             "Starting Places search: itemTitle=$itemTitle typeQueries=${normalizedTypeQueries.joinToString("|")} textQueries=${normalizedTextQueries.joinToString("|")} lat=$latitude lng=$longitude"
         )
@@ -50,7 +50,7 @@ class GooglePlacesNearbyStoreSuggestionRepository(
                     limit = limit
                 )
             }.onFailure { error ->
-                Log.w(TAG, "Nearby Search failed for type=$placeType", error)
+                logWarn(TAG, "Nearby Search failed for type=$placeType", error)
             }.getOrDefault(emptyList())
         }
         val textCandidates = normalizedTextQueries.flatMap { query ->
@@ -62,7 +62,7 @@ class GooglePlacesNearbyStoreSuggestionRepository(
                     limit = limit
                 )
             }.onFailure { error ->
-                Log.w(TAG, "Text Search failed for query=$query", error)
+                logWarn(TAG, "Text Search failed for query=$query", error)
             }.getOrDefault(emptyList())
         }
 
@@ -72,7 +72,7 @@ class GooglePlacesNearbyStoreSuggestionRepository(
             .sortedBy { it.distanceMeters }
             .take(limit.coerceIn(1, 10))
             .also { candidates ->
-                Log.i(
+                logInfo(
                     TAG,
                     "Completed Places search: itemTitle=$itemTitle nearbyCandidateCount=${nearbyCandidates.size} textCandidateCount=${textCandidates.size} finalCandidateCount=${candidates.size}"
                 )
@@ -195,5 +195,19 @@ class GooglePlacesNearbyStoreSuggestionRepository(
             "department_store",
             "warehouse_store"
         )
+    }
+
+    private fun logInfo(tag: String, message: String) {
+        runCatching { Log.i(tag, message) }
+    }
+
+    private fun logWarn(tag: String, message: String, error: Throwable? = null) {
+        runCatching {
+            if (error == null) {
+                Log.w(tag, message)
+            } else {
+                Log.w(tag, message, error)
+            }
+        }
     }
 }

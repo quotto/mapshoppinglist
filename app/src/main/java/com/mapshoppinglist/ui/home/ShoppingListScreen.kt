@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mapshoppinglist.BuildConfig
 import com.mapshoppinglist.MapShoppingListApplication
 import com.mapshoppinglist.R
 import com.mapshoppinglist.testtag.ShoppingListTestTags
@@ -282,13 +283,15 @@ fun ShoppingListScreen(
                                 onShowPrivacyPolicy()
                             }
                         )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.menu_nearby_diagnostic_log)) },
-                            onClick = {
-                                menuExpanded = false
-                                onShowNearbyDiagnosticLog()
-                            }
-                        )
+                        if (BuildConfig.NEARBY_DIAGNOSTIC_LOG_ENABLED) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.menu_nearby_diagnostic_log)) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onShowNearbyDiagnosticLog()
+                                }
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.menu_oss_licenses)) },
                             onClick = {

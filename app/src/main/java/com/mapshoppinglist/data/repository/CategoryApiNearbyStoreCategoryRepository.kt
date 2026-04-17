@@ -23,13 +23,13 @@ class CategoryApiNearbyStoreCategoryRepository(
         withContext(Dispatchers.IO) {
             val normalizedItemTitle = itemTitle.trim()
             if (endpoint.isBlank() || apiKey.isBlank() || normalizedItemTitle.isBlank()) {
-                Log.w(TAG, "Category API not configured: endpointOrKeyMissing=${endpoint.isBlank() || apiKey.isBlank()} itemTitleBlank=${normalizedItemTitle.isBlank()}")
+                logWarn(TAG, "Category API not configured: endpointOrKeyMissing=${endpoint.isBlank() || apiKey.isBlank()} itemTitleBlank=${normalizedItemTitle.isBlank()}")
                 return@withContext emptyList()
             }
 
             val connection = openConnection(URL(endpoint))
             return@withContext runCatching {
-                Log.i(
+                logInfo(
                     TAG,
                     "Calling category API: endpoint=$endpoint itemTitle=$normalizedItemTitle maxCategories=${maxCategories.coerceIn(1, MAX_CATEGORIES)}"
                 )
@@ -58,21 +58,21 @@ class CategoryApiNearbyStoreCategoryRepository(
                     )?.bufferedReader()?.use { it.readText() }.orEmpty()
 
                 if (connection.responseCode !in 200..299) {
-                    Log.w(
+                    logWarn(
                         TAG,
                         "Category API returned non-success status=${connection.responseCode} body=$responseBody"
                     )
                     emptyList()
                 } else {
                     parseCategories(responseBody).also { categories ->
-                        Log.i(
+                        logInfo(
                             TAG,
                             "Category API returned ${categories.size} categories for itemTitle=$normalizedItemTitle values=${categories.joinToString("|") { "${it.placeType}:${it.confidence ?: "na"}" }}"
                         )
                     }
                 }
             }.getOrElse { error ->
-                Log.w(TAG, "Category API classification failed", error)
+                logWarn(TAG, "Category API classification failed", error)
                 emptyList()
             }.also {
                 connection.disconnect()
@@ -111,5 +111,19 @@ class CategoryApiNearbyStoreCategoryRepository(
         private const val MAX_CATEGORIES = 5
         private const val CONNECT_TIMEOUT_MILLIS = 10_000
         private const val READ_TIMEOUT_MILLIS = 10_000
+    }
+
+    private fun logInfo(tag: String, message: String) {
+        runCatching { Log.i(tag, message) }
+    }
+
+    private fun logWarn(tag: String, message: String, error: Throwable? = null) {
+        runCatching {
+            if (error == null) {
+                Log.w(tag, message)
+            } else {
+                Log.w(tag, message, error)
+            }
+        }
     }
 }

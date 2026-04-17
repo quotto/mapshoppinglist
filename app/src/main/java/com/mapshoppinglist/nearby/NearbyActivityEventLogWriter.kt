@@ -5,6 +5,7 @@ import android.util.Log
 import com.google.android.gms.location.ActivityTransition
 import com.google.android.gms.location.ActivityTransitionEvent
 import com.google.android.gms.location.DetectedActivity
+import com.mapshoppinglist.BuildConfig
 import com.mapshoppinglist.domain.model.NearbyStoreCandidate
 import java.io.File
 import java.text.SimpleDateFormat
@@ -194,7 +195,7 @@ class NearbyActivityEventLogWriter(
         fun fromContext(context: Context): NearbyActivityEventLogWriter {
             return NearbyActivityEventLogWriter(
                 filesDir = context.applicationContext.filesDir,
-                enabled = true
+                enabled = BuildConfig.NEARBY_DIAGNOSTIC_LOG_ENABLED
             )
         }
     }
