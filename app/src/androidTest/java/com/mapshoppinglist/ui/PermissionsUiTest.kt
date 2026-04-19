@@ -53,6 +53,7 @@ class PermissionsUiTest {
                     onManagePlaces = {},
                     onShowPrivacyPolicy = {},
                     onShowOssLicenses = {},
+                    onShowNearbyDiagnosticLog = {},
                     onTabSelected = {}
                 )
             }

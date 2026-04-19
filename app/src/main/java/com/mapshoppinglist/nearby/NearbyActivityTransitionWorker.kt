@@ -24,8 +24,9 @@ class NearbyActivityTransitionWorker(
 
     @RequiresPermission(Manifest.permission.ACTIVITY_RECOGNITION)
     override suspend fun doWork(): Result {
+        Log.i(TAG, "Starting nearby activity transition registration worker")
         if (!ActivityRecognitionPermission.isGranted(applicationContext)) {
-            Log.d(TAG, "Skipping transition registration: ACTIVITY_RECOGNITION not granted")
+            Log.w(TAG, "Skipping transition registration: ACTIVITY_RECOGNITION not granted")
             return Result.success()
         }
 
@@ -36,7 +37,7 @@ class NearbyActivityTransitionWorker(
                     NearbyActivityTransitionPendingIntentProvider(applicationContext).get()
                 )
                 .await()
-            Log.d(TAG, "Registered nearby activity transitions")
+            Log.i(TAG, "Registered nearby activity transitions")
             Result.success()
         } catch (error: Exception) {
             Log.e(TAG, "Failed to register nearby activity transitions", error)

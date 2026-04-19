@@ -15,6 +15,7 @@ import com.mapshoppinglist.ui.itemdetail.ItemDetailRoute
 import com.mapshoppinglist.ui.place.PlacePickerRoute
 import com.mapshoppinglist.ui.placemanage.PlaceManagementRoute
 import com.mapshoppinglist.ui.recentplaces.RecentPlacesRoute
+import com.mapshoppinglist.ui.settings.NearbyDiagnosticLogRoute
 import com.mapshoppinglist.ui.settings.OssLicensesRoute
 import com.mapshoppinglist.ui.settings.PrivacyPolicyRoute
 
@@ -26,6 +27,7 @@ object Destinations {
     const val PLACE_MANAGEMENT = "place_management"
     const val PRIVACY_POLICY = "privacy_policy"
     const val OSS_LICENSES = "oss_licenses"
+    const val NEARBY_DIAGNOSTIC_LOG = "nearby_diagnostic_log"
 
     fun itemDetailRoute(itemId: Long): String = "$ITEM_DETAIL/$itemId"
     fun placePickerRoute(requestKey: String): String = "$PLACE_PICKER/$requestKey"
@@ -51,7 +53,8 @@ fun MapShoppingListApp(
                 onNewPlaceConsumed = { savedStateHandle.set<Long?>(REQUEST_KEY_SHOPPING_LIST_PLACE, null) },
                 onManagePlaces = { navController.navigate(Destinations.PLACE_MANAGEMENT) },
                 onShowPrivacyPolicy = { navController.navigate(Destinations.PRIVACY_POLICY) },
-                onShowOssLicenses = { navController.navigate(Destinations.OSS_LICENSES) }
+                onShowOssLicenses = { navController.navigate(Destinations.OSS_LICENSES) },
+                onShowNearbyDiagnosticLog = { navController.navigate(Destinations.NEARBY_DIAGNOSTIC_LOG) }
             )
         }
         composable(
@@ -109,6 +112,9 @@ fun MapShoppingListApp(
         }
         composable(Destinations.OSS_LICENSES) {
             OssLicensesRoute(onBack = { navController.popBackStack() })
+        }
+        composable(Destinations.NEARBY_DIAGNOSTIC_LOG) {
+            NearbyDiagnosticLogRoute(onBack = { navController.popBackStack() })
         }
     }
 

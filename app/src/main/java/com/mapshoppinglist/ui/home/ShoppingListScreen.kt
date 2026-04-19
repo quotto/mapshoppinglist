@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mapshoppinglist.BuildConfig
 import com.mapshoppinglist.MapShoppingListApplication
 import com.mapshoppinglist.R
 import com.mapshoppinglist.testtag.ShoppingListTestTags
@@ -78,7 +79,8 @@ fun ShoppingListRoute(
     onNewPlaceConsumed: () -> Unit = {},
     onManagePlaces: () -> Unit = {},
     onShowPrivacyPolicy: () -> Unit = {},
-    onShowOssLicenses: () -> Unit = {}
+    onShowOssLicenses: () -> Unit = {},
+    onShowNearbyDiagnosticLog: () -> Unit = {}
 ) {
     val application = LocalContext.current.applicationContext as MapShoppingListApplication
     val factory = remember(application) { ShoppingListViewModelFactory(application) }
@@ -215,6 +217,7 @@ fun ShoppingListRoute(
         onManagePlaces = onManagePlaces,
         onShowPrivacyPolicy = onShowPrivacyPolicy,
         onShowOssLicenses = onShowOssLicenses,
+        onShowNearbyDiagnosticLog = onShowNearbyDiagnosticLog,
         onTabSelected = viewModel::onTabSelected
     )
 }
@@ -238,6 +241,7 @@ fun ShoppingListScreen(
     onManagePlaces: () -> Unit,
     onShowPrivacyPolicy: () -> Unit,
     onShowOssLicenses: () -> Unit,
+    onShowNearbyDiagnosticLog: () -> Unit,
     onTabSelected: (ListTab) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -279,6 +283,15 @@ fun ShoppingListScreen(
                                 onShowPrivacyPolicy()
                             }
                         )
+                        if (BuildConfig.NEARBY_DIAGNOSTIC_LOG_ENABLED) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.menu_nearby_diagnostic_log)) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onShowNearbyDiagnosticLog()
+                                }
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.menu_oss_licenses)) },
                             onClick = {
@@ -746,6 +759,7 @@ private fun ShoppingListScreenPreview() {
             onManagePlaces = {},
             onShowPrivacyPolicy = {},
             onShowOssLicenses = {},
+            onShowNearbyDiagnosticLog = {},
             onTabSelected = {}
         )
     }

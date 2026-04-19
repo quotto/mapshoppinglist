@@ -1,4 +1,5 @@
 package com.mapshoppinglist.data.repository
+import android.util.Log
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.libraries.places.api.model.CircularBounds
 import com.google.android.libraries.places.api.model.Place
@@ -35,21 +36,34 @@ class GooglePlacesNearbyStoreSuggestionRepository(
             .distinct()
             .take(MAX_TEXT_QUERY_COUNT)
 
+        logInfo(
+            TAG,
+            "Starting Places search: itemTitle=$itemTitle typeQueries=${normalizedTypeQueries.joinToString("|")} textQueries=${normalizedTextQueries.joinToString("|")} lat=$latitude lng=$longitude"
+        )
+
         val nearbyCandidates = normalizedTypeQueries.flatMap { placeType ->
-            searchNearbyByType(
-                placeType = placeType,
-                latitude = latitude,
-                longitude = longitude,
-                limit = limit
-            )
+            runCatching {
+                searchNearbyByType(
+                    placeType = placeType,
+                    latitude = latitude,
+                    longitude = longitude,
+                    limit = limit
+                )
+            }.onFailure { error ->
+                logWarn(TAG, "Nearby Search failed for type=$placeType", error)
+            }.getOrDefault(emptyList())
         }
         val textCandidates = normalizedTextQueries.flatMap { query ->
-            searchByTextQuery(
-                query = query,
-                latitude = latitude,
-                longitude = longitude,
-                limit = limit
-            )
+            runCatching {
+                searchByTextQuery(
+                    query = query,
+                    latitude = latitude,
+                    longitude = longitude,
+                    limit = limit
+                )
+            }.onFailure { error ->
+                logWarn(TAG, "Text Search failed for query=$query", error)
+            }.getOrDefault(emptyList())
         }
 
         (nearbyCandidates + textCandidates)
@@ -57,6 +71,12 @@ class GooglePlacesNearbyStoreSuggestionRepository(
             .distinctBy { it.placeId }
             .sortedBy { it.distanceMeters }
             .take(limit.coerceIn(1, 10))
+            .also { candidates ->
+                logInfo(
+                    TAG,
+                    "Completed Places search: itemTitle=$itemTitle nearbyCandidateCount=${nearbyCandidates.size} textCandidateCount=${textCandidates.size} finalCandidateCount=${candidates.size}"
+                )
+            }
     }
 
     private suspend fun searchNearbyByType(
@@ -150,6 +170,7 @@ class GooglePlacesNearbyStoreSuggestionRepository(
     }
 
     companion object {
+        private const val TAG = "GooglePlacesStoreRepo"
         private const val SEARCH_RADIUS_METERS = 3_000.0
         private const val MAX_TYPE_QUERY_COUNT = 2
         private const val MAX_TEXT_QUERY_COUNT = 1
@@ -174,5 +195,19 @@ class GooglePlacesNearbyStoreSuggestionRepository(
             "department_store",
             "warehouse_store"
         )
+    }
+
+    private fun logInfo(tag: String, message: String) {
+        runCatching { Log.i(tag, message) }
+    }
+
+    private fun logWarn(tag: String, message: String, error: Throwable? = null) {
+        runCatching {
+            if (error == null) {
+                Log.w(tag, message)
+            } else {
+                Log.w(tag, message, error)
+            }
+        }
     }
 }
