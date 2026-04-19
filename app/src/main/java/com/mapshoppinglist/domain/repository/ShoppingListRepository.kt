@@ -35,6 +35,11 @@ interface ShoppingListRepository {
     suspend fun getItemsForPlace(placeId: Long): List<ShoppingItem>
 
     /**
+     * 店舗に紐づいていない未購入アイテムを取得する。
+     */
+    suspend fun getUnlinkedItems(limit: Int): List<ShoppingItem>
+
+    /**
      * 指定したお店に紐づく未購入アイテムを購入済みにする。
      */
     suspend fun markPlaceItemsPurchased(placeId: Long)

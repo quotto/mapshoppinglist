@@ -8,6 +8,7 @@ on:
 jobs:
   promote:
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: チェックアウト
         uses: actions/checkout@v4
@@ -17,6 +18,8 @@ jobs:
         with:
           gradle-args: promoteReleaseArtifact --from-track internal --promote-track production --release-status draft
           maps-api-key: ${{ secrets.MAPS_API_KEY }}
+          nearby-category-api-endpoint: ${{ secrets.NEARBY_CATEGORY_API_ENDPOINT }}
+          nearby-category-api-key: ${{ secrets.NEARBY_CATEGORY_API_KEY }}
           play-service-account-json: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           android-keystore-password: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}

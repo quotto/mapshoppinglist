@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -86,6 +87,69 @@ class NotificationSender(private val context: Context) {
         notificationManager.notify(placeId.hashCode(), builder.build())
     }
 
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
+    fun showNearbySuggestion(entry: NearbySuggestionNotificationEntry) {
+        ensureChannel()
+        val notificationId = entry.itemId.hashCode()
+        val detailIntent = PendingIntent.getActivity(
+            context,
+            notificationId,
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra(NotificationActions.EXTRA_ITEM_ID, entry.itemId)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        )
+
+        val markPurchasedIntent = PendingIntent.getBroadcast(
+            context,
+            notificationId + 1,
+            Intent(context, NotificationActionReceiver::class.java).apply {
+                action = NotificationActions.ACTION_MARK_ITEM_PURCHASED
+                putExtra(NotificationActions.EXTRA_ITEM_ID, entry.itemId)
+                putExtra(NotificationActions.EXTRA_NOTIFICATION_ID, notificationId)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        )
+
+        val deleteIntent = PendingIntent.getBroadcast(
+            context,
+            notificationId + 2,
+            Intent(context, NotificationActionReceiver::class.java).apply {
+                action = NotificationActions.ACTION_DELETE_ITEM
+                putExtra(NotificationActions.EXTRA_ITEM_ID, entry.itemId)
+                putExtra(NotificationActions.EXTRA_NOTIFICATION_ID, notificationId)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        )
+
+        val mapIntent = createMapIntent(entry) ?: detailIntent
+
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(
+                context.getString(
+                    R.string.notification_nearby_suggestion_title,
+                    entry.itemTitle
+                )
+            )
+            .setContentText(
+                context.getString(
+                    R.string.notification_nearby_suggestion_summary,
+                    entry.placeName,
+                    entry.distanceMeters
+                )
+            )
+            .setContentIntent(detailIntent)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .addAction(0, context.getString(R.string.notification_action_mark_purchased), markPurchasedIntent)
+            .addAction(0, context.getString(R.string.notification_action_delete), deleteIntent)
+            .addAction(0, context.getString(R.string.notification_action_map), mapIntent)
+
+        notificationManager.notify(notificationId, builder.build())
+    }
+
     private fun ensureChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID,
@@ -98,5 +162,39 @@ class NotificationSender(private val context: Context) {
 
     companion object {
         const val CHANNEL_ID = "shopping_reminders"
+        private const val GOOGLE_MAPS_PACKAGE = "com.google.android.apps.maps"
+    }
+
+    data class NearbySuggestionNotificationEntry(
+        val itemId: Long,
+        val itemTitle: String,
+        val placeName: String,
+        val distanceMeters: Int,
+        val placeLatitude: Double,
+        val placeLongitude: Double
+    )
+
+    private fun createMapIntent(entry: NearbySuggestionNotificationEntry): PendingIntent? {
+        val uri = Uri.parse(
+            "geo:${entry.placeLatitude},${entry.placeLongitude}?q=${entry.placeLatitude},${entry.placeLongitude}(${Uri.encode(entry.placeName)})"
+        )
+        val mapIntent = Intent(Intent.ACTION_VIEW, uri).apply {
+            `package` = GOOGLE_MAPS_PACKAGE
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val resolvedIntent = if (mapIntent.resolveActivity(context.packageManager) != null) {
+            mapIntent
+        } else {
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra(NotificationActions.EXTRA_ITEM_ID, entry.itemId)
+            }
+        }
+        return PendingIntent.getActivity(
+            context,
+            entry.itemId.hashCode() + 3,
+            resolvedIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        )
     }
 }

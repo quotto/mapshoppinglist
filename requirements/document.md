@@ -6,7 +6,7 @@
 
 ## 1. 目的・スコープ
 
-- **目的**: 位置情報（ジオフェンス）を用いて、ユーザーが指定した「お店（地点）」の近くに来たとき、そのお店で買える未購入アイテムを通知し、買い忘れを防止する。
+- **目的**: 位置情報（ジオフェンス / 停止検知）を用いて、ユーザーが指定した「お店（地点）」の近くに来たとき、または未紐付けアイテムが買えそうなお店の近くで停止したときに通知し、買い忘れを防止する。
 - **対象プラットフォーム**: Android（MVP）。iOSは将来対応（本書では設計上の考慮のみ）。
 - **本MVPでの前提/制約**
     - **アイテム数に上限なし**。
@@ -28,6 +28,8 @@
 - **主なコンポーネント**
     - **GeofenceRegistrar**（Repository配下）: Places⇄GeofencingClient の橋渡し
     - **GeofenceReceiver**（BroadcastReceiver）: 近接イベント受信→通知生成
+    - **NearbyActivityTransitionReceiver**: Activity Recognition の停止遷移を受信
+    - **NearbySuggestionTriggerWorker**: 停止時に現在地・未紐付けアイテム・候補店舗検索を評価
     - **BootCompletedReceiver**: 端末再起動時にジオフェンス再登録を起動
     - **ReconcileGeofenceWorker**（WorkManager）: 再登録/整合性の定期・遅延実行
     - **NotificationManagerFacade**: 通知チャンネル/グルーピング/アクション
@@ -48,6 +50,7 @@
 | S6 | 地点管理 | 登録済み地点の名称編集・削除 | 地点リスト（名称/状態/座標）、編集ダイアログ、削除確認ダイアログ |
 | S7 | プライバシーポリシー | データの取得・利用目的を明示 | プライバシーポリシー本文（固定テキスト） |
 | S8 | OSSライセンス | 利用ライブラリのライセンス確認 | ライセンス説明文、OSS Licenses 標準画面起動ボタン |
+| S9 | 近接通知診断ログ | 近接通知の内部ログ確認 | ログ本文、共有、削除、再読み込み |
 
 ※ S4はS2内のモーダル/シートとして表示しても良い。
 
@@ -62,6 +65,7 @@
     - FAB: S2へ遷移（新規）。
     - 新規追加ダイアログでは、冒頭に **「検索・地図で探す」「最近使ったお店から選ぶ」** の2アクションを提示し、必要に応じて地点を追加できる。紐づけ予定のお店はリスト表示し、削除が可能。
     - トップバー右上メニューから **地点管理（S6）／プライバシーポリシー（S7）／OSSライセンス（S8）** に遷移できる。
+    - 近接通知診断ログ（S9）は、ビルド時フラグ `NEARBY_DIAGNOSTIC_LOG_ENABLED=true` の場合のみメニューに表示する。
 - **S2（編集）**
     - お店リスト（紐づき）: 削除/並べ替え。
     - [お店を追加] → S3（検索&地図） or S4（最近）を選択できるアクション。
@@ -169,10 +173,20 @@ flowchart LR
 
 ### 4.4 通知機能
 
-- **トリガー**: Geofencing API の **ENTER**
+- **トリガー**:
+    - 登録地点通知: Geofencing API の **ENTER**
+    - 未紐付け候補通知: Activity Recognition の `STILL` 遷移 + 現在地 / Places 検索
 - **条件**:
     - そのお店に紐づく**未購入アイテムが1件以上**あること
     - **クールダウン中でない**こと（MVP既定: 同一点で**2時間**再通知しない）
+- **未紐付け候補通知の条件**:
+    - `linkedPlaceCount = 0` の未購入アイテムが存在する
+    - Activity Recognition 発火時点で、対象アイテムが以下いずれかを満たす場合のみ候補店舗検索を行う
+      - 前回通知時刻から 1 時間以上経過し、かつ前回通知地点から 300m 以上離れている
+      - 前回通知時刻から 24 時間以上経過している
+    - カテゴリ API の返却値は信頼度とカテゴリの広さを見て整形し、高信頼時は少数クエリに絞る。`store` のような広いカテゴリしか得られない場合はアイテム名検索へフォールバックする
+    - Places 検索結果から対象アイテムごとに最も近い店舗 1 件を抽出し、その店舗までの距離が 300m 以内の場合に通知対象とする
+    - 店舗単位の通知ゲートは持たない
 - **内容**:
     - タイトル: 「近くに **{お店名}**」
     - 本文: `買えるもの: A, B, C…（最大N行; 以降は「ほかX件」）`
@@ -186,6 +200,7 @@ flowchart LR
     - `shopping_reminders`（重要度: Default/High検討）
 - **重複抑制**:
     - 同一お店に対し、**連続ENTER検知を間引き**（固定5分）
+    - 未紐付け候補通知は `nearby_suggestion_state` でアイテム単位の通知時刻と通知地点を管理し、検索前の事前ゲートに利用する
 
 ### 4.5 地点管理（S6）
 
@@ -196,8 +211,8 @@ flowchart LR
 
 ### 4.6 プライバシーポリシー（S7）
 
-- **内容**: 位置情報の取得目的・保存方式・第三者提供なし・問い合わせ先・変更手順を静的テキストで掲載する。
-- **更新日表示**: 画面上部に「最終更新日: 2025年10月4日」を表示し、将来の改定に備えて文言をリソース化する。
+- **内容**: 位置情報・身体活動情報の取得目的、端末内保存の範囲、Google Places API およびカテゴリ判定 API への必要最小限の送信、診断ログの端末内保存、問い合わせ先、変更手順を静的テキストで掲載する。
+- **更新日表示**: 画面上部に最新の改定日を表示し、将来の改定に備えて文言をリソース化する。
 - **遷移**: S1 のメニューから遷移し、トップバーの戻る操作で復帰するのみ。
 
 ### 4.7 オープンソースライセンス（S8）
@@ -206,15 +221,22 @@ flowchart LR
 - **UI**: Compose Material3 の `LibrariesContainer` を用いた一覧画面。トップバーのみアプリ側で提供し、一覧は AboutLibraries が生成したデータをそのまま表示する。
 - **遷移**: S1 のメニューから遷移し、トップバーの戻る操作で復帰する。
 
+### 4.8 近接通知診断ログ（S9）
+
+- **目的**: `NEARBY_DIAGNOSTIC_LOG_ENABLED=true` でビルドした版において、近接通知の登録・受信・候補探索・カテゴリ API 呼び出しの流れを後から確認できるようにする。
+- **内容**: Activity Recognition の transition 受信、候補検索クエリ、カテゴリ API / Places API の実行結果、抑止理由などを端末内ログとして表示する。
+- **操作**: 画面上でログ本文を閲覧でき、共有・削除・再読み込みを提供する。
+- **保存場所**: アプリ内部ストレージに保持し、外部へ自動送信しない。アンインストール時に削除される。`NEARBY_DIAGNOSTIC_LOG_ENABLED=false` の場合は記録しない。
+
 ---
 
 ## 5. 非機能要件（抜粋）
 
 - **対応OS**: minSdk 29+, targetSdk 最新
-- **電池**: バックグラウンドポーリング禁止。Geofence + WorkManagerのみ。
+- **電池**: バックグラウンドポーリング禁止。Geofence + Activity Recognition + 単発位置取得 + WorkManager のみ。
 - **パフォーマンス**: 一覧1000件規模で快適表示（Room + Paging推奨は任意）
 - **信頼性**: 再起動時/アプリ更新時の**ジオフェンス自動再登録**を保証
-- **プライバシー**: 位置情報は**端末内DBのみ**（MVP）。外部送信なし。
+- **プライバシー**: 買い物アイテム、地点情報、通知制御状態は主に端末内に保存する。近隣候補通知と地点検索では、Google Places API およびカテゴリ判定 API に必要最小限の情報を送信する。
 
 ---
 
@@ -223,11 +245,13 @@ flowchart LR
 - **必須権限**
     - `ACCESS_FINE_LOCATION`（前景）
     - `ACCESS_BACKGROUND_LOCATION`（バックグラウンド; Android 10+）
+    - `ACTIVITY_RECOGNITION`（停止遷移検知; Android 10+）
     - `RECEIVE_BOOT_COMPLETED`（再起動時再登録）
     - `POST_NOTIFICATIONS`（Android 13+）
 - **取得タイミング**
     - PlacePicker 起動前に `ACCESS_FINE_LOCATION` をリクエスト。未許可の場合は現在地取得をスキップし東京都内の既定座標へフォールバック。
     - 背景位置 (`ACCESS_BACKGROUND_LOCATION`) はジオフェンス通知を有効化したいタイミングで追加説明→設定画面へ誘導。
+    - `ACTIVITY_RECOGNITION` は近隣候補通知を有効化したいタイミングで説明付きでリクエスト。
     - `POST_NOTIFICATIONS` は初回通知送信前に説明を挟んだうえでリクエスト。
 - **Play審査注記**
     - 背景位置は**中核機能**に必須である旨を、オンボーディング画面/ヘルプで明示
@@ -266,6 +290,15 @@ flowchart LR
 - `last_notified_at` INTEGER NULL
 - `snooze_until` INTEGER NULL（現在は未使用・常にNULL）
 
+**nearby_suggestion_state**（未紐付け候補通知制御）
+- `item_id` INTEGER NOT NULL
+- `candidate_place_id` TEXT NOT NULL
+- `candidate_place_name` TEXT NULL
+- `last_notified_at` INTEGER NULL
+- `last_notified_lat_e6` INTEGER NULL
+- `last_notified_lng_e6` INTEGER NULL
+- **PK(`item_id`,`candidate_place_id`)**
+
 **app_settings**（将来拡張）
 - `key` TEXT PK
 - `value` TEXT
@@ -275,6 +308,7 @@ flowchart LR
 - `items(is_purchased, updated_at DESC)`
 - `places(is_active DESC, last_used_at DESC)`
 - `item_place(place_id, item_id)`
+- `nearby_suggestion_state(item_id)`
 
 ### 7.3 ドメイン制約（UseCaseで担保）
 
@@ -324,6 +358,7 @@ flowchart LR
 
 - 「お店を紐づけて保存」: S2→S3/S4→S2→差分更新
 - 「境界に入る→通知→購入済み」: 受信→通知→アクション→差分更新
+- 「停止検知→候補店舗検索→通知」: ActivityTransition→Worker→現在地取得→Places検索→通知
 - 「再起動後の復旧」: Boot→Work→Geofence再登録
 
 ---

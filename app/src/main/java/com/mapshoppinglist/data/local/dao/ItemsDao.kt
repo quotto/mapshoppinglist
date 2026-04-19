@@ -46,6 +46,13 @@ interface ItemsDao {
     @Query("SELECT * FROM items WHERE is_purchased = 0 ORDER BY updated_at DESC")
     suspend fun loadNotPurchased(): List<ItemEntity>
 
+    @Query(
+        "SELECT * FROM items WHERE is_purchased = 0 AND id NOT IN (" +
+            "SELECT DISTINCT item_id FROM item_place" +
+            ") ORDER BY updated_at DESC LIMIT :limit"
+    )
+    suspend fun loadNotPurchasedWithoutPlace(limit: Int): List<ItemEntity>
+
     @Query("UPDATE items SET is_purchased = :isPurchased, updated_at = :updatedAt WHERE id = :itemId")
     suspend fun updatePurchaseState(itemId: Long, isPurchased: Boolean, updatedAt: Long)
 

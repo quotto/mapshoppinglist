@@ -1,31 +1,44 @@
 package com.mapshoppinglist
 
 import android.app.Application
+import android.os.Build
+import android.util.Log
 import com.google.android.gms.maps.MapsInitializer
 import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.net.PlacesClient
+import com.mapshoppinglist.data.repository.CategoryApiNearbyStoreCategoryRepository
 import com.mapshoppinglist.data.local.AppDatabase
 import com.mapshoppinglist.data.repository.DefaultGeofenceRegistryRepository
+import com.mapshoppinglist.data.repository.GooglePlacesNearbyStoreSuggestionRepository
+import com.mapshoppinglist.data.repository.DefaultNearbySuggestionStateRepository
 import com.mapshoppinglist.data.repository.DefaultNotificationStateRepository
 import com.mapshoppinglist.data.repository.DefaultPlacesRepository
 import com.mapshoppinglist.data.repository.DefaultShoppingListRepository
 import com.mapshoppinglist.domain.repository.GeofenceRegistryRepository
+import com.mapshoppinglist.domain.repository.NearbyStoreSuggestionRepository
+import com.mapshoppinglist.domain.repository.NearbyStoreCategoryRepository
+import com.mapshoppinglist.domain.repository.NearbySuggestionStateRepository
 import com.mapshoppinglist.domain.repository.NotificationStateRepository
 import com.mapshoppinglist.domain.repository.PlacesRepository
 import com.mapshoppinglist.domain.repository.ShoppingListRepository
 import com.mapshoppinglist.domain.usecase.AddShoppingItemUseCase
 import com.mapshoppinglist.domain.usecase.BuildGeofenceSyncPlanUseCase
+import com.mapshoppinglist.domain.usecase.BuildNearbyStoreSearchQueriesUseCase
 import com.mapshoppinglist.domain.usecase.BuildNotificationMessageUseCase
 import com.mapshoppinglist.domain.usecase.CreatePlaceUseCase
 import com.mapshoppinglist.domain.usecase.DeletePlaceUseCase
 import com.mapshoppinglist.domain.usecase.DeleteShoppingItemUseCase
 import com.mapshoppinglist.domain.usecase.GetRecentPlacesUseCase
+import com.mapshoppinglist.domain.usecase.GetUnlinkedShoppingItemsUseCase
 import com.mapshoppinglist.domain.usecase.LinkItemToPlaceUseCase
 import com.mapshoppinglist.domain.usecase.LoadAllPlacesUseCase
 import com.mapshoppinglist.domain.usecase.LoadRegisteredGeofencesUseCase
 import com.mapshoppinglist.domain.usecase.MarkPlaceItemsPurchasedUseCase
 import com.mapshoppinglist.domain.usecase.ObserveItemDetailUseCase
 import com.mapshoppinglist.domain.usecase.ObserveShoppingItemsUseCase
+import com.mapshoppinglist.domain.usecase.RecordNearbySuggestionUseCase
 import com.mapshoppinglist.domain.usecase.RecordPlaceNotificationUseCase
+import com.mapshoppinglist.domain.usecase.ShouldSendNearbySuggestionUseCase
 import com.mapshoppinglist.domain.usecase.ShouldSendNotificationUseCase
 import com.mapshoppinglist.domain.usecase.UnlinkItemFromPlaceUseCase
 import com.mapshoppinglist.domain.usecase.UpdateItemUseCase
@@ -36,6 +49,8 @@ import com.mapshoppinglist.geofence.GeofencePendingIntentProvider
 import com.mapshoppinglist.geofence.GeofenceRegistrar
 import com.mapshoppinglist.geofence.GeofenceSyncCoordinator
 import com.mapshoppinglist.geofence.GeofenceSyncScheduler
+import com.mapshoppinglist.nearby.NearbyActivityTransitionScheduler
+import com.mapshoppinglist.nearby.NearbySuggestionTriggerWorker
 import com.mapshoppinglist.notification.NotificationSender
 
 /**
@@ -43,12 +58,37 @@ import com.mapshoppinglist.notification.NotificationSender
  */
 class MapShoppingListApplication : Application() {
 
+    companion object {
+        private const val TAG = "MapShoppingListApp"
+    }
+
     override fun onCreate() {
         super.onCreate()
+        Log.i(TAG, "Application onCreate started")
         if (!Places.isInitialized()) {
-            Places.initialize(applicationContext, getString(R.string.google_maps_key))
+            Places.initializeWithNewPlacesApiEnabled(
+                applicationContext,
+                getString(R.string.google_maps_key)
+            )
+            Log.i(TAG, "Places SDK initialized with new API")
         }
         MapsInitializer.initialize(applicationContext, MapsInitializer.Renderer.LATEST) {}
+        if (isRunningUnderRobolectric()) {
+            Log.i(TAG, "Skipping background initialization under Robolectric")
+            return
+        }
+        Log.i(TAG, "Scheduling nearby activity transition registration")
+        nearbyActivityTransitionScheduler.scheduleRegistration()
+        Log.i(TAG, "Enqueuing nearby suggestion trigger for app start")
+        NearbySuggestionTriggerWorker.enqueueNow(
+            context = applicationContext,
+            reason = NearbySuggestionTriggerWorker.REASON_APP_START
+        )
+    }
+
+    private fun isRunningUnderRobolectric(): Boolean {
+        return Build.FINGERPRINT.equals("robolectric", ignoreCase = true) ||
+            runCatching { Class.forName("org.robolectric.RuntimeEnvironment") }.isSuccess
     }
 
     /**
@@ -68,6 +108,10 @@ class MapShoppingListApplication : Application() {
         )
     }
 
+    val placesClient: PlacesClient by lazy {
+        Places.createClient(this)
+    }
+
     val placesRepository: PlacesRepository by lazy {
         DefaultPlacesRepository(
             placesDao = database.placesDao(),
@@ -85,6 +129,23 @@ class MapShoppingListApplication : Application() {
     val notificationStateRepository: NotificationStateRepository by lazy {
         DefaultNotificationStateRepository(
             notifyStateDao = database.notifyStateDao()
+        )
+    }
+
+    val nearbySuggestionStateRepository: NearbySuggestionStateRepository by lazy {
+        DefaultNearbySuggestionStateRepository(
+            dao = database.nearbySuggestionStateDao()
+        )
+    }
+
+    val nearbyStoreSuggestionRepository: NearbyStoreSuggestionRepository by lazy {
+        GooglePlacesNearbyStoreSuggestionRepository(placesClient)
+    }
+
+    val nearbyStoreCategoryRepository: NearbyStoreCategoryRepository by lazy {
+        CategoryApiNearbyStoreCategoryRepository(
+            endpoint = BuildConfig.NEARBY_CATEGORY_API_ENDPOINT,
+            apiKey = BuildConfig.NEARBY_CATEGORY_API_KEY
         )
     }
 
@@ -123,6 +184,10 @@ class MapShoppingListApplication : Application() {
         BuildNotificationMessageUseCase()
     }
 
+    val buildNearbyStoreSearchQueriesUseCase: BuildNearbyStoreSearchQueriesUseCase by lazy {
+        BuildNearbyStoreSearchQueriesUseCase()
+    }
+
     val buildGeofenceSyncPlanUseCase: BuildGeofenceSyncPlanUseCase by lazy {
         BuildGeofenceSyncPlanUseCase(
             placesRepository = placesRepository,
@@ -143,6 +208,10 @@ class MapShoppingListApplication : Application() {
 
     val geofenceSyncScheduler: GeofenceSyncScheduler by lazy {
         GeofenceSyncScheduler(this)
+    }
+
+    val nearbyActivityTransitionScheduler: NearbyActivityTransitionScheduler by lazy {
+        NearbyActivityTransitionScheduler(this)
     }
 
     val geofenceSyncCoordinator: GeofenceSyncCoordinator by lazy {
@@ -212,11 +281,23 @@ class MapShoppingListApplication : Application() {
         GetRecentPlacesUseCase(placesRepository)
     }
 
+    val getUnlinkedShoppingItemsUseCase: GetUnlinkedShoppingItemsUseCase by lazy {
+        GetUnlinkedShoppingItemsUseCase(shoppingListRepository)
+    }
+
     val shouldSendNotificationUseCase: ShouldSendNotificationUseCase by lazy {
         ShouldSendNotificationUseCase(notificationStateRepository)
     }
 
     val recordPlaceNotificationUseCase: RecordPlaceNotificationUseCase by lazy {
         RecordPlaceNotificationUseCase(notificationStateRepository)
+    }
+
+    val shouldSendNearbySuggestionUseCase: ShouldSendNearbySuggestionUseCase by lazy {
+        ShouldSendNearbySuggestionUseCase(nearbySuggestionStateRepository)
+    }
+
+    val recordNearbySuggestionUseCase: RecordNearbySuggestionUseCase by lazy {
+        RecordNearbySuggestionUseCase(nearbySuggestionStateRepository)
     }
 }

@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mapshoppinglist.BuildConfig
 import com.mapshoppinglist.MapShoppingListApplication
 import com.mapshoppinglist.R
 import com.mapshoppinglist.testtag.ShoppingListTestTags
@@ -78,7 +79,8 @@ fun ShoppingListRoute(
     onNewPlaceConsumed: () -> Unit = {},
     onManagePlaces: () -> Unit = {},
     onShowPrivacyPolicy: () -> Unit = {},
-    onShowOssLicenses: () -> Unit = {}
+    onShowOssLicenses: () -> Unit = {},
+    onShowNearbyDiagnosticLog: () -> Unit = {}
 ) {
     val application = LocalContext.current.applicationContext as MapShoppingListApplication
     val factory = remember(application) { ShoppingListViewModelFactory(application) }
@@ -89,8 +91,21 @@ fun ShoppingListRoute(
     var showBackgroundPrompt by remember {
         mutableStateOf(shouldRequestBackgroundLocation(context))
     }
+    var showForegroundLocationPrompt by remember {
+        mutableStateOf(shouldRequestForegroundLocation(context))
+    }
+    var showActivityRecognitionPrompt by remember {
+        mutableStateOf(shouldRequestActivityRecognitionPermission(context))
+    }
     var showNotificationPrompt by remember {
         mutableStateOf(shouldRequestNotificationPermission(context))
+    }
+
+    val foregroundLocationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        showForegroundLocationPrompt = !granted
+        showBackgroundPrompt = granted && shouldRequestBackgroundLocation(context)
     }
 
     val backgroundPermissionLauncher = rememberLauncherForActivityResult(
@@ -105,8 +120,33 @@ fun ShoppingListRoute(
         showNotificationPrompt = !granted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
     }
 
-    val permissionPrompts = remember(showBackgroundPrompt, showNotificationPrompt, context) {
+    val activityRecognitionPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        showActivityRecognitionPrompt = !granted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+    }
+
+    val permissionPrompts = remember(
+        showBackgroundPrompt,
+        showForegroundLocationPrompt,
+        showActivityRecognitionPrompt,
+        showNotificationPrompt,
+        context
+    ) {
         buildList {
+            if (showForegroundLocationPrompt) {
+                add(
+                    PermissionPromptUiModel(
+                        key = "foreground_location",
+                        title = context.getString(R.string.permission_location_title),
+                        message = context.getString(R.string.permission_location_message),
+                        actionLabel = context.getString(R.string.permission_location_request_button),
+                        onClick = {
+                            foregroundLocationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                        }
+                    )
+                )
+            }
             if (showBackgroundPrompt) {
                 add(
                     PermissionPromptUiModel(
@@ -116,6 +156,21 @@ fun ShoppingListRoute(
                         actionLabel = context.getString(R.string.permission_background_button),
                         onClick = {
                             backgroundPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                        }
+                    )
+                )
+            }
+            if (showActivityRecognitionPrompt) {
+                add(
+                    PermissionPromptUiModel(
+                        key = "activity_recognition",
+                        title = context.getString(R.string.permission_activity_recognition_title),
+                        message = context.getString(R.string.permission_activity_recognition_message),
+                        actionLabel = context.getString(R.string.permission_activity_recognition_button),
+                        onClick = {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                activityRecognitionPermissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+                            }
                         }
                     )
                 )
@@ -162,6 +217,7 @@ fun ShoppingListRoute(
         onManagePlaces = onManagePlaces,
         onShowPrivacyPolicy = onShowPrivacyPolicy,
         onShowOssLicenses = onShowOssLicenses,
+        onShowNearbyDiagnosticLog = onShowNearbyDiagnosticLog,
         onTabSelected = viewModel::onTabSelected
     )
 }
@@ -185,6 +241,7 @@ fun ShoppingListScreen(
     onManagePlaces: () -> Unit,
     onShowPrivacyPolicy: () -> Unit,
     onShowOssLicenses: () -> Unit,
+    onShowNearbyDiagnosticLog: () -> Unit,
     onTabSelected: (ListTab) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -226,6 +283,15 @@ fun ShoppingListScreen(
                                 onShowPrivacyPolicy()
                             }
                         )
+                        if (BuildConfig.NEARBY_DIAGNOSTIC_LOG_ENABLED) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.menu_nearby_diagnostic_log)) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onShowNearbyDiagnosticLog()
+                                }
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.menu_oss_licenses)) },
                             onClick = {
@@ -693,6 +759,7 @@ private fun ShoppingListScreenPreview() {
             onManagePlaces = {},
             onShowPrivacyPolicy = {},
             onShowOssLicenses = {},
+            onShowNearbyDiagnosticLog = {},
             onTabSelected = {}
         )
     }
@@ -711,11 +778,28 @@ private fun shouldRequestBackgroundLocation(context: android.content.Context): B
     return !backgroundGranted
 }
 
+private fun shouldRequestForegroundLocation(context: android.content.Context): Boolean {
+    val foregroundGranted = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.ACCESS_FINE_LOCATION
+    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    return !foregroundGranted
+}
+
 private fun shouldRequestNotificationPermission(context: android.content.Context): Boolean {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return false
     val granted = ContextCompat.checkSelfPermission(
         context,
         Manifest.permission.POST_NOTIFICATIONS
+    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+    return !granted
+}
+
+private fun shouldRequestActivityRecognitionPermission(context: android.content.Context): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
+    val granted = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.ACTIVITY_RECOGNITION
     ) == android.content.pm.PackageManager.PERMISSION_GRANTED
     return !granted
 }

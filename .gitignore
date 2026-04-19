@@ -61,4 +61,5 @@ fastlane/test_output/
 .kotlinc/
 .annotation-processors/
 
+# working directories
 work/
