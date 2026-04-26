@@ -1,4 +1,5 @@
 package com.mapshoppinglist.data.repository
+
 import android.util.Log
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.libraries.places.api.model.CircularBounds
@@ -8,12 +9,15 @@ import com.google.android.libraries.places.api.net.SearchNearbyRequest
 import com.google.android.libraries.places.api.net.SearchByTextRequest
 import com.mapshoppinglist.domain.model.NearbyStoreCandidate
 import com.mapshoppinglist.domain.repository.NearbyStoreSuggestionRepository
+import com.mapshoppinglist.monitoring.ExternalApiErrorReporter
+import com.mapshoppinglist.monitoring.NoOpExternalApiErrorReporter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
 class GooglePlacesNearbyStoreSuggestionRepository(
-    private val placesClient: PlacesClient
+    private val placesClient: PlacesClient,
+    private val errorReporter: ExternalApiErrorReporter = NoOpExternalApiErrorReporter
 ) : NearbyStoreSuggestionRepository {
 
     override suspend fun search(
@@ -51,6 +55,15 @@ class GooglePlacesNearbyStoreSuggestionRepository(
                 )
             }.onFailure { error ->
                 logWarn(TAG, "Nearby Search failed for type=$placeType", error)
+                errorReporter.recordExecutionError(
+                    apiName = API_NAME,
+                    operation = "search_nearby",
+                    throwable = error,
+                    attributes = mapOf(
+                        "place_type" to placeType,
+                        "result_limit" to limit.coerceIn(1, 10).toString()
+                    )
+                )
             }.getOrDefault(emptyList())
         }
         val textCandidates = normalizedTextQueries.flatMap { query ->
@@ -63,6 +76,15 @@ class GooglePlacesNearbyStoreSuggestionRepository(
                 )
             }.onFailure { error ->
                 logWarn(TAG, "Text Search failed for query=$query", error)
+                errorReporter.recordExecutionError(
+                    apiName = API_NAME,
+                    operation = "search_by_text",
+                    throwable = error,
+                    attributes = mapOf(
+                        "query_length" to query.length.toString(),
+                        "result_limit" to limit.coerceIn(1, 10).toString()
+                    )
+                )
             }.getOrDefault(emptyList())
         }
 
@@ -171,6 +193,7 @@ class GooglePlacesNearbyStoreSuggestionRepository(
 
     companion object {
         private const val TAG = "GooglePlacesStoreRepo"
+        private const val API_NAME = "google_places"
         private const val SEARCH_RADIUS_METERS = 3_000.0
         private const val MAX_TYPE_QUERY_COUNT = 2
         private const val MAX_TEXT_QUERY_COUNT = 1

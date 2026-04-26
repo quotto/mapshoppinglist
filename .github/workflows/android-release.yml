@@ -27,6 +27,7 @@ jobs:
           maps-api-key: ${{ secrets.MAPS_API_KEY }}
           nearby-category-api-endpoint: ${{ secrets.NEARBY_CATEGORY_API_ENDPOINT }}
           nearby-category-api-key: ${{ secrets.NEARBY_CATEGORY_API_KEY }}
+          firebase-debug-google-services-json: ${{ secrets.FIREBASE_DEBUG_GOOGLE_SERVICES_JSON }}
 
       - name: AndroidTest 作成
         uses: ./.github/actions/android-gradle
@@ -35,6 +36,7 @@ jobs:
           maps-api-key: ${{ secrets.MAPS_API_KEY }}
           nearby-category-api-endpoint: ${{ secrets.NEARBY_CATEGORY_API_ENDPOINT }}
           nearby-category-api-key: ${{ secrets.NEARBY_CATEGORY_API_KEY }}
+          firebase-debug-google-services-json: ${{ secrets.FIREBASE_DEBUG_GOOGLE_SERVICES_JSON }}
 
       - name: Google Cloud 認証
         uses: google-github-actions/auth@v3
@@ -72,6 +74,7 @@ jobs:
           maps-api-key: ${{ secrets.MAPS_API_KEY }}
           nearby-category-api-endpoint: ${{ secrets.NEARBY_CATEGORY_API_ENDPOINT }}
           nearby-category-api-key: ${{ secrets.NEARBY_CATEGORY_API_KEY }}
+          firebase-release-google-services-json: ${{ secrets.FIREBASE_RELEASE_GOOGLE_SERVICES_JSON }}
           play-service-account-json: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           android-keystore-password: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}

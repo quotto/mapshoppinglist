@@ -22,6 +22,7 @@ import com.google.android.libraries.places.api.net.SearchByTextRequest
 import com.google.android.libraries.places.api.net.SearchByTextResponse
 import com.google.android.libraries.places.api.net.SearchNearbyRequest
 import com.google.android.libraries.places.api.net.SearchNearbyResponse
+import com.mapshoppinglist.monitoring.ExternalApiErrorReporter
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -123,6 +124,31 @@ class GooglePlacesNearbyStoreSuggestionRepositoryTest {
         assertEquals(3, results.size)
         assertEquals(listOf("store-1", "store-2", "store-3"), results.map { it.placeId })
     }
+
+    @Test
+    fun `search records execution error when places api call fails`() = runTest {
+        val fakeClient = FakeNearbyPlacesClient()
+        val reporter = FakePlacesExternalApiErrorReporter()
+        fakeClient.searchNearbyError = IllegalStateException("service unavailable")
+
+        val repository = GooglePlacesNearbyStoreSuggestionRepository(
+            placesClient = fakeClient,
+            errorReporter = reporter
+        )
+
+        val results = repository.search(
+            itemTitle = "牛乳",
+            latitude = 35.0,
+            longitude = 139.0,
+            limit = 5,
+            typeQueries = listOf("supermarket")
+        )
+
+        assertTrue(results.isEmpty())
+        assertEquals(1, reporter.executionErrors.size)
+        assertEquals("google_places", reporter.executionErrors.single().apiName)
+        assertEquals("search_nearby", reporter.executionErrors.single().operation)
+    }
 }
 
 private class FakeNearbyPlacesClient : PlacesClient {
@@ -130,6 +156,7 @@ private class FakeNearbyPlacesClient : PlacesClient {
     var lastSearchNearbyRequest: SearchNearbyRequest? = null
     var searchByTextResponse: SearchByTextResponse = SearchByTextResponse.newInstance(emptyList())
     var searchNearbyResponse: SearchNearbyResponse = SearchNearbyResponse.newInstance(emptyList())
+    var searchNearbyError: Exception? = null
     val searchResponsesByQuery = linkedMapOf<String, SearchByTextResponse>()
     val searchResponsesByType = linkedMapOf<String, SearchNearbyResponse>()
     val requestedQueries = mutableListOf<String>()
@@ -146,6 +173,7 @@ private class FakeNearbyPlacesClient : PlacesClient {
         lastSearchNearbyRequest = request
         val type = request.includedPrimaryTypes?.firstOrNull().orEmpty()
         requestedTypes += type
+        searchNearbyError?.let { return Tasks.forException(it) }
         return Tasks.forResult(searchResponsesByType[type] ?: searchNearbyResponse)
     }
 
@@ -168,3 +196,31 @@ private class FakeNearbyPlacesClient : PlacesClient {
 
     private fun <T> unsupported(): Task<T> = Tasks.forException(UnsupportedOperationException("Not implemented in tests"))
 }
+
+private class FakePlacesExternalApiErrorReporter : ExternalApiErrorReporter {
+    val executionErrors = mutableListOf<RecordedPlacesExecutionError>()
+
+    override fun recordExecutionError(
+        apiName: String,
+        operation: String,
+        throwable: Throwable,
+        attributes: Map<String, String>
+    ) {
+        executionErrors += RecordedPlacesExecutionError(apiName, operation, throwable, attributes)
+    }
+
+    override fun recordResponseError(
+        apiName: String,
+        operation: String,
+        statusCode: Int,
+        responseBodyPreview: String?,
+        attributes: Map<String, String>
+    ) = Unit
+}
+
+private data class RecordedPlacesExecutionError(
+    val apiName: String,
+    val operation: String,
+    val throwable: Throwable,
+    val attributes: Map<String, String>
+)

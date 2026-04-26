@@ -376,6 +376,7 @@ flowchart LR
     - マイナー番号は Pull Request 番号を CI 環境変数で注入しストーリー単位で採番。
     - パッチ番号は `github.run_number` を利用しビルド単位で採番。`versionCode = major*1_000_000 + minor*10_000 + patch`、`versionName = "major.minor.patch"`。
 - **Secrets 管理**
-    - GitHub Secrets を使用し、`MAPS_API_KEY`、`PLAY_SERVICE_ACCOUNT_JSON`、`ANDROID_KEYSTORE_*`、`FIREBASE_TEST_LAB_SA_JSON` を登録。
-    - ワークフロー内で一時ファイルとして `local.properties`、`gradle/keystore.jks`、`gradle/play-service-account.json` を生成し、ジョブ終了時に削除する。
+    - GitHub Secrets を使用し、`MAPS_API_KEY`、`NEARBY_CATEGORY_API_*`、`FIREBASE_DEBUG_GOOGLE_SERVICES_JSON`、`FIREBASE_RELEASE_GOOGLE_SERVICES_JSON`、`PLAY_SERVICE_ACCOUNT_JSON`、`ANDROID_KEYSTORE_*`、`FIREBASE_TEST_LAB_SA_JSON` を登録。
+    - Firebase は開発用と本番用で別プロジェクトを用い、`debug` ビルドでは `FIREBASE_DEBUG_GOOGLE_SERVICES_JSON`、`release` ビルドでは `FIREBASE_RELEASE_GOOGLE_SERVICES_JSON` を用いて `google-services.json` をビルド時生成する。
+    - ワークフロー内で一時ファイルとして `local.properties`、`gradle/keystore.jks`、`gradle/play-service-account.json`、`gradle/firebase-debug-google-services.json`、`gradle/firebase-release-google-services.json` を生成し、ジョブ終了時に削除する。
     - Keystore・Play 資格情報が存在しない場合でもビルドを継続し、必要時のみ署名・配信処理を有効にする。

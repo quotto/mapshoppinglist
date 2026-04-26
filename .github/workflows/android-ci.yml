@@ -21,6 +21,7 @@ jobs:
         with:
           gradle-args: koverHtmlReportDebug
           maps-api-key: ${{ secrets.MAPS_API_KEY }}
+          firebase-debug-google-services-json: ${{ secrets.FIREBASE_DEBUG_GOOGLE_SERVICES_JSON }}
 
       - name: Kover レポートを保存
         if: always()
@@ -45,6 +46,7 @@ jobs:
         with:
           gradle-args: lintDebug
           maps-api-key: ${{ secrets.MAPS_API_KEY }}
+          firebase-debug-google-services-json: ${{ secrets.FIREBASE_DEBUG_GOOGLE_SERVICES_JSON }}
 
       - name: Lint レポートを保存
         if: always()

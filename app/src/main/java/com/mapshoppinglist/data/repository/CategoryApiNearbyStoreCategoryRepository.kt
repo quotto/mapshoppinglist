@@ -3,6 +3,8 @@ package com.mapshoppinglist.data.repository
 import android.util.Log
 import com.mapshoppinglist.domain.model.NearbyStoreCategory
 import com.mapshoppinglist.domain.repository.NearbyStoreCategoryRepository
+import com.mapshoppinglist.monitoring.ExternalApiErrorReporter
+import com.mapshoppinglist.monitoring.NoOpExternalApiErrorReporter
 import java.io.BufferedWriter
 import java.net.HttpURLConnection
 import java.net.URL
@@ -14,6 +16,7 @@ import org.json.JSONObject
 class CategoryApiNearbyStoreCategoryRepository(
     private val endpoint: String,
     private val apiKey: String,
+    private val errorReporter: ExternalApiErrorReporter = NoOpExternalApiErrorReporter,
     private val openConnection: (URL) -> HttpURLConnection = { url ->
         url.openConnection() as HttpURLConnection
     }
@@ -62,6 +65,16 @@ class CategoryApiNearbyStoreCategoryRepository(
                         TAG,
                         "Category API returned non-success status=${connection.responseCode} body=$responseBody"
                     )
+                    errorReporter.recordResponseError(
+                        apiName = API_NAME,
+                        operation = "classify",
+                        statusCode = connection.responseCode,
+                        responseBodyPreview = responseBody.take(RESPONSE_PREVIEW_LIMIT),
+                        attributes = mapOf(
+                            "has_endpoint" to endpoint.isNotBlank().toString(),
+                            "max_categories" to maxCategories.coerceIn(1, MAX_CATEGORIES).toString()
+                        )
+                    )
                     emptyList()
                 } else {
                     parseCategories(responseBody).also { categories ->
@@ -73,6 +86,15 @@ class CategoryApiNearbyStoreCategoryRepository(
                 }
             }.getOrElse { error ->
                 logWarn(TAG, "Category API classification failed", error)
+                errorReporter.recordExecutionError(
+                    apiName = API_NAME,
+                    operation = "classify",
+                    throwable = error,
+                    attributes = mapOf(
+                        "has_endpoint" to endpoint.isNotBlank().toString(),
+                        "max_categories" to maxCategories.coerceIn(1, MAX_CATEGORIES).toString()
+                    )
+                )
                 emptyList()
             }.also {
                 connection.disconnect()
@@ -108,9 +130,11 @@ class CategoryApiNearbyStoreCategoryRepository(
         private const val HEADER_API_KEY = "X-Api-Key"
         private const val DEFAULT_LOCALE = "ja-JP"
         private const val DEFAULT_COUNTRY = "JP"
+        private const val API_NAME = "nearby_category_api"
         private const val MAX_CATEGORIES = 5
         private const val CONNECT_TIMEOUT_MILLIS = 10_000
         private const val READ_TIMEOUT_MILLIS = 10_000
+        private const val RESPONSE_PREVIEW_LIMIT = 256
     }
 
     private fun logInfo(tag: String, message: String) {
