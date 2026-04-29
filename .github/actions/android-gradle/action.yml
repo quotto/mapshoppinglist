@@ -44,6 +44,14 @@ inputs:
     description: Play Developer API 用サービスアカウント JSON
     required: false
     default: ''
+  firebase-debug-google-services-json:
+    description: Debug ビルド用 google-services.json
+    required: false
+    default: ''
+  firebase-release-google-services-json:
+    description: Release ビルド用 google-services.json
+    required: false
+    default: ''
   android-keystore-base64:
     description: Base64 でエンコードした Android 署名キーストア
     required: false
@@ -77,7 +85,7 @@ runs:
   using: composite
   steps:
     - name: JDK をセットアップ
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         distribution: temurin
         java-version: ${{ inputs.java-version }}
@@ -101,6 +109,8 @@ runs:
         NEARBY_CATEGORY_API_ENDPOINT_INPUT: ${{ inputs.nearby-category-api-endpoint }}
         NEARBY_CATEGORY_API_KEY_INPUT: ${{ inputs.nearby-category-api-key }}
         PLAY_JSON_INPUT: ${{ inputs.play-service-account-json }}
+        FIREBASE_DEBUG_GOOGLE_SERVICES_JSON_INPUT: ${{ inputs.firebase-debug-google-services-json }}
+        FIREBASE_RELEASE_GOOGLE_SERVICES_JSON_INPUT: ${{ inputs.firebase-release-google-services-json }}
         KEYSTORE_BASE64_INPUT: ${{ inputs.android-keystore-base64 }}
         KEYSTORE_PASSWORD_INPUT: ${{ inputs.android-keystore-password }}
         KEY_ALIAS_INPUT: ${{ inputs.android-key-alias }}
@@ -131,6 +141,16 @@ runs:
           printf '%s' "${PLAY_JSON_INPUT}" > gradle/play-service-account.json
         fi
 
+        if [ -n "${FIREBASE_DEBUG_GOOGLE_SERVICES_JSON_INPUT}" ]; then
+          printf '%s' "${FIREBASE_DEBUG_GOOGLE_SERVICES_JSON_INPUT}" > gradle/firebase-debug-google-services.json
+          printf 'FIREBASE_DEBUG_GOOGLE_SERVICES_JSON_PATH=%s\n' "${PWD}/gradle/firebase-debug-google-services.json" >> "$GITHUB_ENV"
+        fi
+
+        if [ -n "${FIREBASE_RELEASE_GOOGLE_SERVICES_JSON_INPUT}" ]; then
+          printf '%s' "${FIREBASE_RELEASE_GOOGLE_SERVICES_JSON_INPUT}" > gradle/firebase-release-google-services.json
+          printf 'FIREBASE_RELEASE_GOOGLE_SERVICES_JSON_PATH=%s\n' "${PWD}/gradle/firebase-release-google-services.json" >> "$GITHUB_ENV"
+        fi
+
         if [ -n "${KEYSTORE_PASSWORD_INPUT}" ]; then
           printf 'ANDROID_KEYSTORE_PASSWORD=%s\n' "${KEYSTORE_PASSWORD_INPUT}" >> "$GITHUB_ENV"
         fi
@@ -156,6 +176,8 @@ runs:
         rm -f local.properties
         rm -f gradle/keystore.jks
         rm -f gradle/play-service-account.json
+        rm -f gradle/firebase-debug-google-services.json
+        rm -f gradle/firebase-release-google-services.json
 
 branding:
   icon: play-circle

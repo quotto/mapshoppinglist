@@ -56,3 +56,11 @@ object PlaceManagementTestTags {
     const val DELETE_DIALOG_CONFIRM: String = "place_management_delete_confirm"
     const val DELETE_DIALOG_CANCEL: String = "place_management_delete_cancel"
 }
+
+/**
+ * 近接通知診断ログ画面で利用するテストタグ。
+ */
+object NearbyDiagnosticLogTestTags {
+    const val SCROLL_TO_BOTTOM_BUTTON: String = "nearby_diagnostic_log_scroll_to_bottom_button"
+    const val LOG_CONTENT: String = "nearby_diagnostic_log_content"
+}
