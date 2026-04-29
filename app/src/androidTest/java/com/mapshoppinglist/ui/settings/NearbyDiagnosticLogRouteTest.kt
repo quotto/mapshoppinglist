@@ -2,8 +2,8 @@ package com.mapshoppinglist.ui.settings
 
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.ScrollState
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -12,6 +12,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mapshoppinglist.nearby.NearbyActivityEventLogWriter
 import com.mapshoppinglist.testtag.NearbyDiagnosticLogTestTags
 import com.mapshoppinglist.ui.theme.MapShoppingListTheme
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -53,23 +55,34 @@ class NearbyDiagnosticLogRouteTest {
                 appendDiagnostic("TEST_ACTION", "entry-$index")
             }
         }
+        val scrollState = ScrollState(initial = 0)
 
         composeRule.runOnUiThread {
             composeRule.activity.setContent {
                 MapShoppingListTheme {
                     NearbyDiagnosticLogRoute(
                         onBack = {},
-                        logWriter = writer
+                        logWriter = writer,
+                        providedScrollState = scrollState
                     )
                 }
             }
         }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithText("entry-119", substring = true).assertIsNotDisplayed()
+        composeRule.runOnIdle {
+            assertTrue("Expected log content to be scrollable", scrollState.maxValue > 0)
+            assertEquals("Expected initial scroll position to be top", 0, scrollState.value)
+        }
         composeRule.onNodeWithTag(NearbyDiagnosticLogTestTags.SCROLL_TO_BOTTOM_BUTTON).performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("entry-119", substring = true).assertIsDisplayed()
+        composeRule.runOnIdle {
+            assertEquals(
+                "Expected scroll position to move to bottom",
+                scrollState.maxValue,
+                scrollState.value
+            )
+        }
     }
 
     private fun createWriter(name: String): NearbyActivityEventLogWriter {
