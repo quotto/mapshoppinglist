@@ -30,12 +30,14 @@ class NearbyDiagnosticLogRouteTest {
             appendDiagnostic("TEST_ACTION", "second-entry")
         }
 
-        composeRule.activity.setContent {
-            MapShoppingListTheme {
-                NearbyDiagnosticLogRoute(
-                    onBack = {},
-                    logWriter = writer
-                )
+        composeRule.runOnUiThread {
+            composeRule.activity.setContent {
+                MapShoppingListTheme {
+                    NearbyDiagnosticLogRoute(
+                        onBack = {},
+                        logWriter = writer
+                    )
+                }
             }
         }
         composeRule.waitForIdle()
@@ -52,12 +54,14 @@ class NearbyDiagnosticLogRouteTest {
             }
         }
 
-        composeRule.activity.setContent {
-            MapShoppingListTheme {
-                NearbyDiagnosticLogRoute(
-                    onBack = {},
-                    logWriter = writer
-                )
+        composeRule.runOnUiThread {
+            composeRule.activity.setContent {
+                MapShoppingListTheme {
+                    NearbyDiagnosticLogRoute(
+                        onBack = {},
+                        logWriter = writer
+                    )
+                }
             }
         }
         composeRule.waitForIdle()
