@@ -23,6 +23,7 @@ import com.google.android.libraries.places.api.net.SearchByTextResponse
 import com.google.android.libraries.places.api.net.SearchNearbyRequest
 import com.google.android.libraries.places.api.net.SearchNearbyResponse
 import com.mapshoppinglist.monitoring.ExternalApiErrorReporter
+import java.util.concurrent.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -137,6 +138,21 @@ class GooglePlacesNearbyStoreSuggestionRepositoryTest {
         assertEquals(1, reporter.executionErrors.size)
         assertEquals("google_places", reporter.executionErrors.single().apiName)
         assertEquals("search_nearby", reporter.executionErrors.single().operation)
+    }
+
+    @Test(expected = CancellationException::class)
+    fun `search rethrows cancellation exception from places api`() = runTest {
+        val fakeClient = FakeNearbyPlacesClient()
+        fakeClient.searchNearbyError = CancellationException("cancelled")
+
+        val repository = GooglePlacesNearbyStoreSuggestionRepository(fakeClient)
+        repository.search(
+            itemTitle = "牛乳",
+            latitude = 35.0,
+            longitude = 139.0,
+            limit = 5,
+            typeQueries = listOf("supermarket")
+        )
     }
 }
 

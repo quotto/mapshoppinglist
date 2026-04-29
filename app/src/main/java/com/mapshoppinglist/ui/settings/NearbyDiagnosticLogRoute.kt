@@ -173,29 +173,15 @@ fun NearbyDiagnosticLogRoute(
                     .heightIn(min = 0.dp)
             ) {
                 SelectionContainer {
-                    Column(
+                    Text(
+                        text = logText.ifBlank { stringResource(R.string.nearby_diagnostic_log_empty) },
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(scrollState)
                             .testTag(NearbyDiagnosticLogTestTags.LOG_CONTENT),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        if (logText.isBlank()) {
-                            Text(
-                                text = stringResource(R.string.nearby_diagnostic_log_empty),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        } else {
-                            logText.lineSequence().forEach { line ->
-                                Text(
-                                    text = line,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-                    }
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
         }

@@ -8,6 +8,7 @@ import com.mapshoppinglist.monitoring.NoOpExternalApiErrorReporter
 import java.io.BufferedWriter
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -31,7 +32,7 @@ class CategoryApiNearbyStoreCategoryRepository(
             }
 
             val connection = openConnection(URL(endpoint))
-            return@withContext runCatching {
+            return@withContext try {
                 logInfo(
                     TAG,
                     "Calling category API: endpoint=$endpoint itemTitle=$normalizedItemTitle maxCategories=${maxCategories.coerceIn(1, MAX_CATEGORIES)}"
@@ -58,7 +59,7 @@ class CategoryApiNearbyStoreCategoryRepository(
 
                 val responseBody = (
                     if (connection.responseCode in 200..299) connection.inputStream else connection.errorStream
-                    )?.bufferedReader()?.use { it.readText() }.orEmpty()
+                )?.bufferedReader()?.use { it.readText() }.orEmpty()
 
                 if (connection.responseCode !in 200..299) {
                     logWarn(
@@ -84,7 +85,9 @@ class CategoryApiNearbyStoreCategoryRepository(
                         )
                     }
                 }
-            }.getOrElse { error ->
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
                 logWarn(TAG, "Category API classification failed", error)
                 errorReporter.recordExecutionError(
                     apiName = API_NAME,
@@ -96,7 +99,7 @@ class CategoryApiNearbyStoreCategoryRepository(
                     )
                 )
                 emptyList()
-            }.also {
+            } finally {
                 connection.disconnect()
             }
         }

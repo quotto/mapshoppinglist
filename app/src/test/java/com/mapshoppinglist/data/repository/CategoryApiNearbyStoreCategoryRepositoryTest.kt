@@ -7,6 +7,7 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.concurrent.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -90,16 +91,38 @@ class CategoryApiNearbyStoreCategoryRepositoryTest {
         assertEquals("classify", reporter.responseErrors.single().operation)
         assertEquals(500, reporter.responseErrors.single().statusCode)
     }
+
+    @Test(expected = CancellationException::class)
+    fun `classify rethrows cancellation exception and disconnects connection`() = runTest {
+        val connection = FakeHttpURLConnection(
+            responseCodeValue = 200,
+            responseBody = """{"categories": []}""",
+            outputStreamError = CancellationException("cancelled")
+        )
+        val repository = CategoryApiNearbyStoreCategoryRepository(
+            endpoint = "https://example.com/v1/item-category:classify",
+            apiKey = "secret-key",
+            openConnection = { connection }
+        )
+
+        try {
+            repository.classify("牛乳")
+        } finally {
+            assertTrue(connection.disconnected)
+        }
+    }
 }
 
 private class FakeHttpURLConnection(
     private val responseCodeValue: Int,
-    responseBody: String
+    responseBody: String,
+    private val outputStreamError: Exception? = null
 ) : HttpURLConnection(URL("https://example.com")) {
 
     private val outputBuffer = ByteArrayOutputStream()
     private val inputBytes = responseBody.toByteArray()
     val requestProperties = linkedMapOf<String, String>()
+    var disconnected: Boolean = false
     val requestBodyUtf8: String
         get() = outputBuffer.toString(Charsets.UTF_8.name())
 
@@ -109,7 +132,10 @@ private class FakeHttpURLConnection(
         }
     }
 
-    override fun getOutputStream(): ByteArrayOutputStream = outputBuffer
+    override fun getOutputStream(): ByteArrayOutputStream {
+        outputStreamError?.let { throw it }
+        return outputBuffer
+    }
 
     override fun getInputStream(): ByteArrayInputStream = ByteArrayInputStream(inputBytes)
 
@@ -117,7 +143,9 @@ private class FakeHttpURLConnection(
 
     override fun getResponseCode(): Int = responseCodeValue
 
-    override fun disconnect() {}
+    override fun disconnect() {
+        disconnected = true
+    }
 
     override fun usingProxy(): Boolean = false
 
