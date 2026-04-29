@@ -68,18 +68,7 @@ class GooglePlacesNearbyStoreSuggestionRepositoryTest {
     @Test
     fun `search uses nearby type queries before text queries and deduplicates places`() = runTest {
         val fakeClient = FakeNearbyPlacesClient()
-        fakeClient.searchResponsesByType["supermarket"] = SearchNearbyResponse.newInstance(
-            listOf(
-                Place.builder()
-                    .setId("store-1")
-                    .setName("近所スーパー")
-                    .setAddress("東京都")
-                    .setLatLng(LatLng(35.0005, 139.0005))
-                    .setPrimaryType("supermarket")
-                    .build()
-            )
-        )
-        fakeClient.searchResponsesByType["drugstore"] = SearchNearbyResponse.newInstance(
+        fakeClient.searchResponsesByTypes["supermarket|drugstore"] = SearchNearbyResponse.newInstance(
             listOf(
                 Place.builder()
                     .setId("store-1")
@@ -119,7 +108,7 @@ class GooglePlacesNearbyStoreSuggestionRepositoryTest {
             textQueries = listOf("牛乳")
         )
 
-        assertEquals(listOf("supermarket", "drugstore"), fakeClient.requestedTypes)
+        assertEquals(listOf(listOf("supermarket", "drugstore")), fakeClient.requestedTypeGroups)
         assertEquals(listOf("牛乳"), fakeClient.requestedQueries)
         assertEquals(3, results.size)
         assertEquals(listOf("store-1", "store-2", "store-3"), results.map { it.placeId })
@@ -158,9 +147,9 @@ private class FakeNearbyPlacesClient : PlacesClient {
     var searchNearbyResponse: SearchNearbyResponse = SearchNearbyResponse.newInstance(emptyList())
     var searchNearbyError: Exception? = null
     val searchResponsesByQuery = linkedMapOf<String, SearchByTextResponse>()
-    val searchResponsesByType = linkedMapOf<String, SearchNearbyResponse>()
+    val searchResponsesByTypes = linkedMapOf<String, SearchNearbyResponse>()
     val requestedQueries = mutableListOf<String>()
-    val requestedTypes = mutableListOf<String>()
+    val requestedTypeGroups = mutableListOf<List<String>>()
 
     override fun searchByText(request: SearchByTextRequest): Task<SearchByTextResponse> {
         lastSearchByTextRequest = request
@@ -171,10 +160,11 @@ private class FakeNearbyPlacesClient : PlacesClient {
 
     override fun searchNearby(request: SearchNearbyRequest): Task<SearchNearbyResponse> {
         lastSearchNearbyRequest = request
-        val type = request.includedPrimaryTypes?.firstOrNull().orEmpty()
-        requestedTypes += type
+        val types = request.includedPrimaryTypes.orEmpty()
+        requestedTypeGroups += types
         searchNearbyError?.let { return Tasks.forException(it) }
-        return Tasks.forResult(searchResponsesByType[type] ?: searchNearbyResponse)
+        val key = types.joinToString("|")
+        return Tasks.forResult(searchResponsesByTypes[key] ?: searchNearbyResponse)
     }
 
     override fun fetchPhoto(request: FetchPhotoRequest): Task<FetchPhotoResponse> = unsupported()
