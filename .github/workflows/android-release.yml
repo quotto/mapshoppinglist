@@ -18,7 +18,7 @@ jobs:
       CI_VERSION_PATCH: ${{ github.run_number }}
     steps:
       - name: チェックアウト
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Bundle 作成
         uses: ./.github/actions/android-gradle
@@ -65,7 +65,7 @@ jobs:
       CI_VERSION_PATCH: ${{ github.run_number }}
     steps:
       - name: チェックアウト
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Gradle タスクを実行
         uses: ./.github/actions/android-gradle
@@ -83,7 +83,7 @@ jobs:
 
       - name: リリース成果物をアップロード
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: release-build
           path: app/build/outputs/bundle/release

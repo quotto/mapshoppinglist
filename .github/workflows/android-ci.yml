@@ -14,7 +14,7 @@ jobs:
       contents: read
     steps:
       - name: チェックアウト
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Unitテスト・カバレッジレポート生成
         uses: ./.github/actions/android-gradle
@@ -25,7 +25,7 @@ jobs:
 
       - name: Kover レポートを保存
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-report
           path: app/build/reports/kover/htmlDebug
@@ -39,7 +39,7 @@ jobs:
       contents: read
     steps:
       - name: チェックアウト
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Lint 実行
         uses: ./.github/actions/android-gradle
@@ -50,7 +50,7 @@ jobs:
 
       - name: Lint レポートを保存
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: lint-report
           path: |
