@@ -1,5 +1,6 @@
 import com.github.triplet.gradle.androidpublisher.ReleaseStatus
 import java.util.Properties
+import org.gradle.api.GradleException
 
 plugins {
     id("org.jetbrains.kotlinx.kover") version "0.9.3"
@@ -10,43 +11,98 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.aboutlibraries)
     alias(libs.plugins.play.publisher)
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
 }
 
-val mapsApiKey: String = (findProperty("MAPS_API_KEY") as String?) ?: run {
+fun readLocalProperty(name: String): String? {
     val localProps = Properties()
     val file = rootProject.file("local.properties")
     if (file.exists()) {
         file.inputStream().use(localProps::load)
     }
-    localProps.getProperty("MAPS_API_KEY", "")
+    return localProps.getProperty(name)
 }
 
-val nearbyCategoryApiEndpoint: String = (findProperty("NEARBY_CATEGORY_API_ENDPOINT") as String?) ?: run {
-    val localProps = Properties()
-    val file = rootProject.file("local.properties")
-    if (file.exists()) {
-        file.inputStream().use(localProps::load)
-    }
-    localProps.getProperty("NEARBY_CATEGORY_API_ENDPOINT", "")
+fun readProjectString(name: String, defaultValue: String = ""): String {
+    return (findProperty(name) as String?) ?: readLocalProperty(name) ?: defaultValue
 }
 
-val nearbyCategoryApiKey: String = (findProperty("NEARBY_CATEGORY_API_KEY") as String?) ?: run {
-    val localProps = Properties()
-    val file = rootProject.file("local.properties")
-    if (file.exists()) {
-        file.inputStream().use(localProps::load)
+val mapsApiKey: String = readProjectString("MAPS_API_KEY")
+
+val nearbyCategoryApiEndpoint: String = readProjectString("NEARBY_CATEGORY_API_ENDPOINT")
+
+val nearbyCategoryApiKey: String = readProjectString("NEARBY_CATEGORY_API_KEY")
+
+val nearbyDiagnosticLogEnabled: Boolean = readProjectString("NEARBY_DIAGNOSTIC_LOG_ENABLED", "false").toBoolean()
+
+fun readFirebaseConfigJson(
+    pathEnvName: String,
+    inlineEnvName: String,
+    localPathPropertyName: String,
+    localInlinePropertyName: String,
+    fallbackFile: String
+): String? {
+    val pathCandidate = System.getenv(pathEnvName)
+        ?.takeIf { it.isNotBlank() }
+        ?.let(::file)
+        ?.takeIf { it.exists() }
+        ?: readLocalProperty(localPathPropertyName)
+            ?.takeIf { it.isNotBlank() }
+            ?.let(::file)
+            ?.takeIf { it.exists() }
+        ?: rootProject.file(fallbackFile).takeIf { it.exists() }
+    if (pathCandidate != null) {
+        return pathCandidate.readText()
     }
-    localProps.getProperty("NEARBY_CATEGORY_API_KEY", "")
+    return System.getenv(inlineEnvName)
+        ?.takeIf { it.isNotBlank() }
+        ?: readLocalProperty(localInlinePropertyName)?.takeIf { it.isNotBlank() }
 }
 
-val nearbyDiagnosticLogEnabled: Boolean = ((findProperty("NEARBY_DIAGNOSTIC_LOG_ENABLED") as String?) ?: run {
-    val localProps = Properties()
-    val file = rootProject.file("local.properties")
-    if (file.exists()) {
-        file.inputStream().use(localProps::load)
+fun registerGoogleServicesJsonTask(
+    taskName: String,
+    buildTypeName: String,
+    jsonProvider: () -> String?
+) = tasks.register(taskName) {
+    val outputFile = layout.projectDirectory.file("src/$buildTypeName/google-services.json")
+    outputs.file(outputFile)
+    doLast {
+        val json = jsonProvider()?.trim()?.takeIf { it.isNotEmpty() }
+            ?: throw GradleException(
+                "Missing Firebase google-services.json for $buildTypeName. " +
+                    "Set $taskName input via environment or local.properties."
+            )
+        outputFile.asFile.parentFile.mkdirs()
+        outputFile.asFile.writeText("$json\n")
     }
-    localProps.getProperty("NEARBY_DIAGNOSTIC_LOG_ENABLED", "false")
-}).toBoolean()
+}
+
+val debugGoogleServicesJson = registerGoogleServicesJsonTask(
+    taskName = "generateDebugGoogleServicesJson",
+    buildTypeName = "debug"
+) {
+    readFirebaseConfigJson(
+        pathEnvName = "FIREBASE_DEBUG_GOOGLE_SERVICES_JSON_PATH",
+        inlineEnvName = "FIREBASE_DEBUG_GOOGLE_SERVICES_JSON",
+        localPathPropertyName = "FIREBASE_DEBUG_GOOGLE_SERVICES_JSON_PATH",
+        localInlinePropertyName = "FIREBASE_DEBUG_GOOGLE_SERVICES_JSON",
+        fallbackFile = "gradle/firebase-debug-google-services.json"
+    )
+}
+
+val releaseGoogleServicesJson = registerGoogleServicesJsonTask(
+    taskName = "generateReleaseGoogleServicesJson",
+    buildTypeName = "release"
+) {
+    readFirebaseConfigJson(
+        pathEnvName = "FIREBASE_RELEASE_GOOGLE_SERVICES_JSON_PATH",
+        inlineEnvName = "FIREBASE_RELEASE_GOOGLE_SERVICES_JSON",
+        localPathPropertyName = "FIREBASE_RELEASE_GOOGLE_SERVICES_JSON_PATH",
+        localInlinePropertyName = "FIREBASE_RELEASE_GOOGLE_SERVICES_JSON",
+        fallbackFile = "gradle/firebase-release-google-services.json"
+    )
+}
 
 fun buildConfigString(value: String): String {
     val escaped = value.replace("\\", "\\\\").replace("\"", "\\\"")
@@ -109,6 +165,10 @@ android {
         (findProperty("testBuildType") as String?) ?: "debug"
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".dev"
+            resValue("string", "app_name", "地図で買い物リスト.dev")
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -194,6 +254,14 @@ aboutLibraries {
     android.registerAndroidTasks = true
 }
 
+tasks.matching { it.name == "processDebugGoogleServices" }.configureEach {
+    dependsOn(debugGoogleServicesJson)
+}
+
+tasks.matching { it.name == "processReleaseGoogleServices" }.configureEach {
+    dependsOn(releaseGoogleServicesJson)
+}
+
 val playCredentialsPath = System.getenv("PLAY_SERVICE_ACCOUNT_JSON_PATH")?.let(::file)
 val defaultPlayCredentialsFile = rootProject.file("gradle/play-service-account.json")
 val playCredentialsFile = when {
@@ -214,6 +282,7 @@ play {
 
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
+    implementation(platform(libs.firebase.bom))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -237,6 +306,7 @@ dependencies {
     implementation(libs.androidx.sqlite.framework)
     implementation(libs.aboutlibraries.core)
     implementation(libs.aboutlibraries.compose)
+    implementation(libs.firebase.crashlytics)
 
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

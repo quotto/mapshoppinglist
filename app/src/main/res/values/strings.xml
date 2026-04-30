@@ -66,6 +66,7 @@
     <string name="nearby_diagnostic_log_share">共有</string>
     <string name="nearby_diagnostic_log_clear">削除</string>
     <string name="nearby_diagnostic_log_refresh">更新</string>
+    <string name="nearby_diagnostic_log_scroll_to_bottom">最下部へ移動</string>
     <string name="nearby_diagnostic_log_empty">ログはまだありません。</string>
     <string name="oss_licenses_title">オープンソースライセンス</string>
     <string name="privacy_policy_title">プライバシーポリシー</string>

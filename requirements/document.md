@@ -225,7 +225,7 @@ flowchart LR
 
 - **目的**: `NEARBY_DIAGNOSTIC_LOG_ENABLED=true` でビルドした版において、近接通知の登録・受信・候補探索・カテゴリ API 呼び出しの流れを後から確認できるようにする。
 - **内容**: Activity Recognition の transition 受信、候補検索クエリ、カテゴリ API / Places API の実行結果、抑止理由などを端末内ログとして表示する。
-- **操作**: 画面上でログ本文を閲覧でき、共有・削除・再読み込みを提供する。
+- **操作**: 画面上でログ本文を閲覧でき、共有・削除・再読み込みに加えて、末尾の最新ログまで一気に移動する「最下部へ移動」を提供する。
 - **保存場所**: アプリ内部ストレージに保持し、外部へ自動送信しない。アンインストール時に削除される。`NEARBY_DIAGNOSTIC_LOG_ENABLED=false` の場合は記録しない。
 
 ---
@@ -376,6 +376,7 @@ flowchart LR
     - マイナー番号は Pull Request 番号を CI 環境変数で注入しストーリー単位で採番。
     - パッチ番号は `github.run_number` を利用しビルド単位で採番。`versionCode = major*1_000_000 + minor*10_000 + patch`、`versionName = "major.minor.patch"`。
 - **Secrets 管理**
-    - GitHub Secrets を使用し、`MAPS_API_KEY`、`PLAY_SERVICE_ACCOUNT_JSON`、`ANDROID_KEYSTORE_*`、`FIREBASE_TEST_LAB_SA_JSON` を登録。
-    - ワークフロー内で一時ファイルとして `local.properties`、`gradle/keystore.jks`、`gradle/play-service-account.json` を生成し、ジョブ終了時に削除する。
+    - GitHub Secrets を使用し、`MAPS_API_KEY`、`NEARBY_CATEGORY_API_*`、`FIREBASE_DEBUG_GOOGLE_SERVICES_JSON`、`FIREBASE_RELEASE_GOOGLE_SERVICES_JSON`、`PLAY_SERVICE_ACCOUNT_JSON`、`ANDROID_KEYSTORE_*`、`FIREBASE_TEST_LAB_SA_JSON` を登録。
+    - Firebase は開発用と本番用で別プロジェクトを用い、`debug` ビルドでは `FIREBASE_DEBUG_GOOGLE_SERVICES_JSON`、`release` ビルドでは `FIREBASE_RELEASE_GOOGLE_SERVICES_JSON` を用いて `google-services.json` をビルド時生成する。
+    - ワークフロー内で一時ファイルとして `local.properties`、`gradle/keystore.jks`、`gradle/play-service-account.json`、`gradle/firebase-debug-google-services.json`、`gradle/firebase-release-google-services.json` を生成し、ジョブ終了時に削除する。
     - Keystore・Play 資格情報が存在しない場合でもビルドを継続し、必要時のみ署名・配信処理を有効にする。

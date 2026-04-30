@@ -49,6 +49,8 @@ import com.mapshoppinglist.geofence.GeofencePendingIntentProvider
 import com.mapshoppinglist.geofence.GeofenceRegistrar
 import com.mapshoppinglist.geofence.GeofenceSyncCoordinator
 import com.mapshoppinglist.geofence.GeofenceSyncScheduler
+import com.mapshoppinglist.monitoring.ExternalApiErrorReporter
+import com.mapshoppinglist.monitoring.FirebaseExternalApiErrorReporter
 import com.mapshoppinglist.nearby.NearbyActivityTransitionScheduler
 import com.mapshoppinglist.nearby.NearbySuggestionTriggerWorker
 import com.mapshoppinglist.notification.NotificationSender
@@ -138,14 +140,22 @@ class MapShoppingListApplication : Application() {
         )
     }
 
+    val externalApiErrorReporter: ExternalApiErrorReporter by lazy {
+        FirebaseExternalApiErrorReporter()
+    }
+
     val nearbyStoreSuggestionRepository: NearbyStoreSuggestionRepository by lazy {
-        GooglePlacesNearbyStoreSuggestionRepository(placesClient)
+        GooglePlacesNearbyStoreSuggestionRepository(
+            placesClient = placesClient,
+            errorReporter = externalApiErrorReporter
+        )
     }
 
     val nearbyStoreCategoryRepository: NearbyStoreCategoryRepository by lazy {
         CategoryApiNearbyStoreCategoryRepository(
             endpoint = BuildConfig.NEARBY_CATEGORY_API_ENDPOINT,
-            apiKey = BuildConfig.NEARBY_CATEGORY_API_KEY
+            apiKey = BuildConfig.NEARBY_CATEGORY_API_KEY,
+            errorReporter = externalApiErrorReporter
         )
     }
 

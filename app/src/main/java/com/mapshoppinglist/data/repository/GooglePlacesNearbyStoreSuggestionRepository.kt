@@ -1,4 +1,5 @@
 package com.mapshoppinglist.data.repository
+
 import android.util.Log
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.libraries.places.api.model.CircularBounds
@@ -8,12 +9,16 @@ import com.google.android.libraries.places.api.net.SearchNearbyRequest
 import com.google.android.libraries.places.api.net.SearchByTextRequest
 import com.mapshoppinglist.domain.model.NearbyStoreCandidate
 import com.mapshoppinglist.domain.repository.NearbyStoreSuggestionRepository
+import com.mapshoppinglist.monitoring.ExternalApiErrorReporter
+import com.mapshoppinglist.monitoring.NoOpExternalApiErrorReporter
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
 class GooglePlacesNearbyStoreSuggestionRepository(
-    private val placesClient: PlacesClient
+    private val placesClient: PlacesClient,
+    private val errorReporter: ExternalApiErrorReporter = NoOpExternalApiErrorReporter
 ) : NearbyStoreSuggestionRepository {
 
     override suspend fun search(
@@ -41,29 +46,56 @@ class GooglePlacesNearbyStoreSuggestionRepository(
             "Starting Places search: itemTitle=$itemTitle typeQueries=${normalizedTypeQueries.joinToString("|")} textQueries=${normalizedTextQueries.joinToString("|")} lat=$latitude lng=$longitude"
         )
 
-        val nearbyCandidates = normalizedTypeQueries.flatMap { placeType ->
-            runCatching {
-                searchNearbyByType(
-                    placeType = placeType,
-                    latitude = latitude,
-                    longitude = longitude,
-                    limit = limit
-                )
-            }.onFailure { error ->
-                logWarn(TAG, "Nearby Search failed for type=$placeType", error)
-            }.getOrDefault(emptyList())
-        }
+        val nearbyCandidates = normalizedTypeQueries
+            .chunked(MAX_INCLUDED_PRIMARY_TYPES_PER_REQUEST)
+            .flatMap { placeTypes ->
+                try {
+                    searchNearbyByTypes(
+                        placeTypes = placeTypes,
+                        latitude = latitude,
+                        longitude = longitude,
+                        limit = limit
+                    )
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    logWarn(TAG, "Nearby Search failed for types=${placeTypes.joinToString("|")}", error)
+                    errorReporter.recordExecutionError(
+                        apiName = API_NAME,
+                        operation = "search_nearby",
+                        throwable = error,
+                        attributes = mapOf(
+                            "place_types" to placeTypes.joinToString(","),
+                            "place_type_count" to placeTypes.size.toString(),
+                            "result_limit" to limit.coerceIn(1, 10).toString()
+                        )
+                    )
+                    emptyList()
+                }
+            }
         val textCandidates = normalizedTextQueries.flatMap { query ->
-            runCatching {
+            try {
                 searchByTextQuery(
                     query = query,
                     latitude = latitude,
                     longitude = longitude,
                     limit = limit
                 )
-            }.onFailure { error ->
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
                 logWarn(TAG, "Text Search failed for query=$query", error)
-            }.getOrDefault(emptyList())
+                errorReporter.recordExecutionError(
+                    apiName = API_NAME,
+                    operation = "search_by_text",
+                    throwable = error,
+                    attributes = mapOf(
+                        "query_length" to query.length.toString(),
+                        "result_limit" to limit.coerceIn(1, 10).toString()
+                    )
+                )
+                emptyList()
+            }
         }
 
         (nearbyCandidates + textCandidates)
@@ -79,12 +111,13 @@ class GooglePlacesNearbyStoreSuggestionRepository(
             }
     }
 
-    private suspend fun searchNearbyByType(
-        placeType: String,
+    private suspend fun searchNearbyByTypes(
+        placeTypes: List<String>,
         latitude: Double,
         longitude: Double,
         limit: Int
     ): List<NearbyStoreCandidate> {
+        require(placeTypes.isNotEmpty()) { "placeTypes must not be empty" }
         val request = SearchNearbyRequest.builder(
             CircularBounds.newInstance(
                 LatLng(latitude, longitude),
@@ -92,7 +125,7 @@ class GooglePlacesNearbyStoreSuggestionRepository(
             ),
             PLACE_FIELDS
         )
-            .setIncludedPrimaryTypes(listOf(placeType))
+            .setIncludedPrimaryTypes(placeTypes)
             .setMaxResultCount(limit.coerceIn(1, 10))
             .setRankPreference(SearchNearbyRequest.RankPreference.DISTANCE)
             .build()
@@ -171,9 +204,11 @@ class GooglePlacesNearbyStoreSuggestionRepository(
 
     companion object {
         private const val TAG = "GooglePlacesStoreRepo"
+        private const val API_NAME = "google_places"
         private const val SEARCH_RADIUS_METERS = 3_000.0
         private const val MAX_TYPE_QUERY_COUNT = 2
         private const val MAX_TEXT_QUERY_COUNT = 1
+        private const val MAX_INCLUDED_PRIMARY_TYPES_PER_REQUEST = 50
 
         private val PLACE_FIELDS = listOf(
             Place.Field.ID,

@@ -5,6 +5,8 @@ build/
 
 # Local configuration
 local.properties
+app/src/debug/google-services.json
+app/src/release/google-services.json
 
 # Android Studio / IntelliJ
 .idea/
@@ -63,3 +65,4 @@ fastlane/test_output/
 
 # working directories
 work/
+/gradle/firebase-debug-google-services.json
