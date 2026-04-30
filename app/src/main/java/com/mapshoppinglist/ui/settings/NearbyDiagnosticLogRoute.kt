@@ -2,12 +2,15 @@ package com.mapshoppinglist.ui.settings
 
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -30,20 +33,30 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.mapshoppinglist.R
 import com.mapshoppinglist.nearby.NearbyActivityEventLogWriter
+import com.mapshoppinglist.testtag.NearbyDiagnosticLogTestTags
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NearbyDiagnosticLogRoute(onBack: () -> Unit) {
+fun NearbyDiagnosticLogRoute(
+    onBack: () -> Unit,
+    logWriter: NearbyActivityEventLogWriter? = null,
+    providedScrollState: ScrollState? = null
+) {
     val context = LocalContext.current
-    val writer = remember(context) { NearbyActivityEventLogWriter.fromContext(context) }
+    val writer = logWriter ?: remember(context) { NearbyActivityEventLogWriter.fromContext(context) }
     var logText by remember(writer) { mutableStateOf(writer.readLogText()) }
+    val scrollState = providedScrollState ?: rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
 
     fun reload() {
         logText = writer.readLogText()
@@ -139,15 +152,39 @@ fun NearbyDiagnosticLogRoute(onBack: () -> Unit) {
                     Text(text = stringResource(R.string.nearby_diagnostic_log_clear))
                 }
             }
-            SelectionContainer {
-                Text(
-                    text = logText.ifBlank { stringResource(R.string.nearby_diagnostic_log_empty) },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            scrollState.animateScrollTo(scrollState.maxValue)
+                        }
+                    },
+                    modifier = Modifier.testTag(NearbyDiagnosticLogTestTags.SCROLL_TO_BOTTOM_BUTTON),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
+                ) {
+                    Text(text = stringResource(R.string.nearby_diagnostic_log_scroll_to_bottom))
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .heightIn(min = 0.dp)
+            ) {
+                SelectionContainer {
+                    Text(
+                        text = logText.ifBlank { stringResource(R.string.nearby_diagnostic_log_empty) },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(scrollState)
+                            .testTag(NearbyDiagnosticLogTestTags.LOG_CONTENT),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
         }
     }

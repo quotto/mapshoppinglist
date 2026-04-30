@@ -5,6 +5,7 @@ package com.mapshoppinglist.ui.home
 import android.os.SystemClock
 import androidx.activity.compose.setContent
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasSetTextAction
@@ -12,12 +13,15 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.mapshoppinglist.BuildConfig
 import com.mapshoppinglist.MainActivity
 import com.mapshoppinglist.R
 import com.mapshoppinglist.testtag.ItemDetailTestTags
@@ -58,6 +62,23 @@ class ShoppingListScreenTest {
         composeRule.onNodeWithTag(ShoppingListTestTags.ADD_FAB)
             .assertHasClickAction()
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun nearbyDiagnosticLogMenuVisibilityFollowsBuildConfig() {
+        composeRule.onNodeWithContentDescription(
+            composeRule.getString(R.string.common_more_options)
+        ).performClick()
+
+        if (BuildConfig.NEARBY_DIAGNOSTIC_LOG_ENABLED) {
+            composeRule.onNodeWithText(
+                composeRule.getString(R.string.menu_nearby_diagnostic_log)
+            ).assertIsDisplayed()
+        } else {
+            composeRule.onAllNodesWithText(
+                composeRule.getString(R.string.menu_nearby_diagnostic_log)
+            ).assertCountEquals(0)
+        }
     }
 
     @Test
